@@ -1,0 +1,6 @@
+{
+  "name": "LABNAME.COM - Laboratory Management Software for India",
+  "description": "Laboratory management software for Indian diagnostic and pathology labs. Works offline, WhatsApp reports, INR billing, zero-login patient portal, and multi-branch control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
