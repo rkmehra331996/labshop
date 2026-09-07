@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   CmsUser,
+  LabStaffAccount,
   CompanySettings,
   PricingPlan,
   CompanyFeature,
@@ -335,6 +336,33 @@ const DEFAULT_VENDOR_BOOKINGS: HomeCollectionBooking[] = [
   },
 ];
 
+export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
+  {
+    id: 'staff-reception-1',
+    name: 'Pooja Verma',
+    role: 'reception',
+    username: 'reception@apexlab.com',
+    phone: '+91 98765 11223',
+    password: 'reception123',
+    status: 'active',
+    lastPasswordReset: '01 Sep 2026, 10:30 AM',
+    shift: 'Morning & Afternoon Shift (8:00 AM - 4:00 PM)',
+    notes: 'Primary reception desk token generation, patient billing & fee collection',
+  },
+  {
+    id: 'staff-tech-1',
+    name: 'Amit Khurana (DMLT)',
+    role: 'technician',
+    username: 'technician@apexlab.com',
+    phone: '+91 98765 44556',
+    password: 'tech123',
+    status: 'active',
+    lastPasswordReset: '01 Sep 2026, 11:15 AM',
+    shift: 'Full Day Diagnostic Shift (9:00 AM - 6:00 PM)',
+    notes: 'Senior laboratory technician in charge of Hematology, Biochemistry & Analyzer verification',
+  },
+];
+
 // --- CMS CONTEXT INTERFACE ---
 interface CmsContextType {
   currentUser: CmsUser | null;
@@ -344,6 +372,13 @@ interface CmsContextType {
   setIsAuthModalOpen: (open: boolean) => void;
   targetLoginRole: 'admin' | 'technician' | 'reception' | 'vendor' | null;
   openLoginModal: (role?: 'admin' | 'technician' | 'reception' | 'vendor') => void;
+
+  // Lab Staff Credentials (Lab Owner creates & resets Reception & Technician)
+  staffAccounts: LabStaffAccount[];
+  addStaffAccount: (staff: Omit<LabStaffAccount, 'id'>) => void;
+  updateStaffAccount: (id: string, updates: Partial<LabStaffAccount>) => void;
+  resetStaffPassword: (id: string, newPassword: string) => void;
+  deleteStaffAccount: (id: string) => void;
 
   // Company CMS
   companySettings: CompanySettings;
@@ -772,7 +807,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Save to LocalStorage effects
   useEffect(() => {
     try {
-      localStorage.setItem('cms_current_user', JSON.stringify(currentUser));
+      if (currentUser) {
+        localStorage.setItem('cms_current_user', JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem('cms_current_user');
+      }
     } catch {}
   }, [currentUser]);
 
@@ -842,13 +881,70 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
   }, [vendorBookings]);
 
+  // Lab Staff Accounts State (Reception & Technician managed by Lab Owner)
+  const [staffAccounts, setStaffAccounts] = useState<LabStaffAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_lab_staff_accounts');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_STAFF_ACCOUNTS;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_lab_staff_accounts', JSON.stringify(staffAccounts));
+    } catch {}
+  }, [staffAccounts]);
+
+  const resetStaffPassword = (id: string, newPassword: string) => {
+    const now = new Date().toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    setStaffAccounts((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, password: newPassword, lastPasswordReset: now } : s
+      )
+    );
+  };
+
+  const updateStaffAccount = (id: string, updates: Partial<LabStaffAccount>) => {
+    setStaffAccounts((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+  };
+
+  const addStaffAccount = (staff: Omit<LabStaffAccount, 'id'>) => {
+    const now = new Date().toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const newStaff: LabStaffAccount = {
+      ...staff,
+      id: `staff-${Date.now()}`,
+      lastPasswordReset: now,
+    };
+    setStaffAccounts((prev) => [...prev, newStaff]);
+  };
+
+  const deleteStaffAccount = (id: string) => {
+    setStaffAccounts((prev) => prev.filter((s) => s.id !== id));
+  };
+
   // Auth actions
   const login = (role: 'admin' | 'technician' | 'reception' | 'vendor', email?: string, _password?: string): boolean => {
     if (role === 'reception') {
+      const staff = staffAccounts.find((s) => s.role === 'reception');
       const user: CmsUser = {
-        id: 'usr-reception-1',
-        name: 'Pooja Verma (Front Desk)',
-        email: email || 'reception@apexlab.com',
+        id: staff?.id || 'usr-reception-1',
+        name: staff ? `${staff.name} (Front Desk)` : 'Pooja Verma (Front Desk)',
+        email: email || staff?.username || 'reception@apexlab.com',
         role: 'reception',
         entityName: `${vendorLabSettings.labName} (Reception Desk)`,
       };
@@ -856,10 +952,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsAuthModalOpen(false);
       return true;
     } else if (role === 'technician') {
+      const staff = staffAccounts.find((s) => s.role === 'technician');
       const user: CmsUser = {
-        id: 'usr-tech-1',
-        name: 'Amit Khurana (Lab Technician)',
-        email: email || 'technician@apexlab.com',
+        id: staff?.id || 'usr-tech-1',
+        name: staff ? `${staff.name} (Lab Technician)` : 'Amit Khurana (Lab Technician)',
+        email: email || staff?.username || 'technician@apexlab.com',
         role: 'technician',
         entityName: `${vendorLabSettings.labName} (Diagnostic Workstation)`,
       };
@@ -868,11 +965,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return true;
     } else if (role === 'admin') {
       const user: CmsUser = {
-        id: 'usr-admin-1',
-        name: 'Dr. Rajesh Sharma (Administrator)',
-        email: email || 'admin@apexlab.com',
+        id: 'usr-admin-super',
+        name: 'R. K. Mehra (Portal Website Owner / Super Admin)',
+        email: email || 'rkmehra331996@gmail.com',
         role: 'admin',
-        entityName: vendorLabSettings.labName,
+        entityName: 'Diagnostic SaaS Portal Central System',
       };
       setCurrentUser(user);
       setIsAuthModalOpen(false);
@@ -881,7 +978,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const user: CmsUser = {
         id: 'usr-vendor-1',
         name: 'Dr. Rajesh Sharma (Lab Owner)',
-        email: email || 'vendor@apexlab.com',
+        email: email || '9876543210',
         role: 'vendor',
         entityName: vendorLabSettings.labName,
       };
@@ -893,7 +990,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = () => {
     setCurrentUser(null);
-    localStorage.removeItem('cms_current_user');
+    try {
+      localStorage.removeItem('cms_current_user');
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('view') || url.searchParams.has('dashboard')) {
+          url.searchParams.delete('view');
+          url.searchParams.delete('dashboard');
+          window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+        }
+      }
+    } catch {}
   };
 
   const openLoginModal = (role?: 'admin' | 'technician' | 'reception' | 'vendor') => {
@@ -1172,6 +1279,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setVendorBookings(DEFAULT_VENDOR_BOOKINGS);
     setReports([SAMPLE_REPORT]);
     setReceptionEntries(INITIAL_RECEPTION_ENTRIES);
+    setStaffAccounts(DEFAULT_STAFF_ACCOUNTS);
 
     localStorage.clear();
   };
@@ -1186,6 +1294,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsAuthModalOpen,
         targetLoginRole,
         openLoginModal,
+
+        staffAccounts,
+        addStaffAccount,
+        updateStaffAccount,
+        resetStaffPassword,
+        deleteStaffAccount,
 
         companySettings,
         updateCompanySettings,

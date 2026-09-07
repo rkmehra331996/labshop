@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView, Language } from './types';
 import { TopBar } from './components/TopBar';
 import { Navbar } from './components/Navbar';
@@ -35,6 +35,7 @@ import { CompanyAdminDashboard } from './components/CompanyAdminDashboard';
 import { LabVendorDashboard } from './components/LabVendorDashboard';
 import { ReceptionEntryDashboard } from './components/ReceptionEntryDashboard';
 import { TechnicianDepartmentDashboard } from './components/technician/TechnicianDepartmentDashboard';
+import { DashboardAuthGuard } from './components/DashboardAuthGuard';
 import { CmsAuthModal } from './components/CmsAuthModal';
 import { useCms } from './context/CmsContext';
 
@@ -46,7 +47,72 @@ export default function App() {
   const [selectedReportId, setSelectedReportId] = useState('');
   const [selectedPatientMobile, setSelectedPatientMobile] = useState('');
 
-  const { isAuthModalOpen, setIsAuthModalOpen, portalSections } = useCms();
+  const { currentUser, isAuthModalOpen, setIsAuthModalOpen, portalSections } = useCms();
+
+  // Sync view from URL parameters on initial mount
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const viewParam = params.get('view') as AppView | null;
+      if (
+        viewParam &&
+        [
+          'vendor_dashboard',
+          'reception_dashboard',
+          'technician_dashboard',
+          'admin_dashboard',
+          'vendor_website',
+          'website',
+          'patient_portal',
+          'lab_app',
+        ].includes(viewParam)
+      ) {
+        setCurrentView(viewParam);
+      }
+    } catch {}
+  }, []);
+
+  // Update URL search parameters when view changes (unless on public websites)
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (currentView === 'website' || currentView === 'vendor_website') {
+        if (url.searchParams.has('view')) {
+          url.searchParams.delete('view');
+          window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+        }
+      } else {
+        url.searchParams.set('view', currentView);
+        window.history.replaceState({}, '', url.pathname + url.search);
+      }
+    } catch {}
+  }, [currentView]);
+
+  // Authorization check for protected dashboard workspaces
+  const isAuthorizedForView = (view: AppView): boolean => {
+    if (!currentUser) return false;
+    if (view === 'admin_dashboard') {
+      return currentUser.role === 'admin';
+    }
+    if (view === 'vendor_dashboard') {
+      return currentUser.role === 'vendor' || currentUser.role === 'admin';
+    }
+    if (view === 'reception_dashboard') {
+      return (
+        currentUser.role === 'reception' ||
+        currentUser.role === 'vendor' ||
+        currentUser.role === 'admin'
+      );
+    }
+    if (view === 'technician_dashboard') {
+      return (
+        currentUser.role === 'technician' ||
+        currentUser.role === 'vendor' ||
+        currentUser.role === 'admin'
+      );
+    }
+    return true;
+  };
 
   const handleOpenDemo = () => setIsDemoModalOpen(true);
   const handleOpenTrial = () => setIsTrialModalOpen(true);
@@ -95,6 +161,28 @@ export default function App() {
 
   // 2. Dedicated Experience: Company Admin CMS Dashboard
   if (currentView === 'admin_dashboard') {
+    if (!isAuthorizedForView('admin_dashboard')) {
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+          <DashboardAuthGuard
+            view="admin_dashboard"
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+          <CmsAuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onNavigateView={(v) => {
+              setCurrentView(v);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
         <TopBar
@@ -123,6 +211,28 @@ export default function App() {
 
   // 3. Dedicated Experience: Diagnostic Lab Vendor CMS Dashboard
   if (currentView === 'vendor_dashboard') {
+    if (!isAuthorizedForView('vendor_dashboard')) {
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+          <DashboardAuthGuard
+            view="vendor_dashboard"
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+          <CmsAuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onNavigateView={(v) => {
+              setCurrentView(v);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
         <LabVendorDashboard
@@ -145,6 +255,28 @@ export default function App() {
 
   // 4. Dedicated Experience: Reception Entry & Billing Dashboard
   if (currentView === 'reception_dashboard') {
+    if (!isAuthorizedForView('reception_dashboard')) {
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+          <DashboardAuthGuard
+            view="reception_dashboard"
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+          <CmsAuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onNavigateView={(v) => {
+              setCurrentView(v);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
         <ReceptionEntryDashboard
@@ -168,6 +300,28 @@ export default function App() {
 
   // 4b. Dedicated Experience: Technician Department Dashboard (Reports, Edit, Cancel Reason)
   if (currentView === 'technician_dashboard') {
+    if (!isAuthorizedForView('technician_dashboard')) {
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+          <DashboardAuthGuard
+            view="technician_dashboard"
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+          <CmsAuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onNavigateView={(v) => {
+              setCurrentView(v);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
         <TechnicianDepartmentDashboard

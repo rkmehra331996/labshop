@@ -20,13 +20,17 @@ interface StaffRolesSectionProps {
 }
 
 export const StaffRolesSection: React.FC<StaffRolesSectionProps> = ({ onNavigateView }) => {
-  const { login } = useCms();
+  const { openLoginModal, currentUser } = useCms();
 
   const handleLaunch = (role: 'reception' | 'technician' | 'admin', view: AppView) => {
-    login(role);
-    if (onNavigateView) {
-      onNavigateView(view);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    const targetRole = role === 'admin' ? 'vendor' : role;
+    if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'vendor' || currentUser.role === role)) {
+      if (onNavigateView) {
+        onNavigateView(view);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } else {
+      openLoginModal(targetRole);
     }
   };
 

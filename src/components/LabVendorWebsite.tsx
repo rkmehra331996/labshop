@@ -53,6 +53,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   onOpenReceptionDashboard,
 }) => {
   const {
+    currentUser,
     vendorLabSettings,
     vendorPackages,
     vendorTests,
@@ -60,6 +61,30 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     addHomeCollectionBooking,
     openLoginModal,
   } = useCms();
+
+  const handleOpenManagement = () => {
+    if (currentUser && (currentUser.role === 'vendor' || currentUser.role === 'admin')) {
+      if (onOpenVendorDashboard) onOpenVendorDashboard();
+    } else {
+      openLoginModal('vendor');
+    }
+  };
+
+  const handleOpenReception = () => {
+    if (currentUser && (currentUser.role === 'reception' || currentUser.role === 'vendor' || currentUser.role === 'admin')) {
+      if (onOpenReceptionDashboard) onOpenReceptionDashboard();
+    } else {
+      openLoginModal('reception');
+    }
+  };
+
+  const handleOpenTechnician = () => {
+    if (currentUser && (currentUser.role === 'technician' || currentUser.role === 'vendor' || currentUser.role === 'admin')) {
+      if (onOpenLabSoftware) onOpenLabSoftware();
+    } else {
+      openLoginModal('technician');
+    }
+  };
 
   const labShopId = vendorLabSettings?.labShopId || 'LSP-7087';
   const labName = vendorLabSettings?.labName || vendorLabSettings?.name || 'Apex Diagnostic & Clinical Pathology Laboratory';
@@ -420,8 +445,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     type="button"
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      if (onOpenReceptionDashboard) onOpenReceptionDashboard();
-                      else openLoginModal('reception');
+                      handleOpenReception();
                     }}
                     className="bg-[#0F766E] text-white py-2 px-1 rounded-lg text-[11px] font-bold text-center flex flex-col items-center justify-center gap-0.5 shadow-2xs cursor-pointer active:scale-95 transition"
                   >
@@ -432,8 +456,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     type="button"
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      if (onOpenLabSoftware) onOpenLabSoftware();
-                      else openLoginModal('technician');
+                      handleOpenTechnician();
                     }}
                     className="bg-[#123B6D] text-white py-2 px-1 rounded-lg text-[11px] font-bold text-center flex flex-col items-center justify-center gap-0.5 shadow-2xs cursor-pointer active:scale-95 transition"
                   >
@@ -444,8 +467,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     type="button"
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      if (onOpenVendorDashboard) onOpenVendorDashboard();
-                      else openLoginModal('vendor');
+                      handleOpenManagement();
                     }}
                     className="bg-amber-400 text-slate-950 py-2 px-1 rounded-lg text-[11px] font-bold text-center flex flex-col items-center justify-center gap-0.5 shadow-2xs cursor-pointer active:scale-95 transition"
                   >
@@ -713,10 +735,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 <button
                   type="button"
                   id="quick-access-reception"
-                  onClick={() => {
-                    if (onOpenReceptionDashboard) onOpenReceptionDashboard();
-                    else openLoginModal('reception');
-                  }}
+                  onClick={handleOpenReception}
                   className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
                   title="Open Reception Desk Dashboard"
                 >
@@ -727,10 +746,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 <button
                   type="button"
                   id="quick-access-technician"
-                  onClick={() => {
-                    if (onOpenLabSoftware) onOpenLabSoftware();
-                    else openLoginModal('technician');
-                  }}
+                  onClick={handleOpenTechnician}
                   className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
                   title="Open Lab Technician Testing & Report Station"
                 >
@@ -741,10 +757,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 <button
                   type="button"
                   id="quick-access-management"
-                  onClick={() => {
-                    if (onOpenVendorDashboard) onOpenVendorDashboard();
-                    else openLoginModal('vendor');
-                  }}
+                  onClick={handleOpenManagement}
                   className="bg-amber-400 hover:bg-amber-500 text-slate-950 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
                   title="Open Lab Management & Website CMS"
                 >
@@ -796,10 +809,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
                 <div className="pt-4 mt-3 border-t border-teal-100">
                   <button
-                    onClick={() => {
-                      if (onOpenReceptionDashboard) onOpenReceptionDashboard();
-                      else openLoginModal('reception');
-                    }}
+                    onClick={handleOpenReception}
                     className="w-full bg-[#0F766E] hover:bg-[#0d655e] text-white py-2.5 rounded-xl font-black text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span>Open Reception Desk</span>
@@ -849,10 +859,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
                 <div className="pt-4 mt-3 border-t border-indigo-100">
                   <button
-                    onClick={() => {
-                      if (onOpenLabSoftware) onOpenLabSoftware();
-                      else openLoginModal('technician');
-                    }}
+                    onClick={handleOpenTechnician}
                     className="w-full bg-[#123B6D] hover:bg-[#0c284b] text-white py-2.5 rounded-xl font-black text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span>Open Lab Technician Desk</span>
@@ -902,10 +909,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
                 <div className="pt-4 mt-3 border-t border-amber-100">
                   <button
-                    onClick={() => {
-                      if (onOpenVendorDashboard) onOpenVendorDashboard();
-                      else openLoginModal('vendor');
-                    }}
+                    onClick={handleOpenManagement}
                     className="w-full bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded-xl font-black text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span>Open Management Desk</span>
@@ -1364,10 +1368,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <ul className="space-y-2">
                 <li>
                   <button
-                    onClick={() => {
-                      if (onOpenReceptionDashboard) onOpenReceptionDashboard();
-                      else openLoginModal('reception');
-                    }}
+                    onClick={handleOpenReception}
                     className="hover:text-[#123B6D] flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>🖥️ Reception Counter</span>
@@ -1375,10 +1376,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 </li>
                 <li>
                   <button
-                    onClick={() => {
-                      if (onOpenLabSoftware) onOpenLabSoftware();
-                      else openLoginModal('technician');
-                    }}
+                    onClick={handleOpenTechnician}
                     className="hover:text-[#123B6D] flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>🔬 Lab Technician Station</span>
@@ -1386,10 +1384,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 </li>
                 <li>
                   <button
-                    onClick={() => {
-                      if (onOpenVendorDashboard) onOpenVendorDashboard();
-                      else openLoginModal('vendor');
-                    }}
+                    onClick={handleOpenManagement}
                     className="hover:text-[#123B6D] flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>⚙️ Management CMS</span>

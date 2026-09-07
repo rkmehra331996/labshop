@@ -16,12 +16,15 @@ export const TopBar: React.FC<TopBarProps> = ({
   language = 'en',
   onSelectLanguage = (_lang: Language) => {},
 }) => {
-  const { currentUser, logout, openLoginModal, login, companySettings } = useCms();
+  const { currentUser, logout, openLoginModal, companySettings } = useCms();
   const supportPhone = companySettings.supportPhone || '+91 7087033009';
 
-  const handleQuickLaunchDepartment = (role: 'reception' | 'technician' | 'admin', view: AppView) => {
-    login(role);
-    onSelectView(view);
+  const handleLaunchDepartment = (role: 'reception' | 'technician' | 'vendor', view: AppView) => {
+    if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'vendor' || currentUser.role === role)) {
+      onSelectView(view);
+    } else {
+      openLoginModal(role);
+    }
   };
 
   return (
@@ -143,23 +146,23 @@ export const TopBar: React.FC<TopBarProps> = ({
                 3 Departments:
               </span>
               <button
-                onClick={() => handleQuickLaunchDepartment('reception', 'reception_dashboard')}
+                onClick={() => handleLaunchDepartment('reception', 'reception_dashboard')}
                 className="px-2 py-1 bg-teal-500 hover:bg-teal-400 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 transition shadow-2xs cursor-pointer"
-                title="Open Reception Department Panel"
+                title="Login / Open Reception Department"
               >
                 <span>🖥️ Reception</span>
               </button>
               <button
-                onClick={() => handleQuickLaunchDepartment('technician', 'technician_dashboard')}
+                onClick={() => handleLaunchDepartment('technician', 'technician_dashboard')}
                 className="px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 transition shadow-2xs cursor-pointer"
-                title="Open Technician Department Panel"
+                title="Login / Open Technician Department"
               >
                 <span>🔬 Technician</span>
               </button>
               <button
-                onClick={() => handleQuickLaunchDepartment('admin', 'vendor_dashboard')}
+                onClick={() => handleLaunchDepartment('vendor', 'vendor_dashboard')}
                 className="px-2 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-lg text-[11px] flex items-center gap-1 transition shadow-2xs cursor-pointer"
-                title="Open Lab Owner / Admin Panel"
+                title="Login / Open Lab Owner Panel"
               >
                 <span>👑 Lab Owner</span>
               </button>

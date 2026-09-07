@@ -19,6 +19,19 @@ export interface CmsUser {
   entityName: string;
 }
 
+export interface LabStaffAccount {
+  id: string;
+  name: string;
+  role: 'reception' | 'technician';
+  username: string; // or email / phone
+  phone?: string;
+  password: string;
+  status: 'active' | 'suspended';
+  lastPasswordReset?: string;
+  shift?: string;
+  notes?: string;
+}
+
 export interface PortalWebsiteSections {
   hero: boolean;
   trustStrip: boolean;
