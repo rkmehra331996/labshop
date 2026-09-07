@@ -31,6 +31,7 @@ import {
   Trash2,
   Globe,
   Lock,
+  LogOut,
 } from 'lucide-react';
 import { Patient, TestItem, LabReport, ReportItem, ReceptionPatientEntry } from '../types';
 import { MOCK_PATIENTS, MOCK_TESTS, MOCK_BRANCHES, SAMPLE_REPORT } from '../data/mockData';
@@ -57,8 +58,9 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
     sendEntryToTechnician,
     acceptEntryByTechnician,
     completeTechnicianReport,
+    logout,
   } = useCms();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'patients' | 'samples' | 'results' | 'billing' | 'reception_orders'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'patients' | 'results' | 'reception_orders'>('dashboard');
   const [receptionFilter, setReceptionFilter] = useState<'All' | 'Awaiting' | 'Accepted' | 'Completed'>('All');
   const [receptionSearch, setReceptionSearch] = useState('');
   const [selectedBranch, setSelectedBranch] = useState('br-a');
@@ -439,75 +441,76 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
     p.reportId.toLowerCase().includes(searchFilter.toLowerCase())
   );
 
+  const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory';
+  const labLogoUrl = vendorLabSettings?.logoUrl || '';
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-      {/* Top Application Bar */}
+      {/* Top Application Bar: Vendor Company Logo + Dashboard Name + Vendor Home Website + Log Out Button */}
       <header className="bg-[#123B6D] text-white sticky top-0 z-30 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2.5">
-          {/* Left: Brand & Return */}
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onBackToWebsite}
-                className="px-3 py-1.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black rounded-lg transition flex items-center gap-1.5 text-xs shadow-xs active:scale-95 cursor-pointer"
-                title="Go to Vendor Home Website (Apex Diagnostics)"
-              >
-                <Globe className="w-3.5 h-3.5 text-slate-950" />
-                <span>Vendor Home Website</span>
-              </button>
-              <div className="font-extrabold text-sm tracking-tight flex items-center gap-1.5">
-                <span className="text-amber-400">{vendorLabSettings?.labName ? vendorLabSettings.labName.split(' ')[0] : 'DIAGNOSTIC'}</span>
-                <span className="text-teal-300">LIMS</span>
-                <span className="text-[10px] bg-[#0F766E] px-1.5 py-0.5 rounded font-mono">v2.4</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+          {/* Vendor Company Logo + Active Dashboard Name */}
+          <div className="flex items-center gap-3 min-w-0">
+            {labLogoUrl ? (
+              <img
+                src={labLogoUrl}
+                alt={labName}
+                referrerPolicy="no-referrer"
+                className="w-10 h-10 rounded-xl object-contain bg-white border border-white/20 p-0.5 shadow-sm shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-white/15 text-white flex items-center justify-center font-black text-sm shadow-sm border border-white/20 shrink-0">
+                <span className="text-amber-300">{labName.charAt(0) || 'A'}</span>
+                <span>{labName.split(' ')[1]?.charAt(0) || 'L'}</span>
+              </div>
+            )}
+
+            <div className="flex flex-col min-w-0">
+              <span className="font-extrabold text-sm sm:text-base tracking-tight text-white leading-tight truncate">
+                {labName}
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                <span className="bg-amber-400 text-slate-950 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1">
+                  <span>🔬</span>
+                  <span>Technician Lab Workstation & Reports</span>
+                </span>
+                <span className="hidden sm:inline text-[11px] text-teal-100/90 font-medium">
+                  • Clinical Pathology Console
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Right: Make Report CTA + Offline Switcher + Role */}
-          <div className="flex items-center gap-2.5 text-xs w-full sm:w-auto justify-between sm:justify-end flex-wrap">
-            {/* Direct Report Creation Button in Header */}
+          {/* Action Items: Vendor Home Website + Log Out Button */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <button
-              onClick={() => handleOpenCreateReportModal()}
-              className="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-black/20 active:scale-95 cursor-pointer"
-              title="Create or Enter Test Results for any Patient"
+              type="button"
+              id="tech-btn-vendor-website"
+              onClick={onBackToWebsite}
+              className="bg-white hover:bg-slate-100 text-[#123B6D] px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border border-white/30 whitespace-nowrap"
+              title="Go to Vendor Home Website"
             >
-              <FlaskConical className="w-3.5 h-3.5 text-slate-950 fill-slate-950" />
-              <span>+ Make Report</span>
+              <Globe className="w-3.5 h-3.5 text-[#123B6D]" />
+              <span>Vendor Home Website</span>
             </button>
 
-            {/* Offline Simulator Pill as specified in USP */}
-            <div className="flex items-center gap-1.5 bg-black/30 px-2.5 py-1 rounded-lg border border-white/15">
-              {isSyncing ? (
-                <span className="text-blue-300 flex items-center gap-1 text-[11px] font-semibold">
-                  <RefreshCw className="w-3 h-3 animate-spin" /> Syncing...
-                </span>
-              ) : isOffline ? (
-                <span className="text-amber-300 flex items-center gap-1 text-[11px] font-bold">
-                  <WifiOff className="w-3 h-3 text-amber-400" /> Offline ({offlineQueue} queued)
-                </span>
-              ) : (
-                <span className="text-emerald-300 flex items-center gap-1 text-[11px] font-semibold">
-                  <Wifi className="w-3 h-3 text-emerald-400" /> Cloud Synced
-                </span>
-              )}
-              <button
-                onClick={toggleOffline}
-                className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/30 text-white transition"
-              >
-                {isOffline ? 'Connect' : 'Simulate Cut'}
-              </button>
-            </div>
-
-            {/* Active User */}
-            <div className="flex items-center gap-1 text-[11px] text-slate-200">
-              <UserCheck className="w-3.5 h-3.5 text-teal-300" />
-              <span className="font-semibold">{currentUser.split(' ')[0]} {currentUser.split(' ')[1]}</span>
-            </div>
+            <button
+              type="button"
+              id="tech-btn-logout"
+              onClick={() => {
+                logout();
+                onBackToWebsite();
+              }}
+              className="bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap"
+              title="Log Out from Technician Dashboard"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log Out</span>
+            </button>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs (Dashboard, Patient Queue, Reception Queue, Results) */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex overflow-x-auto border-t border-white/10 text-xs">
           <button
             onClick={() => setActiveTab('dashboard')}
@@ -529,16 +532,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
           >
             <span>Patient Queue</span>
             <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px]">{patients.length}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('samples')}
-            className={`py-2 px-3.5 font-bold border-b-2 whitespace-nowrap transition ${
-              activeTab === 'samples'
-                ? 'border-amber-400 text-amber-300'
-                : 'border-transparent text-slate-300 hover:text-white'
-            }`}
-          >
-            Sample Management
           </button>
           <button
             onClick={() => setActiveTab('reception_orders')}
@@ -572,16 +565,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
               Enter Results
             </span>
           </button>
-          <button
-            onClick={() => setActiveTab('billing')}
-            className={`py-2 px-3.5 font-bold border-b-2 whitespace-nowrap transition ${
-              activeTab === 'billing'
-                ? 'border-amber-400 text-amber-300'
-                : 'border-transparent text-slate-300 hover:text-white'
-            }`}
-          >
-            Billing & ₹ Accounts
-          </button>
         </div>
       </header>
 
@@ -596,19 +579,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
           </div>
         </div>
       )}
-
-      {/* Technician Policy Banner */}
-      <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-2 text-xs text-amber-900">
-        <div className="max-w-7xl mx-auto flex items-center gap-2 flex-wrap">
-          <span className="bg-amber-200 text-amber-950 px-2 py-0.5 rounded font-black text-[10px] tracking-wide uppercase flex items-center gap-1">
-            <Lock className="w-3 h-3 text-amber-900" />
-            Reception Desk Only
-          </span>
-          <span className="text-slate-800">
-            <strong>Patient Registration Restricted:</strong> Lab technicians cannot create patient entries. All patient intake, demographic details, and token billing are handled by the <strong>Reception Desk</strong>. Technicians enter clinical test results and verify reports for registered patients.
-          </span>
-        </div>
-      </div>
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -948,67 +918,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
           </div>
         )}
 
-        {/* TAB 3: SAMPLE MANAGEMENT */}
-        {activeTab === 'samples' && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-base font-bold text-[#172033]">Sample Collection & Barcode Tracker</h2>
-              <p className="text-xs text-slate-500">Color-coded tube management (EDTA, Serum Gel, Sodium Fluoride, Urine)</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white p-4 rounded-xl border border-purple-200 shadow-xs">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-4 h-4 rounded-full bg-purple-600" />
-                  <h3 className="text-xs font-bold text-slate-800">EDTA Lavender (Whole Blood)</h3>
-                </div>
-                <div className="text-2xl font-black text-slate-900">42 Tubes</div>
-                <p className="text-[11px] text-slate-500 mt-1">CBC, ESR, HbA1c, Blood Group</p>
-                <div className="mt-3 text-[10px] text-emerald-700 bg-emerald-50 p-1.5 rounded font-semibold">
-                  All Samples Centrifuged / In Analyzer
-                </div>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl border border-red-200 shadow-xs">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-4 h-4 rounded-full bg-red-600" />
-                  <h3 className="text-xs font-bold text-slate-800">Serum Gel Tube (Red/Gold)</h3>
-                </div>
-                <div className="text-2xl font-black text-slate-900">68 Tubes</div>
-                <p className="text-[11px] text-slate-500 mt-1">LFT, KFT, Lipid, Thyroid, Vitamins</p>
-                <div className="mt-3 text-[10px] text-emerald-700 bg-emerald-50 p-1.5 rounded font-semibold">
-                  Biochemistry Batch 2 In Progress
-                </div>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-4 h-4 rounded-full bg-slate-400" />
-                  <h3 className="text-xs font-bold text-slate-800">Fluoride Grey (Glucose)</h3>
-                </div>
-                <div className="text-2xl font-black text-slate-900">24 Tubes</div>
-                <p className="text-[11px] text-slate-500 mt-1">Fasting & PP Blood Sugar</p>
-                <div className="mt-3 text-[10px] text-blue-700 bg-blue-50 p-1.5 rounded font-semibold">
-                  Values Loaded from Sysmex
-                </div>
-              </div>
-
-              <div className="bg-white p-4 rounded-xl border border-yellow-200 shadow-xs">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-4 h-4 rounded-full bg-yellow-500" />
-                  <h3 className="text-xs font-bold text-slate-800">Urine & Stool Vials</h3>
-                </div>
-                <div className="text-2xl font-black text-slate-900">18 Vials</div>
-                <p className="text-[11px] text-slate-500 mt-1">Urine R/M, Culture, Stool Occult</p>
-                <div className="mt-3 text-[10px] text-amber-700 bg-amber-50 p-1.5 rounded font-semibold">
-                  Microscopy Verification Pending
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 4: RESULTS ENTRY, REPORT GENERATION & SIGN-OFF */}
+        {/* TAB 3: RESULTS ENTRY, REPORT GENERATION & SIGN-OFF */}
         {activeTab === 'results' && (() => {
           const currentPat = patients.find(p => p.id === workstationPatientId) || patients[0];
           const abnormalCount = workstationParams.filter(p => p.isAbnormal).length;
@@ -1486,50 +1396,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
           );
         })()}
 
-        {/* TAB 5: BILLING & ₹ ACCOUNTS */}
-        {activeTab === 'billing' && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-base font-bold text-[#172033]">₹ INR Cash Counter & UPI Reconciliation</h2>
-              <p className="text-xs text-slate-500">Daily ledger, GST exempt healthcare receipt issuing, and due amount settlements</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-                <span className="text-xs text-slate-500 font-medium">Today's Gross Billed</span>
-                <div className="text-2xl font-black text-[#123B6D] mt-1">₹51,270</div>
-                <span className="text-[10px] text-slate-400">Total 126 patients</span>
-              </div>
-              <div className="bg-white p-4 rounded-xl border border-emerald-200 shadow-xs bg-emerald-50/20">
-                <span className="text-xs text-emerald-800 font-medium">Realized Collection (Cash + UPI)</span>
-                <div className="text-2xl font-black text-emerald-700 mt-1">₹42,850</div>
-                <span className="text-[10px] text-emerald-700">UPI 80% • Cash 20%</span>
-              </div>
-              <div className="bg-white p-4 rounded-xl border border-rose-200 shadow-xs bg-rose-50/20">
-                <span className="text-xs text-rose-800 font-medium">Outstanding Patient Dues</span>
-                <div className="text-2xl font-black text-rose-600 mt-1">₹8,420</div>
-                <span className="text-[10px] text-rose-600">Pending collection at report pickup</span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 p-4">
-              <h3 className="text-xs font-bold text-slate-800 mb-3">Quick UPI Payment Terminal (Zero MDR)</h3>
-              <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <div className="w-24 h-24 bg-white p-2 rounded-lg border border-slate-300 flex items-center justify-center">
-                  <QrCode className="w-20 h-20 text-[#123B6D]" />
-                </div>
-                <div className="space-y-1 text-xs">
-                  <div className="font-bold text-slate-900">Apex Diagnostics Dynamic QR</div>
-                  <div className="text-slate-500 font-mono">UPI ID: apexdiag@icici</div>
-                  <div className="text-emerald-700 font-semibold">Ready for PhonePe, Google Pay, Paytm, BHIM</div>
-                  <div className="text-[11px] text-slate-400">No transaction fee / Zero MDR compliant</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 6: RECEPTION DESK QUEUE & SAMPLE ACCEPTANCE */}
+        {/* TAB 4: RECEPTION DESK QUEUE & SAMPLE ACCEPTANCE */}
         {activeTab === 'reception_orders' && (
           <div className="space-y-5">
             {/* Header Title & Subtitle */}

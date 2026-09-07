@@ -448,96 +448,77 @@ export const TechnicianDepartmentDashboard: React.FC<TechnicianDepartmentDashboa
     setTimeout(() => setToastMessage(''), 3000);
   };
 
+  const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory';
+  const labLogoUrl = vendorLabSettings?.logoUrl || '';
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col font-sans">
-      {/* Top Header */}
-      <header className="bg-[#123B6D] text-white px-4 sm:px-8 py-4 border-b border-white/10 shadow-sm sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-300 border border-teal-400/30 flex items-center justify-center">
-              <FlaskConical className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-black tracking-tight">Technician Department Dashboard</h1>
-                <span className="bg-teal-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full">
-                  LAB WORKSTATION
+      {/* Top Header: Vendor Company Logo + Dashboard Name + Vendor Home Website + Log Out Button */}
+      <header className="bg-[#123B6D] text-white px-4 sm:px-8 py-3 border-b border-white/10 shadow-sm sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          {/* Vendor Company Logo + Active Dashboard Name */}
+          <div className="flex items-center gap-3 min-w-0">
+            {labLogoUrl ? (
+              <img
+                src={labLogoUrl}
+                alt={labName}
+                referrerPolicy="no-referrer"
+                className="w-10 h-10 rounded-xl object-contain bg-white border border-white/20 p-0.5 shadow-sm shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-white/15 text-white flex items-center justify-center font-black text-sm shadow-sm border border-white/20 shrink-0">
+                <span className="text-amber-300">{labName.charAt(0) || 'A'}</span>
+                <span>{labName.split(' ')[1]?.charAt(0) || 'L'}</span>
+              </div>
+            )}
+
+            <div className="flex flex-col min-w-0">
+              <span className="font-extrabold text-sm sm:text-base tracking-tight text-white leading-tight truncate">
+                {labName}
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                <span className="bg-amber-400 text-slate-950 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1">
+                  <span>🔬</span>
+                  <span>Technician Department Dashboard</span>
+                </span>
+                <span className="hidden sm:inline text-[11px] text-teal-100/90 font-medium">
+                  • Pathologist Console
                 </span>
               </div>
-              <p className="text-xs text-slate-300">
-                {vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory'} • Pathologist Console
-              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Direct Link to Vendor Home Website */}
+          {/* Actions: Vendor Home Website + Log Out Button */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {onNavigateView && (
               <button
                 type="button"
                 id="tech-btn-vendor-website"
                 onClick={() => onNavigateView('vendor_website')}
-                className="bg-white hover:bg-slate-100 text-[#123B6D] px-3.5 py-2 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border border-white/20"
-                title="Go to Vendor Home Website (Apex Diagnostics)"
+                className="bg-white hover:bg-slate-100 text-[#123B6D] px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border border-white/20 whitespace-nowrap"
+                title="Go to Vendor Home Website"
               >
                 <Globe className="w-3.5 h-3.5 text-[#123B6D]" />
                 <span>Vendor Home Website</span>
               </button>
             )}
 
-            {/* Enter Test Results Primary CTA */}
             <button
+              type="button"
+              id="tech-btn-logout"
               onClick={() => {
-                setEditingReport(null);
-                if (pendingReceptionEntries.length > 0) {
-                  handleStartReportForPatient(pendingReceptionEntries[0]);
-                } else if (receptionEntries.length > 0) {
-                  handleStartReportForPatient(receptionEntries[0]);
-                } else {
-                  setIsNoPatientWarningOpen(true);
-                }
+                logout();
+                if (onNavigateView) onNavigateView('vendor_website');
               }}
-              className="bg-amber-400 hover:bg-amber-500 text-slate-950 px-4 py-2 rounded-lg text-xs font-black transition flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
-              title="Enter results for registered patient from Reception Queue"
+              className="bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap"
+              title="Log Out from Technician Dashboard"
             >
-              <FlaskConical className="w-4 h-4 text-slate-950" />
-              <span>Enter Test Results</span>
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log Out</span>
             </button>
-
-            {onNavigateView && currentUser?.role === 'admin' && (
-              <button
-                onClick={() => onNavigateView('vendor_dashboard')}
-                className="bg-amber-400 hover:bg-amber-500 text-slate-950 px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                title="Return to Lab Owner Dashboard"
-              >
-                <span>← Back to Lab Owner Dashboard</span>
-              </button>
-            )}
-
-            {currentUser && (
-              <button
-                onClick={logout}
-                className="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition"
-                title="Logout"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            )}
           </div>
         </div>
       </header>
-
-      {/* Technician Role Access Policy Banner */}
-      <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-8 py-2.5 text-xs text-amber-900">
-        <div className="max-w-7xl mx-auto flex items-center gap-2 flex-wrap">
-          <span className="bg-amber-200 text-amber-950 px-2 py-0.5 rounded font-extrabold text-[10px] tracking-wide uppercase">
-            🔒 Reception Desk Only
-          </span>
-          <span className="text-slate-800">
-            <strong>Patient Registration Restricted:</strong> Lab technicians cannot create patient entries. All patient registration, UHID assignment, and token billing are handled by the <strong>Reception Desk</strong>. Technicians enter test results, adjust biological reference intervals, and manage pathology reports for registered samples.
-          </span>
-        </div>
-      </div>
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-8">

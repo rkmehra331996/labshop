@@ -70,6 +70,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   const labNabl = vendorLabSettings?.nablAccreditationNo || 'MC-4821';
   const labPhone = vendorLabSettings?.phone || '7087033009';
   const labAddress = vendorLabSettings?.address || 'SCF 42-43, Sector 18-C, Central Healthcare Complex, Ludhiana';
+  const labLogoUrl = vendorLabSettings?.logoUrl || '';
 
   // --- FORM STATE ---
   // In-form Editing Mode (allows editing any patient directly without re-typing)
@@ -235,6 +236,50 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     { name: 'HbA1c (Glycosylated Hb)', price: 450, sample: 'EDTA Whole Blood' },
     { name: 'Dengue Serology (NS1 + Platelets)', price: 800, sample: 'Serum + EDTA' },
   ];
+
+  // Unified searchable tests list combining quick pills + vendor tests
+  const allAvailableTests = useMemo(() => {
+    const list: { name: string; price: number; sample?: string; category?: string }[] = [];
+    const seen = new Set<string>();
+
+    // 1. Add quick pills first
+    quickTestPills.forEach((p) => {
+      seen.add(p.name.toLowerCase());
+      list.push({
+        name: p.name,
+        price: p.price,
+        sample: p.sample,
+        category: 'Popular',
+      });
+    });
+
+    // 2. Add vendor catalog tests
+    vendorTests.forEach((t) => {
+      if (!seen.has(t.name.toLowerCase())) {
+        seen.add(t.name.toLowerCase());
+        list.push({
+          name: t.name,
+          price: t.priceINR,
+          sample: t.sampleType,
+          category: t.category || 'Diagnostic',
+        });
+      }
+    });
+
+    return list;
+  }, [vendorTests]);
+
+  // Filter tests by search query
+  const filteredAvailableTests = useMemo(() => {
+    if (!testSearch.trim()) return allAvailableTests;
+    const q = testSearch.toLowerCase().trim();
+    return allAvailableTests.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        (t.category && t.category.toLowerCase().includes(q)) ||
+        (t.sample && t.sample.toLowerCase().includes(q))
+    );
+  }, [allAvailableTests, testSearch]);
 
   // Calculate gross test amount
   const grossAmount = useMemo(() => {
@@ -715,77 +760,89 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-      {/* 1. Reception Counter Top Bar */}
-      <div className="bg-[#0F766E] text-white px-4 sm:px-8 py-2.5 border-b border-teal-700/50 shadow-xs sticky top-0 z-30">
+      {/* 1. Reception Header: Vendor Company Logo + Dashboard Name + Vendor Home Website + Log Out Button */}
+      <header className="bg-[#0F766E] text-white px-4 sm:px-8 py-2.5 border-b border-teal-700/50 shadow-xs sticky top-0 z-30">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          {/* Lab Identity + Desk Badge */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center font-black text-amber-300 border border-white/20">
-              🖥️
-            </div>
-            <div>
+          {/* Vendor Company Logo + Active Dashboard Name */}
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Vendor Company Logo */}
+            {labLogoUrl ? (
+              <img
+                src={labLogoUrl}
+                alt={labName}
+                referrerPolicy="no-referrer"
+                className="w-10 h-10 rounded-xl object-contain bg-white border border-white/20 p-0.5 shadow-sm shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-white/15 text-white flex items-center justify-center font-black text-sm shadow-sm border border-white/20 shrink-0">
+                <span className="text-amber-300">{labName.charAt(0) || 'A'}</span>
+                <span>{labName.split(' ')[1]?.charAt(0) || 'L'}</span>
+              </div>
+            )}
+
+            <div className="flex flex-col min-w-0">
+              {/* Vendor Company Name */}
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-sm tracking-tight text-white">{labName}</span>
-                <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Reception Desk #1
+                <span className="font-extrabold text-sm sm:text-base tracking-tight text-white leading-tight truncate">
+                  {labName}
                 </span>
               </div>
-              <p className="text-[11px] text-teal-100/90 font-medium">
-                Fast Patient Registration • Billing & Due • Thermal Slip • Live Token Board
-              </p>
+              {/* Konsa dashboard open hai uska naam */}
+              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                <span className="bg-amber-400 text-slate-950 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1">
+                  <span>🖥️</span>
+                  <span>Reception Entry & Billing Dashboard</span>
+                </span>
+                <span className="hidden sm:inline text-[11px] text-teal-100/90 font-medium">
+                  • Counter #1
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Reception Counter Status & Security (No other role dashboards shown on Reception desk) */}
-          <div className="flex items-center gap-2.5">
-            {/* Live Counter Badge */}
-            <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-lg text-xs font-medium text-teal-50 border border-white/15">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span className="font-bold text-white">Live Counter #1 Active</span>
-            </div>
-
-            {/* Direct Button to Vendor Home Website */}
+          {/* Action Buttons: Vendor Home Website + Log Out */}
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {/* Vendor Home Website Button */}
             <button
               type="button"
               id="reception-btn-vendor-website"
               onClick={() => onNavigateView('vendor_website')}
-              className="bg-white hover:bg-teal-50 text-[#0F766E] px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border border-white/30"
-              title="Go to Vendor Home Website (Apex Diagnostics)"
+              className="bg-white hover:bg-teal-50 text-[#0F766E] px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border border-white/30 whitespace-nowrap"
+              title="Go to Vendor Home Website"
             >
               <Globe className="w-3.5 h-3.5 text-[#0F766E]" />
               <span>Vendor Home Website</span>
             </button>
 
-            {/* If Admin/Lab Owner is inspecting Reception Desk, provide return button */}
-            {currentUser?.role === 'admin' ? (
+            {/* If Admin is inspecting Reception Desk, provide quick return to Lab Owner CMS */}
+            {currentUser?.role === 'admin' && (
               <button
+                type="button"
                 onClick={() => onNavigateView('vendor_dashboard')}
-                className="bg-amber-400 hover:bg-amber-500 text-slate-950 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                className="hidden md:flex bg-amber-400 hover:bg-amber-500 text-slate-950 px-2.5 py-1.5 rounded-lg text-xs font-bold transition items-center gap-1 shadow-xs cursor-pointer whitespace-nowrap"
                 title="Return to Lab Owner Dashboard"
               >
-                <span>← Back to Lab Owner CMS</span>
+                <span>👑 Lab Owner</span>
               </button>
-            ) : currentUser ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-teal-100 bg-white/10 px-2.5 py-1 rounded-lg border border-white/15">
-                  👤 {currentUser.name}
-                </span>
-                <button
-                  onClick={() => {
-                    logout();
-                    onNavigateView('vendor_website');
-                  }}
-                  className="bg-rose-500/80 hover:bg-rose-600 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                  title="Logout from Reception Desk"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Logout</span>
-                </button>
-              </div>
-            ) : null}
+            )}
+
+            {/* Log Out Button */}
+            <button
+              type="button"
+              id="reception-btn-logout"
+              onClick={() => {
+                logout();
+                onNavigateView('vendor_website');
+              }}
+              className="bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer whitespace-nowrap"
+              title="Log out from Reception Desk"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Log Out</span>
+            </button>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Toast Notification */}
       {toastMessage && (
@@ -1076,40 +1133,141 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   <label className="text-xs font-bold text-[#172033]">
                     Select Diagnostic Tests <span className="text-rose-500">*</span>
                   </label>
-                  <span className="text-[11px] font-semibold text-teal-700">
-                    {selectedTests.length} Selected
-                  </span>
-                </div>
-
-                {/* Quick 1-click test chips */}
-                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 bg-slate-50 rounded-xl border border-slate-200 mb-2">
-                  {quickTestPills.map((test) => {
-                    const isSelected = selectedTests.includes(test.name);
-                    return (
+                  <div className="flex items-center gap-2">
+                    {selectedTests.length > 0 && (
                       <button
                         type="button"
-                        key={test.name}
-                        onClick={() => handleToggleTest(test.name, test.sample)}
-                        className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#0F766E] text-white shadow-2xs'
-                            : 'bg-white text-slate-700 border border-slate-200 hover:border-teal-400'
-                        }`}
+                        onClick={() => setSelectedTests([])}
+                        className="text-[10px] font-semibold text-rose-600 hover:underline cursor-pointer"
                       >
-                        {isSelected && <Check className="w-3 h-3" />}
-                        <span>{test.name}</span>
-                        <span className={`text-[10px] ${isSelected ? 'text-teal-200' : 'text-slate-400'}`}>
-                          ₹{test.price}
-                        </span>
+                        Clear All
                       </button>
-                    );
-                  })}
+                    )}
+                    <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                      {selectedTests.length} Selected
+                    </span>
+                  </div>
                 </div>
+
+                {/* Search Bar for Tests */}
+                <div className="relative mb-2">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  <input
+                    type="text"
+                    value={testSearch}
+                    onChange={(e) => setTestSearch(e.target.value)}
+                    placeholder="Search diagnostic tests (e.g. Sugar, CBC, Lipid, Thyroid, LFT, Urine, Vit D)..."
+                    className="w-full pl-8 pr-8 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-800 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none placeholder:text-slate-400 bg-white"
+                  />
+                  {testSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setTestSearch('')}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* If searching: Show filtered test results */}
+                {testSearch.trim() ? (
+                  <div className="space-y-1.5 mb-2">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                      <span>Found {filteredAvailableTests.length} matching test(s):</span>
+                      <span className="text-[10px] text-teal-700">Click to select/unselect</span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                      {filteredAvailableTests.length > 0 ? (
+                        filteredAvailableTests.map((test) => {
+                          const isSelected = selectedTests.includes(test.name);
+                          return (
+                            <button
+                              type="button"
+                              key={test.name}
+                              onClick={() => handleToggleTest(test.name, test.sample)}
+                              className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                                isSelected
+                                  ? 'bg-[#0F766E] text-white shadow-2xs'
+                                  : 'bg-white text-slate-700 border border-slate-200 hover:border-teal-400'
+                              }`}
+                            >
+                              {isSelected && <Check className="w-3 h-3" />}
+                              <span>{test.name}</span>
+                              <span
+                                className={`text-[10px] font-mono ${
+                                  isSelected ? 'text-teal-200' : 'text-slate-400 font-bold'
+                                }`}
+                              >
+                                ₹{test.price}
+                              </span>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="w-full py-2 px-1 text-center space-y-1.5">
+                          <p className="text-xs text-slate-500">
+                            No test found matching "{testSearch}".
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleToggleTest(testSearch.trim());
+                              setTestSearch('');
+                            }}
+                            className="text-xs font-bold text-teal-700 hover:text-teal-800 bg-white border border-teal-300 px-3 py-1 rounded-lg shadow-2xs inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Add "{testSearch.trim()}" as custom test (₹300)</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* When not searching: Quick 1-click popular tests */
+                  <div className="mb-2">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-0.5">
+                      Popular / Frequently Booked Tests:
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 bg-slate-50 rounded-xl border border-slate-200">
+                      {quickTestPills.map((test) => {
+                        const isSelected = selectedTests.includes(test.name);
+                        return (
+                          <button
+                            type="button"
+                            key={test.name}
+                            onClick={() => handleToggleTest(test.name, test.sample)}
+                            className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#0F766E] text-white shadow-2xs'
+                                : 'bg-white text-slate-700 border border-slate-200 hover:border-teal-400'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3 h-3" />}
+                            <span>{test.name}</span>
+                            <span
+                              className={`text-[10px] ${
+                                isSelected ? 'text-teal-200' : 'text-slate-400 font-bold font-mono'
+                              }`}
+                            >
+                              ₹{test.price}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Selected Tests Tag Cloud */}
                 {selectedTests.length > 0 && (
                   <div className="space-y-1">
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Booked Tests:</div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Booked Tests ({selectedTests.length}):
+                    </div>
                     <div className="flex flex-wrap gap-1">
                       {selectedTests.map((t) => (
                         <span
@@ -1121,6 +1279,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                             type="button"
                             onClick={() => handleToggleTest(t)}
                             className="text-teal-600 hover:text-rose-600 cursor-pointer"
+                            title="Remove test"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -1381,31 +1540,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   <FlaskConical className="w-4 h-4 text-amber-300" />
                   <span>Register & Send to Lab Tech</span>
                 </button>
-
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPatientName('Harpreet Kaur');
-                      setAge('28');
-                      setGender('Female');
-                      setMobile('9876543210');
-                      setSelectedTests(['Thyroid Profile (Total)', 'Complete Blood Count (CBC)']);
-                    }}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-lg font-bold transition flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <span>⚡ Demo Patient</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleResetForm}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs py-2 rounded-lg font-bold transition flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Clear Form</span>
-                  </button>
-                </div>
               </div>
             </form>
           </div>

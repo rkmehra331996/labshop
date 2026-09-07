@@ -14,6 +14,7 @@ import { VendorWebsitesShowcaseSection } from './components/VendorWebsitesShowca
 import { ReportPreviewSection } from './components/ReportPreviewSection';
 import { WhatsAppReportSection } from './components/WhatsAppReportSection';
 import { TestLibrarySection } from './components/TestLibrarySection';
+import { MultiBranchSection } from './components/MultiBranchSection';
 import { StaffRolesSection } from './components/StaffRolesSection';
 import { PatientHistorySection } from './components/PatientHistorySection';
 import { DataSafetySection } from './components/DataSafetySection';
@@ -124,12 +125,6 @@ export default function App() {
   if (currentView === 'vendor_dashboard') {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <TopBar
-          currentView={currentView}
-          onSelectView={setCurrentView}
-          language={language}
-          onSelectLanguage={setLanguage}
-        />
         <LabVendorDashboard
           onNavigateView={(view) => {
             setCurrentView(view);
@@ -152,12 +147,6 @@ export default function App() {
   if (currentView === 'reception_dashboard') {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <TopBar
-          currentView={currentView}
-          onSelectView={setCurrentView}
-          language={language}
-          onSelectLanguage={setLanguage}
-        />
         <ReceptionEntryDashboard
           onNavigateView={(view) => {
             setCurrentView(view);
@@ -181,12 +170,6 @@ export default function App() {
   if (currentView === 'technician_dashboard') {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <TopBar
-          currentView={currentView}
-          onSelectView={setCurrentView}
-          language={language}
-          onSelectLanguage={setLanguage}
-        />
         <TechnicianDepartmentDashboard
           onNavigateView={(view) => {
             setCurrentView(view);
@@ -210,12 +193,6 @@ export default function App() {
   if (currentView === 'lab_app') {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <TopBar
-          currentView={currentView}
-          onSelectView={setCurrentView}
-          language={language}
-          onSelectLanguage={setLanguage}
-        />
         <LabSoftwareApp
           onBackToWebsite={handleBackToWebsite}
           onViewReport={handleViewPatientPortal}
