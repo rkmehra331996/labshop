@@ -1,7 +1,8 @@
 import React from 'react';
-import { Phone, Globe, KeyRound, LogOut, UserCheck, LayoutDashboard } from 'lucide-react';
-import { AppView, Language } from '../types';
+import { Phone, Globe, KeyRound, LogOut, UserCheck, LayoutDashboard, Building2, Stethoscope } from 'lucide-react';
+import { AppView, Language, UserRole } from '../types';
 import { useCms } from '../context/CmsContext';
+import { ALL_ROLES_CONFIG } from '../utils/rbac';
 
 interface TopBarProps {
   currentView?: AppView;
@@ -19,7 +20,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const { currentUser, logout, openLoginModal, companySettings } = useCms();
   const supportPhone = companySettings.supportPhone || '+91 7087033009';
 
-  const handleLaunchDepartment = (role: 'reception' | 'technician' | 'vendor', view: AppView) => {
+  const handleLaunchDepartment = (role: UserRole, view: AppView) => {
     if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'vendor' || currentUser.role === role)) {
       onSelectView(view);
     } else {
@@ -27,10 +28,29 @@ export const TopBar: React.FC<TopBarProps> = ({
     }
   };
 
+  const getRoleLabel = (role: UserRole) => {
+    switch (role) {
+      case 'admin':
+        return '👑 Super Admin';
+      case 'vendor':
+        return '🏢 Lab Admin';
+      case 'branch_manager':
+        return '🏢 Branch Mgr';
+      case 'reception':
+        return '🖥️ Reception';
+      case 'technician':
+        return '🔬 Tech';
+      case 'pathologist':
+        return '🩺 Pathologist';
+      default:
+        return role;
+    }
+  };
+
   return (
     <div className="bg-[#123B6D] text-white text-xs border-b border-white/10 shrink-0 z-50 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-2 flex items-center justify-between gap-4">
-        {/* 1. Support Number & Vendor Website Navigation */}
+        {/* 1. Support Number & Navigation */}
         <div className="flex items-center gap-3">
           <a
             href={`tel:${supportPhone.replace(/\s+/g, '')}`}
@@ -47,87 +67,142 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           {(currentView === 'reception_dashboard' ||
             currentView === 'technician_dashboard' ||
+            currentView === 'branch_manager_dashboard' ||
+            currentView === 'pathologist_dashboard' ||
             currentView === 'vendor_dashboard' ||
+            currentView === 'admin_dashboard' ||
             currentView === 'lab_app') && (
             <button
               type="button"
               onClick={() => onSelectView('vendor_website')}
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black rounded-full text-[11px] sm:text-xs transition shadow-xs cursor-pointer active:scale-95 animate-pulse"
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black rounded-full text-[11px] sm:text-xs transition shadow-xs cursor-pointer active:scale-95"
               title="Return to Vendor Home Website"
             >
               <Globe className="w-3.5 h-3.5 text-slate-950" />
-              <span>← Vendor Home Website</span>
+              <span>← Lab Website</span>
             </button>
           )}
         </div>
 
         {/* Right side: 2. Staff Login & 3. Language */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          {/* 2. Staff Login */}
+        <div className="flex items-center gap-2.5 sm:gap-4">
+          {/* Active User Session & Role Switches */}
           {currentUser ? (
-            <div className="flex items-center gap-2 bg-black/25 pl-2.5 pr-1.5 py-1 rounded-full border border-white/20 text-xs">
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-black/25 pl-2.5 pr-1.5 py-1 rounded-full border border-white/20 text-xs">
               <div className="flex items-center gap-1.5 font-medium">
                 <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="max-w-[110px] sm:max-w-[150px] truncate text-slate-200 font-semibold">{currentUser.name}</span>
-                <span className="hidden md:inline-block px-1.5 py-0.2 rounded text-[10px] uppercase font-bold tracking-wider bg-white/15 text-amber-300">
-                  {currentUser.role === 'admin' ? '👑 Admin' : currentUser.role === 'reception' ? '🖥️ Reception' : '🔬 Tech'}
+                <span className="max-w-[100px] sm:max-w-[140px] truncate text-slate-200 font-semibold">
+                  {currentUser.name}
                 </span>
+                <span className="hidden md:inline-block px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-white/15 text-amber-300">
+                  {getRoleLabel(currentUser.role)}
+                </span>
+                {currentUser.branchName && (
+                  <span className="hidden xl:inline-block text-[10px] text-slate-300 font-normal">
+                    • {currentUser.branchName}
+                  </span>
+                )}
               </div>
 
-              {/* Direct Dashboard Link */}
-              {currentUser.role === 'admin' && currentView !== 'reception_dashboard' && (
+              {/* Quick Workspace Switchers for Admin / Vendor */}
+              {(currentUser.role === 'admin' || currentUser.role === 'vendor') && (
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => onSelectView('vendor_dashboard')}
-                    className="px-2 py-0.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-full text-[11px] flex items-center gap-1 transition shadow-xs cursor-pointer"
-                    title="Open Lab Owner CMS & Master Dashboard"
+                    className={`px-2 py-0.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                      currentView === 'vendor_dashboard'
+                        ? 'bg-amber-400 text-slate-950 ring-2 ring-white/50'
+                        : 'bg-amber-400/80 hover:bg-amber-400 text-slate-950'
+                    }`}
+                    title="Lab Owner / Vendor Dashboard"
                   >
-                    <span>👑 Lab Owner</span>
+                    <span>Lab HQ</span>
+                  </button>
+                  <button
+                    onClick={() => onSelectView('branch_manager_dashboard')}
+                    className={`hidden sm:inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                      currentView === 'branch_manager_dashboard'
+                        ? 'bg-blue-400 text-slate-950 ring-2 ring-white/50'
+                        : 'bg-blue-400/80 hover:bg-blue-400 text-slate-950'
+                    }`}
+                    title="Branch Operations Desk"
+                  >
+                    <span>Branch</span>
                   </button>
                   <button
                     onClick={() => onSelectView('reception_dashboard')}
-                    className="px-2 py-0.5 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold rounded-full text-[11px] flex items-center gap-1 transition shadow-xs cursor-pointer"
-                    title="Open Reception Department Desk"
+                    className={`px-2 py-0.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                      currentView === 'reception_dashboard'
+                        ? 'bg-teal-400 text-slate-950 ring-2 ring-white/50'
+                        : 'bg-teal-400/80 hover:bg-teal-400 text-slate-950'
+                    }`}
+                    title="Receptionist Counter"
                   >
-                    <span>🖥️ Reception</span>
+                    <span>Reception</span>
                   </button>
                   <button
                     onClick={() => onSelectView('technician_dashboard')}
-                    className="px-2 py-0.5 bg-purple-400 hover:bg-purple-300 text-slate-950 font-bold rounded-full text-[11px] flex items-center gap-1 transition shadow-xs cursor-pointer"
-                    title="Open Technician Department Workstation"
+                    className={`hidden sm:inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                      currentView === 'technician_dashboard'
+                        ? 'bg-purple-400 text-slate-950 ring-2 ring-white/50'
+                        : 'bg-purple-400/80 hover:bg-purple-400 text-slate-950'
+                    }`}
+                    title="Technician Workstation"
                   >
-                    <span>🔬 Technician</span>
+                    <span>Tech</span>
                   </button>
                   <button
-                    onClick={() => onSelectView('admin_dashboard')}
-                    className="px-2 py-0.5 bg-white/15 hover:bg-white/25 text-white font-bold rounded-full text-[11px] flex items-center gap-1 transition cursor-pointer border border-white/20"
-                    title="Open SaaS Portal Admin"
+                    onClick={() => onSelectView('pathologist_dashboard')}
+                    className={`hidden md:inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
+                      currentView === 'pathologist_dashboard'
+                        ? 'bg-emerald-400 text-slate-950 ring-2 ring-white/50'
+                        : 'bg-emerald-400/80 hover:bg-emerald-400 text-slate-950'
+                    }`}
+                    title="Pathologist Verification Desk"
                   >
-                    <LayoutDashboard className="w-3 h-3 text-amber-300" />
-                    <span className="hidden sm:inline">CMS</span>
+                    <span>Patho</span>
                   </button>
                 </div>
+              )}
+
+              {/* Dedicated role button for non-admin staff */}
+              {currentUser.role === 'branch_manager' && (
+                <button
+                  onClick={() => onSelectView('branch_manager_dashboard')}
+                  className="px-2 py-0.5 bg-blue-400 hover:bg-blue-300 text-slate-950 font-bold rounded-full text-[11px] flex items-center gap-1 transition cursor-pointer"
+                >
+                  <Building2 className="w-3 h-3" />
+                  <span>Branch Desk</span>
+                </button>
+              )}
+
+              {currentUser.role === 'pathologist' && (
+                <button
+                  onClick={() => onSelectView('pathologist_dashboard')}
+                  className="px-2 py-0.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold rounded-full text-[11px] flex items-center gap-1 transition cursor-pointer"
+                >
+                  <Stethoscope className="w-3 h-3" />
+                  <span>Clinical Desk</span>
+                </button>
               )}
 
               {currentUser.role === 'reception' && (
                 <button
                   onClick={() => onSelectView('reception_dashboard')}
-                  className="px-2 py-0.5 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold rounded-full text-[11px] flex items-center gap-1 transition shadow-xs cursor-pointer"
-                  title="Open Reception Desk"
+                  className="px-2 py-0.5 bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold rounded-full text-[11px] flex items-center gap-1 transition cursor-pointer"
                 >
                   <LayoutDashboard className="w-3 h-3" />
-                  <span className="hidden sm:inline">Reception Counter #1</span>
+                  <span>Reception Desk</span>
                 </button>
               )}
 
               {currentUser.role === 'technician' && (
                 <button
                   onClick={() => onSelectView('technician_dashboard')}
-                  className="px-2 py-0.5 bg-purple-400 hover:bg-purple-300 text-slate-950 font-bold rounded-full text-[11px] flex items-center gap-1 transition shadow-xs cursor-pointer"
-                  title="Open Technician Department Dashboard"
+                  className="px-2 py-0.5 bg-purple-400 hover:bg-purple-300 text-slate-950 font-bold rounded-full text-[11px] flex items-center gap-1 transition cursor-pointer"
                 >
                   <LayoutDashboard className="w-3 h-3" />
-                  <span className="hidden sm:inline">Technician Workstation</span>
+                  <span>Technician Bench</span>
                 </button>
               )}
 
@@ -142,9 +217,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
           ) : (
             <div className="flex items-center gap-1.5">
-              <span className="hidden lg:inline text-[11px] text-slate-300 font-bold mr-1">
-                3 Departments:
-              </span>
               <button
                 onClick={() => handleLaunchDepartment('reception', 'reception_dashboard')}
                 className="px-2 py-1 bg-teal-500 hover:bg-teal-400 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 transition shadow-2xs cursor-pointer"
@@ -154,26 +226,33 @@ export const TopBar: React.FC<TopBarProps> = ({
               </button>
               <button
                 onClick={() => handleLaunchDepartment('technician', 'technician_dashboard')}
-                className="px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 transition shadow-2xs cursor-pointer"
+                className="hidden sm:inline-flex px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-[11px] items-center gap-1 transition shadow-2xs cursor-pointer"
                 title="Login / Open Technician Department"
               >
-                <span>🔬 Technician</span>
+                <span>🔬 Tech</span>
+              </button>
+              <button
+                onClick={() => handleLaunchDepartment('pathologist', 'pathologist_dashboard')}
+                className="hidden md:inline-flex px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-[11px] items-center gap-1 transition shadow-2xs cursor-pointer"
+                title="Login / Open Pathologist Desk"
+              >
+                <span>🩺 Pathologist</span>
               </button>
               <button
                 onClick={() => handleLaunchDepartment('vendor', 'vendor_dashboard')}
                 className="px-2 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-lg text-[11px] flex items-center gap-1 transition shadow-2xs cursor-pointer"
                 title="Login / Open Lab Owner Panel"
               >
-                <span>👑 Lab Owner</span>
+                <span>👑 Lab Admin</span>
               </button>
               <button
                 onClick={() => openLoginModal()}
                 id="topbar-btn-staff-login"
                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-[11px] border border-white/20 transition cursor-pointer"
-                title="Custom Login credentials"
+                title="Role-Based Login"
               >
                 <KeyRound className="w-3 h-3 text-amber-300" />
-                <span className="hidden sm:inline">Login</span>
+                <span>Role Login</span>
               </button>
             </div>
           )}

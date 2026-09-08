@@ -57,6 +57,8 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     resetAllToDefaults,
     vendorLabsList,
     portalSections,
+    superAdminTenantScope,
+    setSuperAdminTenantScope,
   } = useCms();
 
   type AdminTab = 'vendors' | 'sections' | 'settings' | 'pricing' | 'features' | 'faqs' | 'stats';
@@ -372,6 +374,52 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
 
       {/* Main Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+        {/* Multi-Lab Data Isolation & Tenant Scope Bar */}
+        <div className="bg-gradient-to-r from-slate-900 via-[#123B6D] to-slate-900 rounded-2xl p-4 text-white shadow-sm border border-slate-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-white/10 rounded-xl border border-white/20">
+              <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-sm text-white tracking-wide">
+                  Multi-Lab Data Isolation Engine
+                </span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/40">
+                  Strict Tenant Boundary Active
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Each laboratory's patients, reports, tests, staff & billing are strictly isolated by unique Lab ID.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-stretch md:self-auto bg-black/30 p-1.5 rounded-xl border border-white/15">
+            <span className="text-[11px] font-bold text-slate-300 pl-2">Super Admin Scope:</span>
+            <select
+              value={superAdminTenantScope}
+              onChange={(e) => {
+                setSuperAdminTenantScope(e.target.value);
+                const targetName =
+                  e.target.value === 'all'
+                    ? 'All Labs (Global)'
+                    : vendorLabsList.find((l) => l.id === e.target.value)?.name || e.target.value;
+                setToastMessage(`Switched Super Admin Data Scope to: ${targetName}`);
+                setTimeout(() => setToastMessage(''), 3000);
+              }}
+              className="bg-white text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg border-0 focus:ring-2 focus:ring-amber-400 focus:outline-none cursor-pointer"
+            >
+              <option value="all">🌐 All Labs (Global Unrestricted)</option>
+              {vendorLabsList.map((lab) => (
+                <option key={lab.id} value={lab.id}>
+                  🔬 {lab.name} ({lab.id})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {/* Quick Nav / Tabs Strip */}
         <div className="bg-white rounded-2xl p-2 border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1 flex-wrap">

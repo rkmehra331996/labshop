@@ -42,6 +42,8 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     deleteVendorLab,
     setVendorStatus,
     selectVendorLab,
+    superAdminTenantScope,
+    setSuperAdminTenantScope,
   } = useCms();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -651,6 +653,23 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
 
                     {/* Operational Buttons */}
                     <div className="flex items-center gap-2">
+                      {/* Filter Super Admin Data Scope */}
+                      <button
+                        onClick={() => {
+                          setSuperAdminTenantScope(vendor.id);
+                          showToast(`Super Admin data scope set to: ${vendor.name} (${vendor.id})`);
+                        }}
+                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                          superAdminTenantScope === vendor.id
+                            ? 'bg-emerald-600 text-white shadow-2xs'
+                            : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300'
+                        }`}
+                        title="Isolate Super Admin view to this specific lab tenant"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>{superAdminTenantScope === vendor.id ? 'Scope Active' : 'Filter Scope'}</span>
+                      </button>
+
                       {/* View Website */}
                       <button
                         onClick={() => handleOpenLabWebsite(vendor.id)}

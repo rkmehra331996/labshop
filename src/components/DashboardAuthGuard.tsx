@@ -46,6 +46,26 @@ export const DashboardAuthGuard: React.FC<DashboardAuthGuardProps> = ({
           desc: 'This clinical analyzer workstation is restricted to verified lab technicians for specimen barcode processing, test findings entry, and report authorizations.',
           hint: 'Note: Your Login ID & Password are created and reset by your Lab Owner.',
         };
+      case 'branch_manager_dashboard':
+        return {
+          role: 'branch_manager' as const,
+          title: 'Branch Operations & Cash Manager Panel',
+          hindiTitle: 'शाखा प्रबंधक डैशबोर्ड',
+          badge: '🏢 Branch Manager Access Only',
+          badgeColor: 'bg-blue-100 text-blue-900 border-blue-300',
+          desc: 'This workspace is restricted to authorized Branch Managers for daily cash counter balancing, sample transit dispatch, and branch patient queues.',
+          hint: 'Note: Access is scoped to your assigned Branch ID. Credentials managed by Lab Admin.',
+        };
+      case 'pathologist_dashboard':
+        return {
+          role: 'pathologist' as const,
+          title: 'Consultant Pathologist Verification Desk',
+          hindiTitle: 'पैथोलॉजिस्ट क्लिनिकल सत्यापन डेस्क',
+          badge: '🩺 Consultant Pathologist Access Only',
+          badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+          desc: 'This clinical workstation is restricted to qualified Pathologists (MD / DNB) for reviewing analyzer findings, flagging critical panic values, and signing NABL reports.',
+          hint: 'Note: Requires digital signature authorization and clinical verification rights.',
+        };
       case 'admin_dashboard':
       default:
         return {

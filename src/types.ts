@@ -5,27 +5,64 @@ export type AppView =
   | 'patient_portal'
   | 'admin_dashboard'
   | 'vendor_dashboard'
+  | 'branch_manager_dashboard'
   | 'reception_dashboard'
-  | 'technician_dashboard';
+  | 'technician_dashboard'
+  | 'pathologist_dashboard';
 
-export type UserRole = 'admin' | 'technician' | 'reception' | 'vendor' | null;
+export type UserRole =
+  | 'admin'
+  | 'super_admin'
+  | 'vendor'
+  | 'lab_admin'
+  | 'branch_manager'
+  | 'reception'
+  | 'receptionist'
+  | 'technician'
+  | 'pathologist'
+  | null;
+
+export interface RolePermissions {
+  canAccessSuperAdmin: boolean;
+  canManageLabSettings: boolean;
+  canManageBranches: boolean;
+  canManageStaff: boolean;
+  canViewAllBranchesData: boolean;
+  canRegisterPatients: boolean;
+  canCollectBilling: boolean;
+  canEnterLabResults: boolean;
+  canSignAndApproveReports: boolean;
+  canViewFinancials: boolean;
+  canDispatchWhatsApp: boolean;
+  canReconcileCash: boolean;
+}
 
 export interface CmsUser {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'technician' | 'reception' | 'vendor';
+  role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist';
   avatar?: string;
   entityName: string;
+  labId?: string;
+  labName?: string;
+  branchId?: string;
+  branchName?: string;
+  permissions?: RolePermissions;
 }
 
 export interface LabStaffAccount {
   id: string;
   name: string;
-  role: 'reception' | 'technician';
+  role: 'branch_manager' | 'reception' | 'technician' | 'pathologist';
   username: string; // or email / phone
   phone?: string;
   password: string;
+  pin?: string;
+  labId?: string;
+  labName?: string;
+  branchId?: string;
+  branchName?: string;
   status: 'active' | 'suspended';
   lastPasswordReset?: string;
   shift?: string;
@@ -166,6 +203,7 @@ export interface VendorPackage {
   mrpINR: number;
   isPopular?: boolean;
   features: string[];
+  labId?: string;
 }
 
 export interface VendorDoctor {
@@ -180,6 +218,7 @@ export interface VendorDoctor {
   referralCommissionPct?: number;
   monthlyReferrals?: number;
   totalReferredBilling?: number;
+  labId?: string;
 }
 
 export interface VendorBranch {
@@ -192,6 +231,7 @@ export interface VendorBranch {
   timings: string;
   timing?: string;
   isEmergency?: boolean;
+  labId?: string;
 }
 
 export interface HomeCollectionBooking {
@@ -203,6 +243,10 @@ export interface HomeCollectionBooking {
   packageOrTest: string;
   status: 'Pending' | 'Phlebotomist Assigned' | 'Sample Collected' | 'Report Delivered' | 'Cancelled';
   createdAt: string;
+  labId?: string;
+  branchId?: string;
+  amountINR?: number;
+  paymentMode?: string;
 }
 
 export type Language = 'en' | 'hi' | 'pa';
@@ -220,6 +264,7 @@ export interface TestItem {
   tatHours?: number;
   description?: string;
   isPopular?: boolean;
+  labId?: string;
 }
 
 export interface Patient {
@@ -239,6 +284,9 @@ export interface Patient {
   paidAmount: number;
   dueAmount: number;
   paymentMode: 'UPI' | 'Cash' | 'Card';
+  labId?: string;
+  branchId?: string;
+  branchName?: string;
 }
 
 export interface ReportItem {
@@ -276,6 +324,12 @@ export interface LabReport {
   cancellationReason?: string;
   cancelledAt?: string;
   cancelledBy?: string;
+  labId?: string;
+  branchId?: string;
+  branchName?: string;
+  pathologistSigned?: boolean;
+  pathologistSignatureTime?: string;
+  pathologistSignedBy?: string;
 }
 
 export interface BranchStat {
@@ -298,6 +352,8 @@ export interface AuditEntry {
   role: string;
   details: string;
   ip: string;
+  labId?: string;
+  tenantId?: string;
 }
 
 export type VendorStatus =
@@ -369,4 +425,7 @@ export interface ReceptionPatientEntry {
   balancePaidAmount?: number;
   balancePaymentMode?: 'Cash' | 'UPI' | 'Card';
   balancePaidAt?: string;
+  labId?: string;
+  branchId?: string;
+  branchName?: string;
 }

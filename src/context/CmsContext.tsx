@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   CmsUser,
   LabStaffAccount,
@@ -19,8 +19,11 @@ import {
   PortalWebsiteSections,
   VendorWebsiteSections,
   VendorStatus,
+  AppView,
 } from '../types';
 import { MOCK_TESTS, FAQ_LIST, SAMPLE_REPORT, INITIAL_REPORTS, VENDOR_LABS_DIRECTORY, INITIAL_RECEPTION_ENTRIES } from '../data/mockData';
+import { getPermissionsForRole, LAB_OPTIONS } from '../utils/rbac';
+import { isTenantMatch, verifyTenantOwnership, stampTenant } from '../utils/tenantSecurity';
 
 export const DEFAULT_VENDOR_SECTIONS: VendorWebsiteSections = {
   announcementBar: true,
@@ -278,6 +281,7 @@ const DEFAULT_VENDOR_DOCTORS: VendorDoctor[] = [
 const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
   {
     id: 'branch-1',
+    labId: 'lab-apex',
     name: 'Apex Central Diagnostic Hub',
     badge: 'Central Reference Lab',
     address: 'SCF 42-43, Sector 18-C, Central Healthcare Complex',
@@ -287,6 +291,7 @@ const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
   },
   {
     id: 'branch-2',
+    labId: 'lab-apex',
     name: 'Model Town Collection Centre',
     badge: 'Collection Desk',
     address: 'Shop 14, Main Market, Opp. Metro Pillar 42',
@@ -295,17 +300,59 @@ const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
   },
   {
     id: 'branch-3',
+    labId: 'lab-apex',
     name: 'Civil Lines Diagnostic Desk',
     badge: 'Hospital Branch',
     address: 'Near Gate 2, District Civil Hospital Road',
     phone: '+91 7087033009',
     timings: 'Mon–Sun: 7:00 AM – 8:00 PM',
   },
+  // CityCare Branches (lab-citycare)
+  {
+    id: 'branch-cc-1',
+    labId: 'lab-citycare',
+    name: 'CityCare Phase 7 Diagnostic Hub',
+    badge: 'Main Lab & Scanning Center',
+    address: 'SCO 14, Phase 7, Near Fortis Chowk, Mohali',
+    phone: '+91 9815012345',
+    timings: 'Mon–Sat: 7:00 AM – 9:00 PM',
+    isEmergency: true,
+  },
+  {
+    id: 'branch-cc-2',
+    labId: 'lab-citycare',
+    name: 'Phase 3B2 Collection Desk',
+    badge: 'Collection Centre',
+    address: 'Shop 8, Market 3B2, Mohali',
+    phone: '+91 9815012345',
+    timings: 'Mon–Sun: 7:30 AM – 8:00 PM',
+  },
+  // MetroPath Branches (lab-metropath)
+  {
+    id: 'branch-mp-1',
+    labId: 'lab-metropath',
+    name: 'MetroPath Sector 34-A Super Specialty Hub',
+    badge: 'Reference & Molecular Lab',
+    address: 'SCO 128-129, Sector 34-A, Healthcare District, Chandigarh',
+    phone: '+91 9417098765',
+    timings: 'Open 24x7',
+    isEmergency: true,
+  },
+  {
+    id: 'branch-mp-2',
+    labId: 'lab-metropath',
+    name: 'Sector 22 Health Express Counter',
+    badge: 'Express Sample Point',
+    address: 'Booth 55, Sector 22-D, Chandigarh',
+    phone: '+91 9417098765',
+    timings: 'Mon–Sun: 7:00 AM – 8:30 PM',
+  },
 ];
 
 const DEFAULT_VENDOR_BOOKINGS: HomeCollectionBooking[] = [
   {
     id: 'book-101',
+    labId: 'lab-apex',
     patientName: 'Sunita Mehra',
     mobile: '9876543210',
     address: 'Flat 402, Green Valley Apartments, Sector 21',
@@ -316,6 +363,7 @@ const DEFAULT_VENDOR_BOOKINGS: HomeCollectionBooking[] = [
   },
   {
     id: 'book-102',
+    labId: 'lab-apex',
     patientName: 'Baldev Singh',
     mobile: '9814012345',
     address: 'House No 128, Phase 7, Mohali',
@@ -326,6 +374,7 @@ const DEFAULT_VENDOR_BOOKINGS: HomeCollectionBooking[] = [
   },
   {
     id: 'book-103',
+    labId: 'lab-apex',
     patientName: 'Ananya Verma',
     mobile: '9988776655',
     address: 'H-34, Model Town, Near Gurudwara',
@@ -334,9 +383,45 @@ const DEFAULT_VENDOR_BOOKINGS: HomeCollectionBooking[] = [
     status: 'Sample Collected',
     createdAt: 'Today, 07:45 AM',
   },
+  // CityCare Bookings (lab-citycare)
+  {
+    id: 'book-cc-201',
+    labId: 'lab-citycare',
+    patientName: 'Harpreet Singh Walia',
+    mobile: '9815012345',
+    address: 'House 542, Phase 4, Mohali',
+    timeSlot: 'Tomorrow: 7:30 AM - 9:30 AM',
+    packageOrTest: 'CityCare Senior Citizen Panel (₹1,499)',
+    status: 'Phlebotomist Assigned',
+    createdAt: 'Today, 08:45 AM',
+  },
+  {
+    id: 'book-cc-202',
+    labId: 'lab-citycare',
+    patientName: 'Simi Kapoor',
+    mobile: '9814099881',
+    address: 'Flat 103, Silver Heights, Zirakpur',
+    timeSlot: 'Today: 2:00 PM - 4:00 PM',
+    packageOrTest: 'Vitamin Profile Complete (₹1,200)',
+    status: 'Pending',
+    createdAt: 'Today, 09:30 AM',
+  },
+  // MetroPath Bookings (lab-metropath)
+  {
+    id: 'book-mp-301',
+    labId: 'lab-metropath',
+    patientName: 'Devendra Singhal',
+    mobile: '9417098765',
+    address: 'House 1204, Sector 33-C, Chandigarh',
+    timeSlot: 'Tomorrow: 7:00 AM - 8:30 AM',
+    packageOrTest: 'Cardiac Risk Marker Panel (₹1,800)',
+    status: 'Sample Collected',
+    createdAt: 'Today, 07:15 AM',
+  },
 ];
 
 export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
+  // --- APEX DIAGNOSTICS STAFF (lab-apex) ---
   {
     id: 'staff-reception-1',
     name: 'Pooja Verma',
@@ -345,6 +430,10 @@ export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
     phone: '+91 98765 11223',
     password: 'reception123',
     status: 'active',
+    labId: 'lab-apex',
+    labName: 'Apex Diagnostic & Clinical Pathology Laboratory',
+    branchId: 'branch-1',
+    branchName: 'Apex Central Diagnostic Hub',
     lastPasswordReset: '01 Sep 2026, 10:30 AM',
     shift: 'Morning & Afternoon Shift (8:00 AM - 4:00 PM)',
     notes: 'Primary reception desk token generation, patient billing & fee collection',
@@ -357,21 +446,195 @@ export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
     phone: '+91 98765 44556',
     password: 'tech123',
     status: 'active',
+    labId: 'lab-apex',
+    labName: 'Apex Diagnostic & Clinical Pathology Laboratory',
+    branchId: 'branch-1',
+    branchName: 'Apex Central Diagnostic Hub',
     lastPasswordReset: '01 Sep 2026, 11:15 AM',
     shift: 'Full Day Diagnostic Shift (9:00 AM - 6:00 PM)',
     notes: 'Senior laboratory technician in charge of Hematology, Biochemistry & Analyzer verification',
+  },
+  {
+    id: 'staff-manager-1',
+    name: 'Vikram Malhotra',
+    role: 'branch_manager',
+    username: 'manager.modeltown@apexlab.com',
+    phone: '+91 98140 99887',
+    password: 'manager123',
+    status: 'active',
+    labId: 'lab-apex',
+    labName: 'Apex Diagnostic & Clinical Pathology Laboratory',
+    branchId: 'branch-2',
+    branchName: 'Model Town Collection Centre',
+    lastPasswordReset: '02 Sep 2026, 09:00 AM',
+    shift: 'General Branch Shift (7:00 AM - 3:00 PM)',
+    notes: 'Branch operations supervisor, cash reconciliation & sample logistics runner',
+  },
+  {
+    id: 'staff-pathologist-1',
+    name: 'Dr. Meenakshi Sundaram',
+    role: 'pathologist',
+    username: 'pathologist@apexlab.com',
+    phone: '+91 98150 11223',
+    password: 'patho123',
+    status: 'active',
+    labId: 'lab-apex',
+    labName: 'Apex Diagnostic & Clinical Pathology Laboratory',
+    branchId: 'all',
+    branchName: 'All Branches (Central Sign-off Authority)',
+    lastPasswordReset: '03 Sep 2026, 12:00 PM',
+    shift: 'Clinical Sign-off Hours (10:00 AM - 7:00 PM)',
+    notes: 'Consultant Pathologist & Clinical Director, NABL signatory',
+  },
+  // --- CITYCARE ADVANCED DIAGNOSTICS STAFF (lab-citycare) ---
+  {
+    id: 'staff-cc-reception-1',
+    name: 'Jasleen Chawla',
+    role: 'reception',
+    username: 'reception@citycare.com',
+    phone: '+91 98150 22334',
+    password: 'reception123',
+    status: 'active',
+    labId: 'lab-citycare',
+    labName: 'CityCare Advanced Diagnostics & Scan Centre',
+    branchId: 'branch-cc-1',
+    branchName: 'CityCare Phase 7 Diagnostic Hub',
+    lastPasswordReset: '01 Sep 2026, 09:30 AM',
+    shift: 'Front Desk Shift (7:30 AM - 3:30 PM)',
+    notes: 'CityCare registration lead, token allocation & due settlements',
+  },
+  {
+    id: 'staff-cc-tech-1',
+    name: 'Satnam Singh (DMLT)',
+    role: 'technician',
+    username: 'technician@citycare.com',
+    phone: '+91 98150 55667',
+    password: 'tech123',
+    status: 'active',
+    labId: 'lab-citycare',
+    labName: 'CityCare Advanced Diagnostics & Scan Centre',
+    branchId: 'branch-cc-1',
+    branchName: 'CityCare Phase 7 Diagnostic Hub',
+    lastPasswordReset: '01 Sep 2026, 10:00 AM',
+    shift: 'Analyzer Workstation Shift (8:00 AM - 5:00 PM)',
+    notes: 'Biochemistry, Immunoturbidimetry & Vitamin profiling specialist',
+  },
+  {
+    id: 'staff-cc-manager-1',
+    name: 'Paramjit Sandhu',
+    role: 'branch_manager',
+    username: 'manager@citycare.com',
+    phone: '+91 98150 77889',
+    password: 'manager123',
+    status: 'active',
+    labId: 'lab-citycare',
+    labName: 'CityCare Advanced Diagnostics & Scan Centre',
+    branchId: 'branch-cc-2',
+    branchName: 'Phase 3B2 Collection Desk',
+    lastPasswordReset: '02 Sep 2026, 08:30 AM',
+    shift: 'Collection Centre Manager (8:00 AM - 4:00 PM)',
+    notes: 'Branch ops, runner coordination to Phase 7 Hub & cash reconciliation',
+  },
+  {
+    id: 'staff-cc-patho-1',
+    name: 'Dr. S. K. Narang (MD Path)',
+    role: 'pathologist',
+    username: 'pathologist@citycare.com',
+    phone: '+91 98150 12345',
+    password: 'patho123',
+    status: 'active',
+    labId: 'lab-citycare',
+    labName: 'CityCare Advanced Diagnostics & Scan Centre',
+    branchId: 'all',
+    branchName: 'All Branches (Central Sign-off Authority)',
+    lastPasswordReset: '03 Sep 2026, 11:30 AM',
+    shift: 'Clinical Sign-off Hours (9:30 AM - 6:30 PM)',
+    notes: 'Senior Clinical Director, QCI signatory',
+  },
+  // --- METROPATH SCANS & MOLECULAR LAB STAFF (lab-metropath) ---
+  {
+    id: 'staff-mp-reception-1',
+    name: 'Divya Sehgal',
+    role: 'reception',
+    username: 'reception@metropath.com',
+    phone: '+91 94170 11223',
+    password: 'reception123',
+    status: 'active',
+    labId: 'lab-metropath',
+    labName: 'MetroPath Scans & Molecular Pathology Hub',
+    branchId: 'branch-mp-1',
+    branchName: 'MetroPath Sector 34-A Super Specialty Hub',
+    lastPasswordReset: '01 Sep 2026, 08:45 AM',
+    shift: 'Morning Intake Shift (8:00 AM - 4:00 PM)',
+    notes: 'Patient intake, Barcode tagging & Cashless TPA / UPI processing',
+  },
+  {
+    id: 'staff-mp-tech-1',
+    name: 'Nikhil Kashyap (M.Sc MLT)',
+    role: 'technician',
+    username: 'technician@metropath.com',
+    phone: '+91 94170 33445',
+    password: 'tech123',
+    status: 'active',
+    labId: 'lab-metropath',
+    labName: 'MetroPath Scans & Molecular Pathology Hub',
+    branchId: 'branch-mp-1',
+    branchName: 'MetroPath Sector 34-A Super Specialty Hub',
+    lastPasswordReset: '01 Sep 2026, 09:15 AM',
+    shift: 'Molecular & Cardiac Lab Shift (9:00 AM - 6:00 PM)',
+    notes: 'Specializes in High Sensitivity Troponin, PSA and real-time PCR testing',
+  },
+  {
+    id: 'staff-mp-manager-1',
+    name: 'Rohit Batra',
+    role: 'branch_manager',
+    username: 'manager@metropath.com',
+    phone: '+91 94170 66778',
+    password: 'manager123',
+    status: 'active',
+    labId: 'lab-metropath',
+    labName: 'MetroPath Scans & Molecular Pathology Hub',
+    branchId: 'branch-mp-2',
+    branchName: 'Sector 22 Health Express Counter',
+    lastPasswordReset: '02 Sep 2026, 09:30 AM',
+    shift: 'Express Centre Incharge (7:00 AM - 3:00 PM)',
+    notes: 'Cold-chain sample transit monitor & branch collection auditor',
+  },
+  {
+    id: 'staff-mp-patho-1',
+    name: 'Dr. Arunava Ghosh (MD Path)',
+    role: 'pathologist',
+    username: 'pathologist@metropath.com',
+    phone: '+91 94170 98765',
+    password: 'patho123',
+    status: 'active',
+    labId: 'lab-metropath',
+    labName: 'MetroPath Scans & Molecular Pathology Hub',
+    branchId: 'all',
+    branchName: 'All Branches (Central Sign-off Authority)',
+    lastPasswordReset: '03 Sep 2026, 10:00 AM',
+    shift: 'Clinical Sign-off Hours (9:00 AM - 7:00 PM)',
+    notes: 'Consultant Molecular Pathologist, NABL accredited digital signatory',
   },
 ];
 
 // --- CMS CONTEXT INTERFACE ---
 interface CmsContextType {
   currentUser: CmsUser | null;
-  login: (role: 'admin' | 'technician' | 'reception' | 'vendor', email?: string, password?: string) => boolean;
+  activeBranchId: string;
+  setActiveBranchId: (branchId: string) => void;
+  login: (
+    role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist',
+    email?: string,
+    password?: string,
+    labId?: string,
+    branchId?: string
+  ) => { success: boolean; targetView: AppView; error?: string };
   logout: () => void;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
-  targetLoginRole: 'admin' | 'technician' | 'reception' | 'vendor' | null;
-  openLoginModal: (role?: 'admin' | 'technician' | 'reception' | 'vendor') => void;
+  targetLoginRole: 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist' | null;
+  openLoginModal: (role?: 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist') => void;
 
   // Lab Staff Credentials (Lab Owner creates & resets Reception & Technician)
   staffAccounts: LabStaffAccount[];
@@ -442,6 +705,8 @@ interface CmsContextType {
 
   // Lab Reports Store
   reports: LabReport[];
+  labReports: LabReport[];
+  setLabReports: React.Dispatch<React.SetStateAction<LabReport[]>>;
   addLabReport: (report: LabReport) => void;
   updateLabReport: (reportId: string, updated: Partial<LabReport>) => void;
   deleteLabReport: (reportId: string) => void;
@@ -463,6 +728,22 @@ interface CmsContextType {
 
   // Reset demo
   resetAllToDefaults: () => void;
+
+  // Multi-Lab Data Isolation & Tenant Security
+  activeTenantId: string;
+  activeTenantName: string;
+  superAdminTenantScope: string;
+  setSuperAdminTenantScope: (scope: string) => void;
+  isTenantIsolated: boolean;
+  queryTenantIsolatedPatients: (targetLabId?: string) => ReceptionPatientEntry[];
+  queryTenantIsolatedReports: (targetLabId?: string) => LabReport[];
+  queryTenantIsolatedBilling: (targetLabId?: string) => {
+    totalCollection: number;
+    dueAmount: number;
+    totalPatients: number;
+    bookings: HomeCollectionBooking[];
+  };
+  queryTenantIsolatedStaff: (targetLabId?: string) => LabStaffAccount[];
 }
 
 const CmsContext = createContext<CmsContextType | null>(null);
@@ -478,7 +759,21 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [targetLoginRole, setTargetLoginRole] = useState<'admin' | 'technician' | 'reception' | 'vendor' | null>(null);
+  const [targetLoginRole, setTargetLoginRole] = useState<
+    'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist' | null
+  >(null);
+  const [activeBranchId, setActiveBranchId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('cms_current_user');
+      if (saved) {
+        const u = JSON.parse(saved);
+        if (u.branchId && u.branchId !== 'all') return u.branchId;
+      }
+      return 'branch-1';
+    } catch {
+      return 'branch-1';
+    }
+  });
 
   // Company State
   const [companySettings, setCompanySettings] = useState<CompanySettings>(() => {
@@ -555,7 +850,47 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  // Vendor State
+  // Multi-Vendor Labs Directory & Active Lab Selection
+  const [vendorLabsList, setVendorLabsList] = useState<VendorLabDirectoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_vendor_labs_list');
+      return saved ? JSON.parse(saved) : VENDOR_LABS_DIRECTORY;
+    } catch {
+      return VENDOR_LABS_DIRECTORY;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_vendor_labs_list', JSON.stringify(vendorLabsList));
+    } catch {}
+  }, [vendorLabsList]);
+
+  const [selectedVendorLabId, setSelectedVendorLabId] = useState<string>('lab-apex');
+
+  // Super Admin global vs lab-specific view scope ('all' or specific labId)
+  const [superAdminTenantScope, setSuperAdminTenantScope] = useState<string>('all');
+
+  // Compute the current active tenant/laboratory ID
+  const activeTenantId = useMemo(() => {
+    if (currentUser) {
+      if (currentUser.role === 'admin') {
+        return superAdminTenantScope;
+      }
+      return currentUser.labId || 'lab-apex';
+    }
+    return selectedVendorLabId || 'lab-apex';
+  }, [currentUser, superAdminTenantScope, selectedVendorLabId]);
+
+  const isTenantIsolated = activeTenantId !== 'all';
+
+  const activeTenantName = useMemo(() => {
+    if (activeTenantId === 'all') return 'All Laboratories (Super Admin Global Scope)';
+    const match = vendorLabsList.find((l) => l.id === activeTenantId);
+    return match ? match.name : (currentUser?.labName || 'Apex Diagnostic Central');
+  }, [activeTenantId, vendorLabsList, currentUser]);
+
+  // Vendor Lab Settings & Profile
   const [vendorLabSettings, setVendorLabSettings] = useState<VendorLabSettings>(() => {
     try {
       const saved = localStorage.getItem('cms_vendor_lab_settings');
@@ -574,15 +909,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  const [vendorTests, setVendorTests] = useState<TestItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('cms_vendor_tests');
-      return saved ? JSON.parse(saved) : MOCK_TESTS;
-    } catch {
-      return MOCK_TESTS;
-    }
-  });
-
   const [vendorDoctors, setVendorDoctors] = useState<VendorDoctor[]>(() => {
     try {
       const saved = localStorage.getItem('cms_vendor_doctors');
@@ -592,53 +918,249 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  const [vendorBranches, setVendorBranches] = useState<VendorBranch[]>(() => {
-    try {
-      const saved = localStorage.getItem('cms_vendor_branches');
-      return saved ? JSON.parse(saved) : DEFAULT_VENDOR_BRANCHES;
-    } catch {
-      return DEFAULT_VENDOR_BRANCHES;
-    }
-  });
-
-  const [vendorBookings, setVendorBookings] = useState<HomeCollectionBooking[]>(() => {
-    try {
-      const saved = localStorage.getItem('cms_vendor_bookings');
-      return saved ? JSON.parse(saved) : DEFAULT_VENDOR_BOOKINGS;
-    } catch {
-      return DEFAULT_VENDOR_BOOKINGS;
-    }
-  });
-
-  const [reports, setReports] = useState<LabReport[]>(() => {
+  // Master Raw Stores (Isolated by labId)
+  const [allReports, setAllReports] = useState<LabReport[]>(() => {
     try {
       const saved = localStorage.getItem('cms_lab_reports');
-      return saved ? JSON.parse(saved) : INITIAL_REPORTS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasOtherLabs = parsed.some((r: any) => r.labId === 'lab-citycare' || r.labId === 'lab-metropath');
+          if (hasOtherLabs) return parsed;
+          const otherLabReports = INITIAL_REPORTS.filter((r) => r.labId && r.labId !== 'lab-apex');
+          return [...parsed, ...otherLabReports];
+        }
+      }
+      return INITIAL_REPORTS;
     } catch {
       return INITIAL_REPORTS;
     }
   });
 
-  // Save to LocalStorage effects
+  const [allReceptionEntries, setAllReceptionEntries] = useState<ReceptionPatientEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_reception_entries');
+      const rawList = saved ? JSON.parse(saved) : INITIAL_RECEPTION_ENTRIES;
+      let list = Array.isArray(rawList) ? rawList : INITIAL_RECEPTION_ENTRIES;
+      const hasOtherLabs = list.some((e: any) => e.labId === 'lab-citycare' || e.labId === 'lab-metropath');
+      if (!hasOtherLabs) {
+        const otherLabEntries = INITIAL_RECEPTION_ENTRIES.filter((e) => e.labId && e.labId !== 'lab-apex');
+        list = [...list, ...otherLabEntries];
+      }
+      return list.filter(Boolean).map((e: any, idx: number) => {
+        const token = String(e?.tokenNumber || e?.tokenNo || `TK-${101 + idx}`);
+        return {
+          ...e,
+          tokenNumber: token,
+          tokenNo: token,
+        };
+      });
+    } catch {
+      return INITIAL_RECEPTION_ENTRIES;
+    }
+  });
+
+  const [allVendorBranches, setAllVendorBranches] = useState<VendorBranch[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_vendor_branches');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasOtherLabs = parsed.some((b: any) => b.labId === 'lab-citycare' || b.labId === 'lab-metropath');
+          if (hasOtherLabs) return parsed;
+          const otherBranches = DEFAULT_VENDOR_BRANCHES.filter((b) => b.labId && b.labId !== 'lab-apex');
+          return [...parsed, ...otherBranches];
+        }
+      }
+      return DEFAULT_VENDOR_BRANCHES;
+    } catch {
+      return DEFAULT_VENDOR_BRANCHES;
+    }
+  });
+
+  const [allVendorBookings, setAllVendorBookings] = useState<HomeCollectionBooking[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_vendor_bookings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasOtherLabs = parsed.some((b: any) => b.labId === 'lab-citycare' || b.labId === 'lab-metropath');
+          if (hasOtherLabs) return parsed;
+          const otherBookings = DEFAULT_VENDOR_BOOKINGS.filter((b) => b.labId && b.labId !== 'lab-apex');
+          return [...parsed, ...otherBookings];
+        }
+      }
+      return DEFAULT_VENDOR_BOOKINGS;
+    } catch {
+      return DEFAULT_VENDOR_BOOKINGS;
+    }
+  });
+
+  const [allStaffAccounts, setAllStaffAccounts] = useState<LabStaffAccount[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_lab_staff_accounts');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasOtherLabs = parsed.some((s: any) => s.labId === 'lab-citycare' || s.labId === 'lab-metropath');
+          if (hasOtherLabs) return parsed;
+          const otherStaff = DEFAULT_STAFF_ACCOUNTS.filter((s) => s.labId && s.labId !== 'lab-apex');
+          return [...parsed, ...otherStaff];
+        }
+      }
+      return DEFAULT_STAFF_ACCOUNTS;
+    } catch {
+      return DEFAULT_STAFF_ACCOUNTS;
+    }
+  });
+
+  const [allVendorTests, setAllVendorTests] = useState<TestItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_vendor_tests');
+      return saved ? JSON.parse(saved) : MOCK_TESTS;
+    } catch {
+      return MOCK_TESTS;
+    }
+  });
+
+  // LocalStorage sync effects
   useEffect(() => {
     try {
-      localStorage.setItem('cms_lab_reports', JSON.stringify(reports));
+      localStorage.setItem('cms_lab_reports', JSON.stringify(allReports));
     } catch {}
-  }, [reports]);
+  }, [allReports]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_reception_entries', JSON.stringify(allReceptionEntries));
+    } catch {}
+  }, [allReceptionEntries]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_vendor_branches', JSON.stringify(allVendorBranches));
+    } catch {}
+  }, [allVendorBranches]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_vendor_bookings', JSON.stringify(allVendorBookings));
+    } catch {}
+  }, [allVendorBookings]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_lab_staff_accounts', JSON.stringify(allStaffAccounts));
+    } catch {}
+  }, [allStaffAccounts]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_vendor_tests', JSON.stringify(allVendorTests));
+    } catch {}
+  }, [allVendorTests]);
+
+  // Tenant-Scoped Filtered Views (Zero cross-lab data leakage)
+  const reports = useMemo(() => {
+    if (activeTenantId === 'all') return allReports;
+    return allReports.filter((r) => isTenantMatch(r, activeTenantId));
+  }, [allReports, activeTenantId]);
+
+  const receptionEntries = useMemo(() => {
+    if (activeTenantId === 'all') return allReceptionEntries;
+    return allReceptionEntries.filter((e) => isTenantMatch(e, activeTenantId));
+  }, [allReceptionEntries, activeTenantId]);
+
+  const vendorBranches = useMemo(() => {
+    if (activeTenantId === 'all') return allVendorBranches;
+    return allVendorBranches.filter((b) => isTenantMatch(b, activeTenantId));
+  }, [allVendorBranches, activeTenantId]);
+
+  const vendorBookings = useMemo(() => {
+    if (activeTenantId === 'all') return allVendorBookings;
+    return allVendorBookings.filter((b) => isTenantMatch(b, activeTenantId));
+  }, [allVendorBookings, activeTenantId]);
+
+  const staffAccounts = useMemo(() => {
+    if (activeTenantId === 'all') return allStaffAccounts;
+    return allStaffAccounts.filter((s) => isTenantMatch(s, activeTenantId));
+  }, [allStaffAccounts, activeTenantId]);
+
+  const vendorTests = useMemo(() => {
+    if (activeTenantId === 'all') return allVendorTests;
+    return allVendorTests.filter((t) => !t.labId || isTenantMatch(t, activeTenantId));
+  }, [allVendorTests, activeTenantId]);
+
+  // Tenant-Isolated Query Helpers
+  const queryTenantIsolatedPatients = (targetLabId?: string): ReceptionPatientEntry[] => {
+    const tid = targetLabId || activeTenantId;
+    if (tid === 'all') return allReceptionEntries;
+    return allReceptionEntries.filter((e) => isTenantMatch(e, tid));
+  };
+
+  const queryTenantIsolatedReports = (targetLabId?: string): LabReport[] => {
+    const tid = targetLabId || activeTenantId;
+    if (tid === 'all') return allReports;
+    return allReports.filter((r) => isTenantMatch(r, tid));
+  };
+
+  const queryTenantIsolatedBilling = (targetLabId?: string) => {
+    const tid = targetLabId || activeTenantId;
+    const pts = queryTenantIsolatedPatients(tid);
+    const bks = tid === 'all' ? allVendorBookings : allVendorBookings.filter((b) => isTenantMatch(b, tid));
+    const totalCollection = pts.reduce((sum, p) => sum + (Number(p.paidAmount) || 0), 0);
+    const dueAmount = pts.reduce((sum, p) => sum + (Number(p.dueAmount) || 0), 0);
+    return {
+      totalCollection,
+      dueAmount,
+      totalPatients: pts.length,
+      bookings: bks,
+    };
+  };
+
+  const queryTenantIsolatedStaff = (targetLabId?: string): LabStaffAccount[] => {
+    const tid = targetLabId || activeTenantId;
+    if (tid === 'all') return allStaffAccounts;
+    return allStaffAccounts.filter((s) => isTenantMatch(s, tid));
+  };
+
+  // Secure Mutators - Lab Reports
   const addLabReport = (report: LabReport) => {
-    setReports((prev) => [report, ...prev.filter((r) => r.reportId !== report.reportId)]);
+    const effectiveTenant = activeTenantId === 'all' ? (report.labId || 'lab-apex') : activeTenantId;
+    const effectiveBranch = report.branchId || (activeBranchId !== 'all' ? activeBranchId : 'branch-1');
+    const stamped = stampTenant({ ...report, branchId: effectiveBranch }, effectiveTenant);
+    setAllReports((prev) => [stamped, ...prev.filter((r) => r.reportId !== stamped.reportId)]);
   };
 
   const updateLabReport = (reportId: string, updated: Partial<LabReport>) => {
-    setReports((prev) =>
-      prev.map((r) => (r.reportId.toLowerCase() === reportId.toLowerCase() ? { ...r, ...updated } : r))
+    setAllReports((prev) =>
+      prev.map((r) => {
+        if (r.reportId.toLowerCase() === reportId.toLowerCase()) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(r, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant report update for reportId: ${reportId}`);
+            return r;
+          }
+          return { ...r, ...updated };
+        }
+        return r;
+      })
     );
   };
 
   const deleteLabReport = (reportId: string) => {
-    setReports((prev) => prev.filter((r) => r.reportId.toLowerCase() !== reportId.toLowerCase()));
-    setReceptionEntries((prev) =>
+    setAllReports((prev) =>
+      prev.filter((r) => {
+        if (r.reportId.toLowerCase() === reportId.toLowerCase()) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(r, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant report deletion for reportId: ${reportId}`);
+            return true;
+          }
+          return false;
+        }
+        return true;
+      })
+    );
+    setAllReceptionEntries((prev) =>
       prev.map((e) =>
         e.reportId?.toLowerCase() === reportId.toLowerCase()
           ? { ...e, reportId: undefined, status: 'In Lab', technicianStatus: 'Accepted' }
@@ -655,36 +1177,46 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       hour: '2-digit',
       minute: '2-digit',
     });
-    setReports((prev) =>
-      prev.map((r) =>
-        r.reportId.toLowerCase() === reportId.toLowerCase()
-          ? {
-              ...r,
-              isCancelled: true,
-              status: 'Cancelled',
-              cancellationReason: reason,
-              cancelledAt: timeStr,
-              cancelledBy,
-            }
-          : r
-      )
+    setAllReports((prev) =>
+      prev.map((r) => {
+        if (r.reportId.toLowerCase() === reportId.toLowerCase()) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(r, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant report cancellation for reportId: ${reportId}`);
+            return r;
+          }
+          return {
+            ...r,
+            isCancelled: true,
+            status: 'Cancelled',
+            cancellationReason: reason,
+            cancelledAt: timeStr,
+            cancelledBy,
+          };
+        }
+        return r;
+      })
     );
   };
 
   const uncancelLabReport = (reportId: string) => {
-    setReports((prev) =>
-      prev.map((r) =>
-        r.reportId.toLowerCase() === reportId.toLowerCase()
-          ? {
-              ...r,
-              isCancelled: false,
-              status: r.verified ? 'Verified' : 'Normal',
-              cancellationReason: undefined,
-              cancelledAt: undefined,
-              cancelledBy: undefined,
-            }
-          : r
-      )
+    setAllReports((prev) =>
+      prev.map((r) => {
+        if (r.reportId.toLowerCase() === reportId.toLowerCase()) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(r, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant uncancel for reportId: ${reportId}`);
+            return r;
+          }
+          return {
+            ...r,
+            isCancelled: false,
+            status: r.verified ? 'Verified' : 'Normal',
+            cancellationReason: undefined,
+            cancelledAt: undefined,
+            cancelledBy: undefined,
+          };
+        }
+        return r;
+      })
     );
   };
 
@@ -701,106 +1233,132 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  // Reception Desk Patients Store
-  const [receptionEntries, setReceptionEntries] = useState<ReceptionPatientEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem('cms_reception_entries');
-      const rawList = saved ? JSON.parse(saved) : INITIAL_RECEPTION_ENTRIES;
-      const list = Array.isArray(rawList) ? rawList : INITIAL_RECEPTION_ENTRIES;
-      return list.filter(Boolean).map((e: any, idx: number) => {
-        const token = String(e?.tokenNumber || e?.tokenNo || `TK-${101 + idx}`);
-        return {
-          ...e,
-          tokenNumber: token,
-          tokenNo: token,
-        };
-      });
-    } catch {
-      return INITIAL_RECEPTION_ENTRIES;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('cms_reception_entries', JSON.stringify(receptionEntries));
-    } catch {}
-  }, [receptionEntries]);
-
+  // Secure Mutators - Reception Patients
   const addReceptionEntry = (entry: Omit<ReceptionPatientEntry, 'id'>): ReceptionPatientEntry => {
     const tokenVal = String(entry.tokenNumber || entry.tokenNo || `TK-${Math.floor(100 + Math.random() * 900)}`);
+    const effectiveTenant = activeTenantId === 'all' ? (entry.labId || 'lab-apex') : activeTenantId;
+    const effectiveBranch = entry.branchId || (activeBranchId !== 'all' ? activeBranchId : 'branch-1');
     const newEntry: ReceptionPatientEntry = {
       ...entry,
+      labId: effectiveTenant,
+      branchId: effectiveBranch,
       tokenNumber: tokenVal,
       tokenNo: tokenVal,
       id: `rcp-${Date.now()}`,
     };
-    setReceptionEntries((prev) => [newEntry, ...prev]);
+    setAllReceptionEntries((prev) => [newEntry, ...prev]);
     return newEntry;
   };
 
   const updateReceptionStatus = (id: string, status: ReceptionPatientEntry['status']) => {
-    setReceptionEntries((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, status } : e))
+    setAllReceptionEntries((prev) =>
+      prev.map((e) => {
+        if (e.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(e, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant patient status update`);
+            return e;
+          }
+          return { ...e, status };
+        }
+        return e;
+      })
     );
   };
 
   const updateReceptionEntry = (id: string, updates: Partial<ReceptionPatientEntry>) => {
-    setReceptionEntries((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...updates } : e))
+    setAllReceptionEntries((prev) =>
+      prev.map((e) => {
+        if (e.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(e, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant patient update`);
+            return e;
+          }
+          return { ...e, ...updates };
+        }
+        return e;
+      })
     );
   };
 
   const deleteReceptionEntry = (id: string) => {
-    setReceptionEntries((prev) => prev.filter((e) => e.id !== id));
+    setAllReceptionEntries((prev) =>
+      prev.filter((e) => {
+        if (e.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(e, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant patient deletion`);
+            return true;
+          }
+          return false;
+        }
+        return true;
+      })
+    );
   };
 
   const clearReceptionEntries = () => {
-    setReceptionEntries([]);
+    if (activeTenantId === 'all') {
+      setAllReceptionEntries([]);
+    } else {
+      setAllReceptionEntries((prev) => prev.filter((e) => !isTenantMatch(e, activeTenantId)));
+    }
   };
 
   const sendEntryToTechnician = (id: string) => {
     const timeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    setReceptionEntries((prev) =>
-      prev.map((e) =>
-        e.id === id
-          ? {
-              ...e,
-              sentToTechnician: true,
-              technicianStatus: 'Sent to Lab',
-              status: e.status === 'Waiting' ? 'Sample Collected' : e.status,
-              sentToLabAt: `Today, ${timeStr}`,
-            }
-          : e
-      )
+    setAllReceptionEntries((prev) =>
+      prev.map((e) => {
+        if (e.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(e, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant lab handoff`);
+            return e;
+          }
+          return {
+            ...e,
+            sentToTechnician: true,
+            technicianStatus: 'Sent to Lab',
+            status: e.status === 'Waiting' ? 'Sample Collected' : e.status,
+            sentToLabAt: `Today, ${timeStr}`,
+          };
+        }
+        return e;
+      })
     );
   };
 
   const acceptEntryByTechnician = (id: string) => {
-    setReceptionEntries((prev) =>
-      prev.map((e) =>
-        e.id === id
-          ? {
-              ...e,
-              technicianStatus: 'Accepted',
-              status: 'In Lab',
-            }
-          : e
-      )
+    setAllReceptionEntries((prev) =>
+      prev.map((e) => {
+        if (e.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(e, activeTenantId)) {
+            return e;
+          }
+          return {
+            ...e,
+            technicianStatus: 'Accepted',
+            status: 'In Lab',
+          };
+        }
+        return e;
+      })
     );
   };
 
   const completeTechnicianReport = (id: string, reportId: string) => {
-    setReceptionEntries((prev) =>
-      prev.map((e) =>
-        e.id === id
-          ? {
-              ...e,
-              technicianStatus: 'Report Generated',
-              status: 'Report Ready',
-              reportId: reportId,
-            }
-          : e
-      )
+    setAllReceptionEntries((prev) =>
+      prev.map((e) => {
+        if (e.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(e, activeTenantId)) {
+            return e;
+          }
+          return {
+            ...e,
+            technicianStatus: 'Report Generated',
+            status: 'Report Ready',
+            reportId: reportId,
+          };
+        }
+        return e;
+      })
     );
   };
 
@@ -881,21 +1439,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
   }, [vendorBookings]);
 
-  // Lab Staff Accounts State (Reception & Technician managed by Lab Owner)
-  const [staffAccounts, setStaffAccounts] = useState<LabStaffAccount[]>(() => {
-    try {
-      const saved = localStorage.getItem('cms_lab_staff_accounts');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return DEFAULT_STAFF_ACCOUNTS;
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('cms_lab_staff_accounts', JSON.stringify(staffAccounts));
-    } catch {}
-  }, [staffAccounts]);
-
+  // Lab Staff Accounts Mutators (Isolated by tenant labId)
   const resetStaffPassword = (id: string, newPassword: string) => {
     const now = new Date().toLocaleString('en-IN', {
       day: '2-digit',
@@ -904,16 +1448,32 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       hour: '2-digit',
       minute: '2-digit',
     });
-    setStaffAccounts((prev) =>
-      prev.map((s) =>
-        s.id === id ? { ...s, password: newPassword, lastPasswordReset: now } : s
-      )
+    setAllStaffAccounts((prev) =>
+      prev.map((s) => {
+        if (s.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(s, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant password reset for staff ${id}`);
+            return s;
+          }
+          return { ...s, password: newPassword, lastPasswordReset: now };
+        }
+        return s;
+      })
     );
   };
 
   const updateStaffAccount = (id: string, updates: Partial<LabStaffAccount>) => {
-    setStaffAccounts((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    setAllStaffAccounts((prev) =>
+      prev.map((s) => {
+        if (s.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(s, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant staff update for staff ${id}`);
+            return s;
+          }
+          return { ...s, ...updates };
+        }
+        return s;
+      })
     );
   };
 
@@ -925,67 +1485,184 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       hour: '2-digit',
       minute: '2-digit',
     });
+    const effectiveTenant = activeTenantId === 'all' ? (staff.labId || 'lab-apex') : activeTenantId;
     const newStaff: LabStaffAccount = {
       ...staff,
+      labId: effectiveTenant,
       id: `staff-${Date.now()}`,
       lastPasswordReset: now,
     };
-    setStaffAccounts((prev) => [...prev, newStaff]);
+    setAllStaffAccounts((prev) => [...prev, newStaff]);
   };
 
   const deleteStaffAccount = (id: string) => {
-    setStaffAccounts((prev) => prev.filter((s) => s.id !== id));
+    setAllStaffAccounts((prev) =>
+      prev.filter((s) => {
+        if (s.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(s, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant staff deletion for staff ${id}`);
+            return true;
+          }
+          return false;
+        }
+        return true;
+      })
+    );
   };
 
   // Auth actions
-  const login = (role: 'admin' | 'technician' | 'reception' | 'vendor', email?: string, _password?: string): boolean => {
-    if (role === 'reception') {
-      const staff = staffAccounts.find((s) => s.role === 'reception');
-      const user: CmsUser = {
-        id: staff?.id || 'usr-reception-1',
-        name: staff ? `${staff.name} (Front Desk)` : 'Pooja Verma (Front Desk)',
-        email: email || staff?.username || 'reception@apexlab.com',
-        role: 'reception',
-        entityName: `${vendorLabSettings.labName} (Reception Desk)`,
-      };
-      setCurrentUser(user);
-      setIsAuthModalOpen(false);
-      return true;
-    } else if (role === 'technician') {
-      const staff = staffAccounts.find((s) => s.role === 'technician');
-      const user: CmsUser = {
-        id: staff?.id || 'usr-tech-1',
-        name: staff ? `${staff.name} (Lab Technician)` : 'Amit Khurana (Lab Technician)',
-        email: email || staff?.username || 'technician@apexlab.com',
-        role: 'technician',
-        entityName: `${vendorLabSettings.labName} (Diagnostic Workstation)`,
-      };
-      setCurrentUser(user);
-      setIsAuthModalOpen(false);
-      return true;
-    } else if (role === 'admin') {
-      const user: CmsUser = {
+  const login = (
+    role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist',
+    email?: string,
+    _password?: string,
+    labId?: string,
+    branchId?: string
+  ): { success: boolean; targetView: AppView; error?: string } => {
+    // Resolve lab details
+    const chosenLabId = labId || (role === 'admin' ? 'all' : selectedVendorLabId || 'lab-apex');
+    const selectedLabObj = vendorLabsList.find((l) => l.id === chosenLabId) || vendorLabsList[0];
+    const labName =
+      chosenLabId === 'all'
+        ? 'All Registered Labs (Global)'
+        : selectedLabObj?.name || vendorLabSettings.labName;
+
+    // Resolve branch details
+    const chosenBranchId =
+      branchId ||
+      (role === 'admin' || role === 'vendor' || role === 'pathologist' ? 'all' : 'branch-1');
+    const branchObj = vendorBranches.find((b) => b.id === chosenBranchId);
+    const branchName =
+      chosenBranchId === 'all'
+        ? 'All Branches'
+        : branchObj?.name ||
+          (chosenBranchId === 'branch-2'
+            ? 'Model Town Collection Centre'
+            : 'Apex Central Diagnostic Hub');
+
+    const permissions = getPermissionsForRole(role);
+
+    let user: CmsUser;
+    let targetView: AppView = 'vendor_dashboard';
+
+    // Staff lookup scoped to tenant labId
+    const findStaffForTenant = (targetRole: LabStaffAccount['role']) => {
+      return (
+        allStaffAccounts.find((s) => s.role === targetRole && (s.labId === chosenLabId || !s.labId || chosenLabId === 'all')) ||
+        allStaffAccounts.find((s) => s.role === targetRole)
+      );
+    };
+
+    if (role === 'admin') {
+      user = {
         id: 'usr-admin-super',
-        name: 'R. K. Mehra (Portal Website Owner / Super Admin)',
+        name: 'R. K. Mehra (Super Admin)',
         email: email || 'rkmehra331996@gmail.com',
         role: 'admin',
         entityName: 'Diagnostic SaaS Portal Central System',
+        labId: 'all',
+        labName: 'All Laboratories (Global Portal)',
+        branchId: 'all',
+        branchName: 'All Branches (Unrestricted)',
+        permissions,
       };
-      setCurrentUser(user);
-      setIsAuthModalOpen(false);
-      return true;
+      targetView = 'admin_dashboard';
+    } else if (role === 'branch_manager') {
+      const staff = findStaffForTenant('branch_manager');
+      user = {
+        id: staff?.id || `usr-manager-${chosenLabId}`,
+        name: staff ? `${staff.name} (Branch Manager)` : 'Vikram Malhotra (Branch Manager)',
+        email: email || staff?.username || `manager@${chosenLabId}.com`,
+        role: 'branch_manager',
+        entityName: `${labName} (${branchName})`,
+        labId: chosenLabId,
+        labName,
+        branchId: chosenBranchId === 'all' ? 'branch-2' : chosenBranchId,
+        branchName,
+        permissions,
+      };
+      targetView = 'branch_manager_dashboard';
+    } else if (role === 'reception') {
+      const staff = findStaffForTenant('reception');
+      user = {
+        id: staff?.id || `usr-reception-${chosenLabId}`,
+        name: staff ? `${staff.name} (Front Desk)` : 'Pooja Verma (Front Desk)',
+        email: email || staff?.username || `reception@${chosenLabId}.com`,
+        role: 'reception',
+        entityName: `${labName} (${branchName})`,
+        labId: chosenLabId,
+        labName,
+        branchId: chosenBranchId === 'all' ? 'branch-1' : chosenBranchId,
+        branchName,
+        permissions,
+      };
+      targetView = 'reception_dashboard';
+    } else if (role === 'technician') {
+      const staff = findStaffForTenant('technician');
+      user = {
+        id: staff?.id || `usr-tech-${chosenLabId}`,
+        name: staff ? `${staff.name} (Lab Technician)` : 'Amit Khurana (Lab Technician)',
+        email: email || staff?.username || `technician@${chosenLabId}.com`,
+        role: 'technician',
+        entityName: `${labName} (Diagnostic Workstation)`,
+        labId: chosenLabId,
+        labName,
+        branchId: chosenBranchId,
+        branchName,
+        permissions,
+      };
+      targetView = 'technician_dashboard';
+    } else if (role === 'pathologist') {
+      const staff = findStaffForTenant('pathologist');
+      user = {
+        id: staff?.id || `usr-pathologist-${chosenLabId}`,
+        name: staff ? `${staff.name} (MD Pathologist)` : 'Dr. Meenakshi Sundaram (MD Pathologist)',
+        email: email || staff?.username || `pathologist@${chosenLabId}.com`,
+        role: 'pathologist',
+        entityName: `${labName} (Clinical Sign-off Desk)`,
+        labId: chosenLabId,
+        labName,
+        branchId: chosenBranchId,
+        branchName,
+        permissions,
+      };
+      targetView = 'pathologist_dashboard';
     } else {
-      const user: CmsUser = {
-        id: 'usr-vendor-1',
-        name: 'Dr. Rajesh Sharma (Lab Owner)',
-        email: email || '9876543210',
+      // vendor / lab_admin
+      let ownerName = 'Dr. Rajesh Sharma (Lab Owner)';
+      let defaultEmail = '9876543210';
+      if (chosenLabId === 'lab-citycare') {
+        ownerName = 'Dr. S. K. Narang (Lab Owner & Director)';
+        defaultEmail = 'dr.narang@citycare.com';
+      } else if (chosenLabId === 'lab-metropath') {
+        ownerName = 'Dr. Arunava Ghosh (Managing Pathologist & Owner)';
+        defaultEmail = 'dr.ghosh@metropath.com';
+      }
+      user = {
+        id: `usr-vendor-${chosenLabId}`,
+        name: ownerName,
+        email: email || defaultEmail,
         role: 'vendor',
-        entityName: vendorLabSettings.labName,
+        entityName: labName,
+        labId: chosenLabId,
+        labName,
+        branchId: chosenBranchId,
+        branchName,
+        permissions,
       };
-      setCurrentUser(user);
-      setIsAuthModalOpen(false);
-      return true;
+      targetView = 'vendor_dashboard';
     }
+
+    setCurrentUser(user);
+    if (user.branchId && user.branchId !== 'all') {
+      setActiveBranchId(user.branchId);
+    }
+    setIsAuthModalOpen(false);
+
+    try {
+      localStorage.setItem('cms_current_user', JSON.stringify(user));
+    } catch {}
+
+    return { success: true, targetView };
   };
 
   const logout = () => {
@@ -1003,7 +1680,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
   };
 
-  const openLoginModal = (role?: 'admin' | 'technician' | 'reception' | 'vendor') => {
+  const openLoginModal = (
+    role?: 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist'
+  ) => {
     setTargetLoginRole(role || null);
     setIsAuthModalOpen(true);
   };
@@ -1113,19 +1792,43 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addVendorTest = (test: Omit<TestItem, 'id'>) => {
+    const effectiveTenant = activeTenantId === 'all' ? (test.labId || 'lab-apex') : activeTenantId;
     const newTest: TestItem = {
       ...test,
+      labId: effectiveTenant,
       id: `TST-${Date.now().toString().slice(-4)}`,
     };
-    setVendorTests((prev) => [newTest, ...prev]);
+    setAllVendorTests((prev) => [newTest, ...prev]);
   };
 
   const updateVendorTest = (id: string, test: Partial<TestItem>) => {
-    setVendorTests((prev) => prev.map((t) => (t.id === id ? { ...t, ...test } : t)));
+    setAllVendorTests((prev) =>
+      prev.map((t) => {
+        if (t.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(t, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant test update for ${id}`);
+            return t;
+          }
+          return { ...t, ...test };
+        }
+        return t;
+      })
+    );
   };
 
   const deleteVendorTest = (id: string) => {
-    setVendorTests((prev) => prev.filter((t) => t.id !== id));
+    setAllVendorTests((prev) =>
+      prev.filter((t) => {
+        if (t.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(t, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant test deletion for ${id}`);
+            return true;
+          }
+          return false;
+        }
+        return true;
+      })
+    );
   };
 
   const addVendorDoctor = (doc: Omit<VendorDoctor, 'id'>) => {
@@ -1145,57 +1848,92 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addVendorBranch = (branch: Omit<VendorBranch, 'id'>) => {
+    const effectiveTenant = activeTenantId === 'all' ? (branch.labId || 'lab-apex') : activeTenantId;
     const newBranch: VendorBranch = {
       ...branch,
+      labId: effectiveTenant,
       id: `branch-${Date.now()}`,
     };
-    setVendorBranches((prev) => [...prev, newBranch]);
+    setAllVendorBranches((prev) => [...prev, newBranch]);
   };
 
   const updateVendorBranch = (id: string, branch: Partial<VendorBranch>) => {
-    setVendorBranches((prev) => prev.map((b) => (b.id === id ? { ...b, ...branch } : b)));
+    setAllVendorBranches((prev) =>
+      prev.map((b) => {
+        if (b.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant branch update for ${id}`);
+            return b;
+          }
+          return { ...b, ...branch };
+        }
+        return b;
+      })
+    );
   };
 
   const deleteVendorBranch = (id: string) => {
-    setVendorBranches((prev) => prev.filter((b) => b.id !== id));
+    setAllVendorBranches((prev) =>
+      prev.filter((b) => {
+        if (b.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant branch deletion for ${id}`);
+            return true;
+          }
+          return false;
+        }
+        return true;
+      })
+    );
   };
 
   const addHomeCollectionBooking = (
     booking: Omit<HomeCollectionBooking, 'id' | 'createdAt' | 'status'>
   ) => {
+    const effectiveTenant = activeTenantId === 'all' ? (booking.labId || 'lab-apex') : activeTenantId;
+    const effectiveBranch = booking.branchId || (activeBranchId !== 'all' ? activeBranchId : 'branch-1');
     const newBooking: HomeCollectionBooking = {
       ...booking,
+      labId: effectiveTenant,
+      branchId: effectiveBranch,
       id: `book-${Date.now().toString().slice(-4)}`,
       status: 'Pending',
       createdAt: 'Just now',
     };
-    setVendorBookings((prev) => [newBooking, ...prev]);
+    setAllVendorBookings((prev) => [newBooking, ...prev]);
   };
 
   const updateBookingStatus = (id: string, status: HomeCollectionBooking['status']) => {
-    setVendorBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
+    setAllVendorBookings((prev) =>
+      prev.map((b) => {
+        if (b.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant booking status update for ${id}`);
+            return b;
+          }
+          return { ...b, status };
+        }
+        return b;
+      })
+    );
   };
 
   const deleteBooking = (id: string) => {
-    setVendorBookings((prev) => prev.filter((b) => b.id !== id));
+    setAllVendorBookings((prev) =>
+      prev.filter((b) => {
+        if (b.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(b, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant booking deletion for ${id}`);
+            return true;
+          }
+          return false;
+        }
+        return true;
+      })
+    );
   };
 
-  // Multi-Vendor Labs Directory & Switching
-  const [vendorLabsList, setVendorLabsList] = useState<VendorLabDirectoryItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('cms_vendor_labs_list');
-      return saved ? JSON.parse(saved) : VENDOR_LABS_DIRECTORY;
-    } catch {
-      return VENDOR_LABS_DIRECTORY;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('cms_vendor_labs_list', JSON.stringify(vendorLabsList));
-    } catch {}
-  }, [vendorLabsList]);
-
+  // Vendor Lab Directory Management
   const addVendorLab = (vendor: Omit<VendorLabDirectoryItem, 'id'>): VendorLabDirectoryItem => {
     const newLab: VendorLabDirectoryItem = {
       ...vendor,
@@ -1220,8 +1958,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((lab) => (lab.id === id ? { ...lab, status } : lab))
     );
   };
-
-  const [selectedVendorLabId, setSelectedVendorLabId] = useState<string>('lab-apex');
 
   const selectVendorLab = (labId: string) => {
     const lab = vendorLabsList.find((l) => l.id === labId) || VENDOR_LABS_DIRECTORY.find((l) => l.id === labId);
@@ -1273,13 +2009,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setVendorLabSettings(DEFAULT_VENDOR_LAB_SETTINGS);
     setVendorPackages(DEFAULT_VENDOR_PACKAGES);
-    setVendorTests(MOCK_TESTS);
+    setAllVendorTests(MOCK_TESTS);
     setVendorDoctors(DEFAULT_VENDOR_DOCTORS);
-    setVendorBranches(DEFAULT_VENDOR_BRANCHES);
-    setVendorBookings(DEFAULT_VENDOR_BOOKINGS);
-    setReports([SAMPLE_REPORT]);
-    setReceptionEntries(INITIAL_RECEPTION_ENTRIES);
-    setStaffAccounts(DEFAULT_STAFF_ACCOUNTS);
+    setAllVendorBranches(DEFAULT_VENDOR_BRANCHES);
+    setAllVendorBookings(DEFAULT_VENDOR_BOOKINGS);
+    setAllReports(INITIAL_REPORTS);
+    setAllReceptionEntries(INITIAL_RECEPTION_ENTRIES);
+    setAllStaffAccounts(DEFAULT_STAFF_ACCOUNTS);
+    setSuperAdminTenantScope('all');
 
     localStorage.clear();
   };
@@ -1288,6 +2025,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <CmsContext.Provider
       value={{
         currentUser,
+        activeBranchId,
+        setActiveBranchId,
         login,
         logout,
         isAuthModalOpen,
@@ -1355,6 +2094,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setVendorStatus,
 
         reports,
+        labReports: reports,
+        setLabReports: setAllReports,
         addLabReport,
         updateLabReport,
         deleteLabReport,
@@ -1374,6 +2115,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         completeTechnicianReport,
 
         resetAllToDefaults,
+
+        // Multi-Lab Data Isolation & Tenant Security
+        activeTenantId,
+        activeTenantName,
+        superAdminTenantScope,
+        setSuperAdminTenantScope,
+        isTenantIsolated,
+        queryTenantIsolatedPatients,
+        queryTenantIsolatedReports,
+        queryTenantIsolatedBilling,
+        queryTenantIsolatedStaff,
       }}
     >
       {children}

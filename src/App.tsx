@@ -37,6 +37,9 @@ import { ReceptionEntryDashboard } from './components/ReceptionEntryDashboard';
 import { TechnicianDepartmentDashboard } from './components/technician/TechnicianDepartmentDashboard';
 import { DashboardAuthGuard } from './components/DashboardAuthGuard';
 import { CmsAuthModal } from './components/CmsAuthModal';
+import { BranchManagerDashboard } from './components/BranchManagerDashboard';
+import { PathologistDashboard } from './components/PathologistDashboard';
+import { isUserAuthorizedForView } from './utils/rbac';
 import { useCms } from './context/CmsContext';
 
 export default function App() {
@@ -58,8 +61,10 @@ export default function App() {
         viewParam &&
         [
           'vendor_dashboard',
+          'branch_manager_dashboard',
           'reception_dashboard',
           'technician_dashboard',
+          'pathologist_dashboard',
           'admin_dashboard',
           'vendor_website',
           'website',
@@ -88,30 +93,9 @@ export default function App() {
     } catch {}
   }, [currentView]);
 
-  // Authorization check for protected dashboard workspaces
+  // Authorization check for protected dashboard workspaces using RBAC
   const isAuthorizedForView = (view: AppView): boolean => {
-    if (!currentUser) return false;
-    if (view === 'admin_dashboard') {
-      return currentUser.role === 'admin';
-    }
-    if (view === 'vendor_dashboard') {
-      return currentUser.role === 'vendor' || currentUser.role === 'admin';
-    }
-    if (view === 'reception_dashboard') {
-      return (
-        currentUser.role === 'reception' ||
-        currentUser.role === 'vendor' ||
-        currentUser.role === 'admin'
-      );
-    }
-    if (view === 'technician_dashboard') {
-      return (
-        currentUser.role === 'technician' ||
-        currentUser.role === 'vendor' ||
-        currentUser.role === 'admin'
-      );
-    }
-    return true;
+    return isUserAuthorizedForView(currentUser, view);
   };
 
   const handleOpenDemo = () => setIsDemoModalOpen(true);
@@ -325,6 +309,96 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
         <TechnicianDepartmentDashboard
+          onNavigateView={(view) => {
+            setCurrentView(view);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onOpenReportPortal={handleViewPatientPortal}
+        />
+        <CmsAuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onNavigateView={(v) => {
+            setCurrentView(v);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 4c. Dedicated Experience: Branch Operations & Cash Manager Dashboard
+  if (currentView === 'branch_manager_dashboard') {
+    if (!isAuthorizedForView('branch_manager_dashboard')) {
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+          <DashboardAuthGuard
+            view="branch_manager_dashboard"
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+          <CmsAuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onNavigateView={(v) => {
+              setCurrentView(v);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+        <BranchManagerDashboard
+          onNavigateView={(view) => {
+            setCurrentView(view);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onOpenReportPortal={handleViewPatientPortal}
+        />
+        <CmsAuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onNavigateView={(v) => {
+            setCurrentView(v);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 4d. Dedicated Experience: Consultant Pathologist Verification & Clinical Sign-off Desk
+  if (currentView === 'pathologist_dashboard') {
+    if (!isAuthorizedForView('pathologist_dashboard')) {
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+          <DashboardAuthGuard
+            view="pathologist_dashboard"
+            onNavigateView={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+          <CmsAuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onNavigateView={(v) => {
+              setCurrentView(v);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
+        <PathologistDashboard
           onNavigateView={(view) => {
             setCurrentView(view);
             window.scrollTo({ top: 0, behavior: 'smooth' });
