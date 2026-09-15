@@ -156,6 +156,7 @@ export interface VendorWebsiteSections {
 }
 
 export interface VendorLabSettings {
+  labId?: string;
   labShopId?: string;
   labName: string;
   name?: string;

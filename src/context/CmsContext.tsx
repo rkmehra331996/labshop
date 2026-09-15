@@ -195,9 +195,11 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
   sections: DEFAULT_VENDOR_SECTIONS,
 };
 
-const DEFAULT_VENDOR_PACKAGES: VendorPackage[] = [
+const DEFAULT_ALL_VENDOR_PACKAGES: VendorPackage[] = [
+  // Apex packages
   {
-    id: 'pkg-1',
+    id: 'pkg-apex-1',
+    labId: 'lab-apex',
     name: 'Full Body Health Checkup',
     testsCount: 68,
     description: 'Complete screen covering Liver, Kidney, Thyroid, Heart, Complete Blood Count, and Blood Sugar.',
@@ -215,7 +217,8 @@ const DEFAULT_VENDOR_PACKAGES: VendorPackage[] = [
     ],
   },
   {
-    id: 'pkg-2',
+    id: 'pkg-apex-2',
+    labId: 'lab-apex',
     name: 'Comprehensive Diabetic Care',
     testsCount: 22,
     description: 'Designed for diabetic and pre-diabetic patients to assess quarterly sugar control and organ health.',
@@ -231,7 +234,8 @@ const DEFAULT_VENDOR_PACKAGES: VendorPackage[] = [
     ],
   },
   {
-    id: 'pkg-3',
+    id: 'pkg-apex-3',
+    labId: 'lab-apex',
     name: 'Senior Citizen Health Profile',
     testsCount: 84,
     description: 'Comprehensive health monitoring for age 50+, with special focus on cardiac risk, bones, and vitamins.',
@@ -247,37 +251,316 @@ const DEFAULT_VENDOR_PACKAGES: VendorPackage[] = [
       'Doctor Consultation & Diet Advice Included',
     ],
   },
+  // CityCare packages
+  {
+    id: 'pkg-cc-1',
+    labId: 'lab-citycare',
+    name: 'CityCare Executive Wellness Panel',
+    testsCount: 72,
+    description: 'Full body preventive checkup tailored for working professionals and executives in Mohali & Tricity.',
+    priceINR: 1199,
+    mrpINR: 2800,
+    isPopular: true,
+    features: [
+      'Automated 5-Part Differential CBC',
+      'Complete Liver & Kidney Profiles',
+      'Lipid Screen with Cardiac Risk Ratio',
+      'Free T3, Free T4 & Ultrasensitive TSH',
+      'Fasting Blood Sugar & HbA1c',
+      'Serum Electrolytes & Uric Acid',
+    ],
+  },
+  {
+    id: 'pkg-cc-2',
+    labId: 'lab-citycare',
+    name: 'CityCare Thyroid & Vital Organ Health',
+    testsCount: 30,
+    description: 'Targeted assessment for thyroid disorders, metabolism, liver enzymes, and renal clearance.',
+    priceINR: 699,
+    mrpINR: 1600,
+    isPopular: false,
+    features: [
+      'Total T3, Total T4, TSH',
+      'Liver Enzymes (SGOT, SGPT, Bilirubin)',
+      'Serum Creatinine & Blood Urea',
+      'Electrolytes Panel (Na, K, Cl)',
+    ],
+  },
+  // MetroPath packages
+  {
+    id: 'pkg-mp-1',
+    labId: 'lab-metropath',
+    name: 'MetroPath Cardiac & Vascular Risk Panel',
+    testsCount: 45,
+    description: 'Specialized advanced cardiovascular risk screening with high-sensitivity troponin, hs-CRP, and lipid subfractions.',
+    priceINR: 1799,
+    mrpINR: 3900,
+    isPopular: true,
+    features: [
+      'High Sensitivity C-Reactive Protein (hs-CRP)',
+      'Lipid Subfraction Profile (Direct LDL, VLDL, HDL)',
+      'Apolipoprotein A1 & B Screening',
+      'HbA1c & Fasting Insulin',
+      'Homocysteine Serum Levels',
+    ],
+  },
+  {
+    id: 'pkg-mp-2',
+    labId: 'lab-metropath',
+    name: 'MetroPath Advanced Hormone & Vitamin Assay',
+    testsCount: 18,
+    description: 'Immunoassay screen for Vitamin D3, B12, Ferritin, Cortisol, and complete thyroid antibodies.',
+    priceINR: 1499,
+    mrpINR: 3400,
+    isPopular: false,
+    features: [
+      'Vitamin D3 (25-Hydroxy)',
+      'Vitamin B12 Cyanocobalamin',
+      'Serum Ferritin & Iron Studies',
+      'Anti-TPO Antibodies & TSH',
+    ],
+  },
+  // Sanjivani packages
+  {
+    id: 'pkg-sanj-1',
+    labId: 'lab-sanjivani',
+    name: 'Sanjivani Aarogya Swasthya Package',
+    testsCount: 52,
+    description: 'Affordable comprehensive family blood checkup serving Amritsar and surrounding rural health centers.',
+    priceINR: 799,
+    mrpINR: 1800,
+    isPopular: true,
+    features: [
+      'CBC with ESR (24 parameters)',
+      'Blood Sugar Fasting',
+      'Liver Function Test (8 parameters)',
+      'Kidney Function Test (6 parameters)',
+      'Serum Cholesterol & Triglycerides',
+      'Urine Routine Analysis',
+    ],
+  },
+  {
+    id: 'pkg-sanj-2',
+    labId: 'lab-sanjivani',
+    name: 'Sanjivani Basic Sugar & Lipid Check',
+    testsCount: 15,
+    description: 'Quick baseline screening for blood glucose, triglycerides, and hypertension risk factors.',
+    priceINR: 399,
+    mrpINR: 900,
+    isPopular: false,
+    features: [
+      'Blood Sugar Fasting & Post Prandial',
+      'Total Cholesterol & Triglycerides',
+      'Blood Urea & Serum Creatinine',
+    ],
+  },
+  // LifeLine packages
+  {
+    id: 'pkg-life-1',
+    labId: 'lab-lifeline-due',
+    name: 'LifeLine Essential Blood Panel',
+    testsCount: 40,
+    description: 'Basic preventive health panel with home sample pickup in Jalandhar.',
+    priceINR: 599,
+    mrpINR: 1400,
+    isPopular: true,
+    features: [
+      'Complete Blood Count (CBC)',
+      'Fasting Blood Glucose',
+      'Liver Screening (SGPT, SGOT)',
+      'Kidney Screening (Creatinine, Urea)',
+    ],
+  },
 ];
 
-const DEFAULT_VENDOR_DOCTORS: VendorDoctor[] = [
+const DEFAULT_VENDOR_PACKAGES = DEFAULT_ALL_VENDOR_PACKAGES;
+
+const DEFAULT_ALL_VENDOR_DOCTORS: VendorDoctor[] = [
+  // Apex Doctors
   {
-    id: 'doc-1',
+    id: 'doc-apex-1',
+    labId: 'lab-apex',
     name: 'Dr. Rajesh Sharma',
     degrees: 'MBBS, MD (Pathology)',
     specialization: 'Chief Consultant Pathologist',
     experience: 'Ex-AIIMS • 18+ Years Experience',
     bio: 'Specialist in hematopathology, surgical pathology, and automated biochemistry quality assurance.',
     avatarEmoji: '👨‍⚕️',
+    referralCommissionPct: 15,
+    monthlyReferrals: 42,
+    totalReferredBilling: 64200,
   },
   {
-    id: 'doc-2',
+    id: 'doc-apex-2',
+    labId: 'lab-apex',
     name: 'Dr. Meenakshi Sundaram',
     degrees: 'MBBS, MD (Microbiology)',
     specialization: 'Head of Quality & Microbiology',
     experience: 'CMC Ludhiana • 14+ Years Experience',
     bio: 'Oversees antimicrobial resistance profiling, serological diagnostics, and NABL internal quality checks.',
     avatarEmoji: '👩‍⚕️',
+    referralCommissionPct: 12,
+    monthlyReferrals: 28,
+    totalReferredBilling: 38900,
   },
   {
-    id: 'doc-3',
+    id: 'doc-apex-3',
+    labId: 'lab-apex',
     name: 'Dr. Arunava Ghosh',
     degrees: 'PhD (Clinical Biochemistry)',
     specialization: 'Senior Clinical Biochemist',
     experience: 'NABL Lead Assessor • 12+ Years Experience',
     bio: 'Specialist in hormonal assays, thyroid profiles, tumor markers, and HPLC chromatography analysis.',
     avatarEmoji: '👨‍🔬',
+    referralCommissionPct: 10,
+    monthlyReferrals: 19,
+    totalReferredBilling: 26500,
+  },
+  // CityCare Doctors
+  {
+    id: 'doc-cc-1',
+    labId: 'lab-citycare',
+    name: 'Dr. Harpreet Kaur',
+    degrees: 'MBBS, MD (Pathology)',
+    specialization: 'Chief Consultant Pathologist',
+    experience: 'PGIMER Chandigarh • 15+ Years Experience',
+    bio: 'Pioneer in automated hematology, coagulation disorders, and cytopathology in Mohali.',
+    avatarEmoji: '👩‍⚕️',
+    referralCommissionPct: 15,
+    monthlyReferrals: 36,
+    totalReferredBilling: 52400,
+  },
+  {
+    id: 'doc-cc-2',
+    labId: 'lab-citycare',
+    name: 'Dr. Sanjeev Bajaj',
+    degrees: 'MBBS, DCP',
+    specialization: 'Clinical Pathologist & Phlebotomy Head',
+    experience: 'Fortis Hospital • 10+ Years Experience',
+    bio: 'Supervises rapid statutory turnaround, doorstep collection protocols, and stat biochemistry.',
+    avatarEmoji: '👨‍⚕️',
+    referralCommissionPct: 12,
+    monthlyReferrals: 22,
+    totalReferredBilling: 31000,
+  },
+  // MetroPath Doctors
+  {
+    id: 'doc-mp-1',
+    labId: 'lab-metropath',
+    name: 'Dr. Priyanka Sengupta',
+    degrees: 'MBBS, MD (Histo & Oncopathology)',
+    specialization: 'Senior Oncopathologist',
+    experience: 'Tata Memorial Trained • 16+ Years Experience',
+    bio: 'Lead diagnostician in immunohistochemistry, tumor markers, and high-complexity flow cytometry.',
+    avatarEmoji: '👩‍⚕️',
+    referralCommissionPct: 18,
+    monthlyReferrals: 48,
+    totalReferredBilling: 89400,
+  },
+  {
+    id: 'doc-mp-2',
+    labId: 'lab-metropath',
+    name: 'Dr. Vikramaditya Rao',
+    degrees: 'MD (Biochemistry), FRCPath',
+    specialization: 'Director of Molecular Diagnostics',
+    experience: 'Max Healthcare • 13+ Years Experience',
+    bio: 'Oversees DNA PCR diagnostics, genetic polymorphisms, and chemiluminescence immunoassay lines.',
+    avatarEmoji: '👨‍🔬',
+    referralCommissionPct: 15,
+    monthlyReferrals: 31,
+    totalReferredBilling: 54200,
+  },
+  // Sanjivani Doctors
+  {
+    id: 'doc-sanj-1',
+    labId: 'lab-sanjivani',
+    name: 'Dr. Gurinder Singh',
+    degrees: 'MBBS, MD (Pathology)',
+    specialization: 'Head Pathologist',
+    experience: 'GMC Amritsar • 20+ Years Experience',
+    bio: 'Dedicated to ethical, accessible diagnostic medicine and community preventive screening in Majha region.',
+    avatarEmoji: '👨‍⚕️',
+    referralCommissionPct: 12,
+    monthlyReferrals: 55,
+    totalReferredBilling: 62000,
+  },
+  {
+    id: 'doc-sanj-2',
+    labId: 'lab-sanjivani',
+    name: 'Dr. Ananya Sharma',
+    degrees: 'MBBS, DCP',
+    specialization: 'Consultant Clinical Biochemist',
+    experience: 'Civil Hospital Amritsar • 8+ Years Experience',
+    bio: 'Specialist in diabetic profiles, maternal screening, and routine microscopic diagnostics.',
+    avatarEmoji: '👩‍⚕️',
+    referralCommissionPct: 10,
+    monthlyReferrals: 24,
+    totalReferredBilling: 28600,
+  },
+  // LifeLine Doctors
+  {
+    id: 'doc-life-1',
+    labId: 'lab-lifeline-due',
+    name: 'Dr. Gurpreet Singh',
+    degrees: 'MBBS, MD (Pathology)',
+    specialization: 'Chief Pathologist & Lab Director',
+    experience: 'Civil Hospital Jalandhar • 11+ Years Experience',
+    bio: 'Oversees routine blood analysis and outpatient pathology reporting.',
+    avatarEmoji: '👨‍⚕️',
+    referralCommissionPct: 10,
+    monthlyReferrals: 18,
+    totalReferredBilling: 22000,
   },
 ];
+
+const DEFAULT_VENDOR_DOCTORS = DEFAULT_ALL_VENDOR_DOCTORS;
+
+export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
+  const shortId = (dirItem.id || 'lab-unknown').replace('lab-', '');
+  const cleanPhone = (dirItem.phone || '9876543210').replace(/\D/g, '').slice(-10);
+  return {
+    labId: dirItem.id,
+    labShopId: `LSP-${shortId.toUpperCase()}`,
+    labName: dirItem.name,
+    name: dirItem.name,
+    tagline: dirItem.tagline || 'Advanced Pathology & Clinical Testing',
+    description: `${dirItem.name}, located in ${dirItem.city || 'City'}, ${dirItem.state || 'India'}. ${dirItem.tagline || ''}. Authorized NABL accredited pathology services with automated WhatsApp report delivery.`,
+    logoUrl: '',
+    websiteUrl: `https://${dirItem.domainPreview || shortId + '.labname.com'}`,
+    ogImageUrl: '',
+    phone: cleanPhone,
+    helplinePhone: dirItem.phone || '+91 ' + cleanPhone,
+    whatsapp: cleanPhone,
+    nablAccreditationNo: dirItem.nablCode || 'MC-8921',
+    nablNumber: dirItem.nablCode || 'MC-8921',
+    isoCert: 'ISO 9001:2015 & ISO 15189 Compliant',
+    openingHours: 'Open 7:30 AM – 8:30 PM (All 7 Days)',
+    address: dirItem.address || `${dirItem.city || 'Punjab'}, India`,
+    heroPromoText: `Doorstep Home Sample Pickup Across ${dirItem.city || 'City'} • NABL PDF Delivery in 4-6 Hours`,
+    emergencyHours: dirItem.emergency ? '24x7 Emergency Services at Central Desk' : 'Emergency Blood Collection Available',
+    announcementText: `🌟 Welcome to ${dirItem.name}! Instant online test booking and verified digital WhatsApp reports now active.`,
+    email: dirItem.email || `contact@${shortId}lab.in`,
+    domainPreview: dirItem.domainPreview || `${shortId}.labname.com`,
+    merchantName: `${dirItem.name} Pvt Ltd`,
+    upiId1: `${shortId}lab@icici`,
+    qrCode1Label: `Counter Billing QR (${dirItem.city || 'Counter'} Desk)`,
+    qrCode1Url: '',
+    upiId2: `${shortId}diag@oksbi`,
+    qrCode2Label: 'Home Sample Collection Handheld QR',
+    qrCode2Url: '',
+    homeCollectionCharge: 100,
+    sections: { ...DEFAULT_VENDOR_SECTIONS },
+  };
+}
+
+const DEFAULT_VENDOR_SETTINGS_MAP: Record<string, VendorLabSettings> = {
+  'lab-apex': { ...DEFAULT_VENDOR_LAB_SETTINGS, labId: 'lab-apex' },
+};
+VENDOR_LABS_DIRECTORY.forEach((lab) => {
+  if (lab.id !== 'lab-apex') {
+    DEFAULT_VENDOR_SETTINGS_MAP[lab.id] = buildDefaultSettingsForLab(lab);
+  }
+});
 
 const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
   {
@@ -893,33 +1176,86 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return match ? match.name : (currentUser?.labName || 'Apex Diagnostic Central');
   }, [activeTenantId, vendorLabsList, currentUser]);
 
-  // Vendor Lab Settings & Profile
-  const [vendorLabSettings, setVendorLabSettings] = useState<VendorLabSettings>(() => {
+  // Per-Vendor Lab Settings Map (Isolated by labId)
+  const [vendorLabSettingsMap, setVendorLabSettingsMap] = useState<Record<string, VendorLabSettings>>(() => {
     try {
-      const saved = localStorage.getItem('cms_vendor_lab_settings');
-      return saved ? JSON.parse(saved) : DEFAULT_VENDOR_LAB_SETTINGS;
+      const saved = localStorage.getItem('cms_vendor_lab_settings_map');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...DEFAULT_VENDOR_SETTINGS_MAP, ...parsed };
+      }
+      const legacySaved = localStorage.getItem('cms_vendor_lab_settings');
+      if (legacySaved) {
+        const parsedLegacy = JSON.parse(legacySaved);
+        return {
+          ...DEFAULT_VENDOR_SETTINGS_MAP,
+          'lab-apex': { ...DEFAULT_VENDOR_LAB_SETTINGS, ...parsedLegacy, labId: 'lab-apex' },
+        };
+      }
+      return DEFAULT_VENDOR_SETTINGS_MAP;
     } catch {
-      return DEFAULT_VENDOR_LAB_SETTINGS;
+      return DEFAULT_VENDOR_SETTINGS_MAP;
     }
   });
 
-  const [vendorPackages, setVendorPackages] = useState<VendorPackage[]>(() => {
+  const effectiveSettingsLabId = activeTenantId === 'all' ? (selectedVendorLabId || 'lab-apex') : activeTenantId;
+
+  const vendorLabSettings = useMemo<VendorLabSettings>(() => {
+    if (vendorLabSettingsMap[effectiveSettingsLabId]) {
+      return vendorLabSettingsMap[effectiveSettingsLabId];
+    }
+    const dirMatch = vendorLabsList.find((l) => l.id === effectiveSettingsLabId) || VENDOR_LABS_DIRECTORY.find((l) => l.id === effectiveSettingsLabId);
+    if (dirMatch) {
+      return buildDefaultSettingsForLab(dirMatch);
+    }
+    return DEFAULT_VENDOR_LAB_SETTINGS;
+  }, [vendorLabSettingsMap, effectiveSettingsLabId, vendorLabsList]);
+
+  const [allVendorPackages, setAllVendorPackages] = useState<VendorPackage[]>(() => {
     try {
-      const saved = localStorage.getItem('cms_vendor_packages');
-      return saved ? JSON.parse(saved) : DEFAULT_VENDOR_PACKAGES;
+      const saved = localStorage.getItem('cms_all_vendor_packages');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasOtherLabs = parsed.some((p: any) => p.labId === 'lab-citycare' || p.labId === 'lab-sanjivani');
+          if (hasOtherLabs) return parsed;
+          const otherPkgs = DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => p.labId && p.labId !== 'lab-apex');
+          return [...parsed.map((p: any) => ({ ...p, labId: p.labId || 'lab-apex' })), ...otherPkgs];
+        }
+      }
+      return DEFAULT_ALL_VENDOR_PACKAGES;
     } catch {
-      return DEFAULT_VENDOR_PACKAGES;
+      return DEFAULT_ALL_VENDOR_PACKAGES;
     }
   });
 
-  const [vendorDoctors, setVendorDoctors] = useState<VendorDoctor[]>(() => {
+  const [allVendorDoctors, setAllVendorDoctors] = useState<VendorDoctor[]>(() => {
     try {
-      const saved = localStorage.getItem('cms_vendor_doctors');
-      return saved ? JSON.parse(saved) : DEFAULT_VENDOR_DOCTORS;
+      const saved = localStorage.getItem('cms_all_vendor_doctors');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasOtherLabs = parsed.some((d: any) => d.labId === 'lab-citycare' || d.labId === 'lab-sanjivani');
+          if (hasOtherLabs) return parsed;
+          const otherDocs = DEFAULT_ALL_VENDOR_DOCTORS.filter((d) => d.labId && d.labId !== 'lab-apex');
+          return [...parsed.map((d: any) => ({ ...d, labId: d.labId || 'lab-apex' })), ...otherDocs];
+        }
+      }
+      return DEFAULT_ALL_VENDOR_DOCTORS;
     } catch {
-      return DEFAULT_VENDOR_DOCTORS;
+      return DEFAULT_ALL_VENDOR_DOCTORS;
     }
   });
+
+  const vendorPackages = useMemo(() => {
+    if (activeTenantId === 'all') return allVendorPackages;
+    return allVendorPackages.filter((p) => isTenantMatch(p, activeTenantId));
+  }, [allVendorPackages, activeTenantId]);
+
+  const vendorDoctors = useMemo(() => {
+    if (activeTenantId === 'all') return allVendorDoctors;
+    return allVendorDoctors.filter((d) => isTenantMatch(d, activeTenantId));
+  }, [allVendorDoctors, activeTenantId]);
 
   // Master Raw Stores (Isolated by labId)
   const [allReports, setAllReports] = useState<LabReport[]>(() => {
@@ -1020,13 +1356,41 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [allVendorTests, setAllVendorTests] = useState<TestItem[]>(() => {
     try {
       const saved = localStorage.getItem('cms_vendor_tests');
-      return saved ? JSON.parse(saved) : MOCK_TESTS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasOtherLabs = parsed.some((t: any) => t.labId === 'lab-citycare' || t.labId === 'lab-sanjivani');
+          if (hasOtherLabs) return parsed.map((t: any) => ({ ...t, labId: t.labId || 'lab-apex' }));
+          const otherTests = MOCK_TESTS.filter((t) => t.labId && t.labId !== 'lab-apex');
+          return [...parsed.map((t: any) => ({ ...t, labId: t.labId || 'lab-apex' })), ...otherTests];
+        }
+      }
+      return MOCK_TESTS;
     } catch {
       return MOCK_TESTS;
     }
   });
 
   // LocalStorage sync effects
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_vendor_lab_settings_map', JSON.stringify(vendorLabSettingsMap));
+      localStorage.setItem('cms_vendor_lab_settings', JSON.stringify(vendorLabSettings));
+    } catch {}
+  }, [vendorLabSettingsMap, vendorLabSettings]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_all_vendor_packages', JSON.stringify(allVendorPackages));
+    } catch {}
+  }, [allVendorPackages]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_all_vendor_doctors', JSON.stringify(allVendorDoctors));
+    } catch {}
+  }, [allVendorDoctors]);
+
   useEffect(() => {
     try {
       localStorage.setItem('cms_lab_reports', JSON.stringify(allReports));
@@ -1091,7 +1455,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const vendorTests = useMemo(() => {
     if (activeTenantId === 'all') return allVendorTests;
-    return allVendorTests.filter((t) => !t.labId || isTenantMatch(t, activeTenantId));
+    return allVendorTests.filter((t) => isTenantMatch(t, activeTenantId));
   }, [allVendorTests, activeTenantId]);
 
   // Tenant-Isolated Query Helpers
@@ -1840,51 +2204,96 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCompanyStats((prev) => prev.map((s) => (s.id === id ? { ...s, ...stat } : s)));
   };
 
-  // Vendor Lab CMS Actions
+  // Vendor Lab CMS Actions (Tenant-Isolated)
   const updateVendorLabSettings = (newSettings: Partial<VendorLabSettings>) => {
-    setVendorLabSettings((prev) => ({ ...prev, ...newSettings }));
+    const targetLabId = effectiveSettingsLabId;
+    setVendorLabSettingsMap((prev) => {
+      const current = prev[targetLabId] || vendorLabSettings;
+      return {
+        ...prev,
+        [targetLabId]: {
+          ...current,
+          ...newSettings,
+          labId: targetLabId,
+        },
+      };
+    });
   };
 
   const updateVendorSection = (sectionKey: keyof VendorWebsiteSections, enabled: boolean) => {
-    setVendorLabSettings((prev) => {
-      const currentSections = prev.sections || DEFAULT_VENDOR_SECTIONS;
+    const targetLabId = effectiveSettingsLabId;
+    setVendorLabSettingsMap((prev) => {
+      const current = prev[targetLabId] || vendorLabSettings;
+      const currentSections = current.sections || DEFAULT_VENDOR_SECTIONS;
       return {
         ...prev,
-        sections: {
-          ...currentSections,
-          [sectionKey]: enabled,
+        [targetLabId]: {
+          ...current,
+          sections: {
+            ...currentSections,
+            [sectionKey]: enabled,
+          },
         },
       };
     });
   };
 
   const toggleAllVendorSections = (enabled: boolean) => {
-    setVendorLabSettings((prev) => {
-      const currentSections = { ...(prev.sections || DEFAULT_VENDOR_SECTIONS) };
+    const targetLabId = effectiveSettingsLabId;
+    setVendorLabSettingsMap((prev) => {
+      const current = prev[targetLabId] || vendorLabSettings;
+      const currentSections = { ...(current.sections || DEFAULT_VENDOR_SECTIONS) };
       (Object.keys(currentSections) as (keyof VendorWebsiteSections)[]).forEach((k) => {
         currentSections[k] = enabled;
       });
       return {
         ...prev,
-        sections: currentSections,
+        [targetLabId]: {
+          ...current,
+          sections: currentSections,
+        },
       };
     });
   };
 
   const addVendorPackage = (pkg: Omit<VendorPackage, 'id'>) => {
+    const effectiveTenant = activeTenantId === 'all' ? (pkg.labId || selectedVendorLabId || 'lab-apex') : activeTenantId;
     const newPkg: VendorPackage = {
       ...pkg,
+      labId: effectiveTenant,
       id: `pkg-${Date.now()}`,
     };
-    setVendorPackages((prev) => [newPkg, ...prev]);
+    setAllVendorPackages((prev) => [newPkg, ...prev]);
   };
 
   const updateVendorPackage = (id: string, pkg: Partial<VendorPackage>) => {
-    setVendorPackages((prev) => prev.map((p) => (p.id === id ? { ...p, ...pkg } : p)));
+    setAllVendorPackages((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(p, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant package update for ${id}`);
+            return p;
+          }
+          return { ...p, ...pkg };
+        }
+        return p;
+      })
+    );
   };
 
   const deleteVendorPackage = (id: string) => {
-    setVendorPackages((prev) => prev.filter((p) => p.id !== id));
+    setAllVendorPackages((prev) =>
+      prev.filter((p) => {
+        if (p.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(p, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant package deletion for ${id}`);
+            return true;
+          }
+          return false;
+        }
+        return true;
+      })
+    );
   };
 
   const addVendorTest = (test: Omit<TestItem, 'id'>) => {
@@ -1928,19 +2337,43 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addVendorDoctor = (doc: Omit<VendorDoctor, 'id'>) => {
+    const effectiveTenant = activeTenantId === 'all' ? (doc.labId || selectedVendorLabId || 'lab-apex') : activeTenantId;
     const newDoc: VendorDoctor = {
       ...doc,
+      labId: effectiveTenant,
       id: `doc-${Date.now()}`,
     };
-    setVendorDoctors((prev) => [...prev, newDoc]);
+    setAllVendorDoctors((prev) => [...prev, newDoc]);
   };
 
   const updateVendorDoctor = (id: string, doc: Partial<VendorDoctor>) => {
-    setVendorDoctors((prev) => prev.map((d) => (d.id === id ? { ...d, ...doc } : d)));
+    setAllVendorDoctors((prev) =>
+      prev.map((d) => {
+        if (d.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(d, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant doctor update for ${id}`);
+            return d;
+          }
+          return { ...d, ...doc };
+        }
+        return d;
+      })
+    );
   };
 
   const deleteVendorDoctor = (id: string) => {
-    setVendorDoctors((prev) => prev.filter((d) => d.id !== id));
+    setAllVendorDoctors((prev) =>
+      prev.filter((d) => {
+        if (d.id === id) {
+          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(d, activeTenantId)) {
+            console.warn(`[SECURITY] Blocked unauthorized cross-tenant doctor deletion for ${id}`);
+            return true;
+          }
+          return false;
+        }
+        return true;
+      })
+    );
   };
 
   const addVendorBranch = (branch: Omit<VendorBranch, 'id'>) => {
@@ -2059,37 +2492,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const lab = vendorLabsList.find((l) => l.id === labId) || VENDOR_LABS_DIRECTORY.find((l) => l.id === labId);
     if (lab) {
       setSelectedVendorLabId(lab.id);
-      const newSettings: VendorLabSettings = {
-        labShopId: lab.id === 'lab-apex' ? 'LSP-7087' : `LSP-${lab.id.replace('lab-', '').toUpperCase().slice(0, 5)}-${lab.phone.replace(/[^0-9]/g, '').slice(-4)}`,
-        labName: lab.name,
-        name: lab.name,
-        tagline: lab.tagline,
-        description: lab.description || `${lab.tagline}. 100% NABL Accredited & Certified diagnostic pathology center. Instant WhatsApp PDF reports.`,
-        logoUrl: lab.logoUrl || '',
-        websiteUrl: lab.websiteUrl || `https://${lab.domainPreview || `${lab.id.replace('lab-', '')}.labname.com`}`,
-        ogImageUrl: lab.ogImageUrl || '',
-        domainPreview: lab.domainPreview || `${lab.id.replace('lab-', '')}.labname.com`,
-        phone: lab.phone.replace(/[^0-9]/g, '').slice(-10),
-        helplinePhone: lab.phone,
-        whatsapp: '91' + lab.phone.replace(/[^0-9]/g, '').slice(-10),
-        nablAccreditationNo: lab.nablCode,
-        nablNumber: lab.nablCode,
-        isoCert: 'ISO 9001:2015 & ISO 15189 Compliant',
-        openingHours: lab.emergency
-          ? 'Open 24x7 (Round-The-Clock Diagnostic Desk)'
-          : 'Open 7:00 AM – 9:00 PM (All 7 Days)',
-        address: lab.address,
-        heroPromoText: 'Free Home Sample Collection Across City • Report on WhatsApp in 6 Hours',
-        emergencyHours: lab.emergency
-          ? '24x7 Emergency Blood Sample Processing Available'
-          : 'Routine & Urgent Samples Accepted',
-      };
-      setVendorLabSettings(newSettings);
-      try {
-        localStorage.setItem('cms_vendor_lab_settings', JSON.stringify(newSettings));
-      } catch {
-        // ignore
-      }
+      // Ensure settings map entry exists for this lab
+      setVendorLabSettingsMap((prev) => {
+        if (!prev[lab.id]) {
+          return {
+            ...prev,
+            [lab.id]: buildDefaultSettingsForLab(lab),
+          };
+        }
+        return prev;
+      });
     }
   };
 
@@ -2103,10 +2515,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCompanyFaqs(DEFAULT_COMPANY_FAQS);
     setCompanyStats(DEFAULT_COMPANY_STATS);
 
-    setVendorLabSettings(DEFAULT_VENDOR_LAB_SETTINGS);
-    setVendorPackages(DEFAULT_VENDOR_PACKAGES);
+    setVendorLabSettingsMap(DEFAULT_VENDOR_SETTINGS_MAP);
+    setAllVendorPackages(DEFAULT_ALL_VENDOR_PACKAGES);
     setAllVendorTests(MOCK_TESTS);
-    setVendorDoctors(DEFAULT_VENDOR_DOCTORS);
+    setAllVendorDoctors(DEFAULT_ALL_VENDOR_DOCTORS);
     setAllVendorBranches(DEFAULT_VENDOR_BRANCHES);
     setAllVendorBookings(DEFAULT_VENDOR_BOOKINGS);
     setAllReports(INITIAL_REPORTS);

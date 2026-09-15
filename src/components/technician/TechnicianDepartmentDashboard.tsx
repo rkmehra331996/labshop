@@ -34,6 +34,7 @@ import { LabReport, ReceptionPatientEntry, AppView } from '../../types';
 import { CreateReportModal } from '../CreateReportModal';
 import { ReportDetailModal } from '../ReportDetailModal';
 import { DashboardFooter } from '../DashboardFooter';
+import { ErrorBoundary } from '../ErrorBoundary';
 
 interface TechnicianDepartmentDashboardProps {
   onNavigateView?: (view: AppView) => void;
@@ -277,8 +278,8 @@ export const TechnicianDepartmentDashboard: React.FC<TechnicianDepartmentDashboa
     doctor: entry.referringDoctor || 'Self / Walk-in',
     tests: Array.isArray(entry.tests)
       ? entry.tests.join(', ')
-      : entry.testNames
-      ? entry.testNames.join(', ')
+      : (entry as any).testNames
+      ? (entry as any).testNames.join(', ')
       : (entry.tests || 'Diagnostic Profile'),
     dateText: entry.registeredAt || entry.sentToLabAt || 'Today',
     sampleType: entry.sampleType,
@@ -413,18 +414,32 @@ export const TechnicianDepartmentDashboard: React.FC<TechnicianDepartmentDashboa
   };
 
   // Start report from reception patient
-  const handleStartReportForPatient = (entry: ReceptionPatientEntry) => {
-    acceptEntryByTechnician(entry.id);
+  const handleStartReportForPatient = (entry?: ReceptionPatientEntry) => {
+    if (!entry) return;
+    try {
+      acceptEntryByTechnician(entry.id);
+    } catch (err) {
+      console.error('Error accepting entry:', err);
+    }
+    const rawTests = entry.tests;
+    const testsArray = Array.isArray(rawTests)
+      ? rawTests
+      : typeof rawTests === 'string'
+      ? (rawTests as string).split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+
     setSelectedPatientForReport({
       id: entry.id,
-      uhid: entry.uhid,
-      name: entry.patientName,
-      age: entry.age,
-      gender: entry.gender,
-      mobile: entry.mobile,
-      doctor: entry.referringDoctor,
-      tests: Array.isArray(entry.tests) ? entry.tests.join(', ') : (entry.tests || ''),
-      sampleType: entry.sampleType,
+      uhid: entry.uhid || `UHID-${entry.id}`,
+      name: entry.patientName || 'Unknown Patient',
+      age: Number(entry.age) || 30,
+      gender: entry.gender || 'Male',
+      mobile: entry.mobile || '',
+      doctor: entry.referringDoctor || 'Dr. Self / Walk-In',
+      referringDoctor: entry.referringDoctor || 'Dr. Self / Walk-In',
+      tests: testsArray,
+      sampleType: entry.sampleType || 'Blood',
+      reportId: entry.reportId,
     });
     setEditingReport(null);
     setIsCreateModalOpen(true);
@@ -988,18 +1003,20 @@ export const TechnicianDepartmentDashboard: React.FC<TechnicianDepartmentDashboa
 
       {/* CREATE / EDIT REPORT MODAL */}
       {isCreateModalOpen && (
-        <CreateReportModal
-          isOpen={isCreateModalOpen}
-          onClose={() => {
-            setIsCreateModalOpen(false);
-            setEditingReport(null);
-            setSelectedPatientForReport(null);
-          }}
-          existingReport={editingReport}
-          preselectedPatient={selectedPatientForReport}
-          onReportCreated={handleReportCreated}
-          allowNewPatientEntry={false}
-        />
+        <ErrorBoundary fallbackTitle="Report Creator Error" fallbackMessage="Report editor load karte waqt problem aayi. Please dobara koshish karein.">
+          <CreateReportModal
+            isOpen={isCreateModalOpen}
+            onClose={() => {
+              setIsCreateModalOpen(false);
+              setEditingReport(null);
+              setSelectedPatientForReport(null);
+            }}
+            existingReport={editingReport}
+            preselectedPatient={selectedPatientForReport}
+            onReportCreated={handleReportCreated}
+            allowNewPatientEntry={false}
+          />
+        </ErrorBoundary>
       )}
 
       {/* VIEW REPORT DETAIL MODAL */}

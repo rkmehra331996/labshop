@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Search, Filter, FlaskConical, Clock, IndianRupee, Tag, Check } from 'lucide-react';
-import { MOCK_TESTS, TEST_CATEGORIES } from '../data/mockData';
+import { TEST_CATEGORIES } from '../data/mockData';
 import { TestItem } from '../types';
+import { useCms } from '../context/CmsContext';
 
 export const TestLibrarySection: React.FC = () => {
+  const { vendorTests } = useCms();
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredTests = MOCK_TESTS.filter((t) => {
+  const filteredTests = vendorTests.filter((t) => {
     const matchesCategory =
       selectedCategory === 'All Categories' || t.category === selectedCategory;
     const matchesQuery =

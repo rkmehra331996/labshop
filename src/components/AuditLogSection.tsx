@@ -1,6 +1,5 @@
 import React from 'react';
 import { FileText, User, ShieldCheck, Download, CreditCard, Clock, Activity } from 'lucide-react';
-import { MOCK_AUDIT_LOGS } from '../data/mockData';
 
 export const AuditLogSection: React.FC = () => {
   const logs = [

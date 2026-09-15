@@ -1032,7 +1032,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   }`}
                 />
                 <span className="text-xs font-bold text-[#172033]">
-                  {searchedReport.cancelled ? (
+                  {(searchedReport as any).cancelled || searchedReport.cancelledAt ? (
                     <>Cancelled Report for <strong>{searchedReport.patientName}</strong></>
                   ) : isPaymentPending ? (
                     <>Report Ready (Locked • Due ₹{activeDueAmount}) for <strong>{searchedReport.patientName}</strong></>
@@ -1187,7 +1187,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">Report Status</span>
-                  {searchedReport.cancelled ? (
+                  {(searchedReport as any).cancelled || searchedReport.cancelledAt ? (
                     <span className="text-rose-700 font-bold">Cancelled</span>
                   ) : isPaymentPending ? (
                     <span className="text-amber-700 font-bold">Ready (Pending Clearance)</span>

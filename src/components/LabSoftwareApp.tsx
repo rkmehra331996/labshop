@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   FlaskConical,
@@ -34,12 +34,12 @@ import {
   LogOut,
 } from 'lucide-react';
 import { Patient, TestItem, LabReport, ReportItem, ReceptionPatientEntry } from '../types';
-import { MOCK_PATIENTS, MOCK_TESTS, MOCK_BRANCHES, SAMPLE_REPORT } from '../data/mockData';
 import { CreateReportModal } from './CreateReportModal';
 import { ReportDetailModal } from './ReportDetailModal';
 import { useCms } from '../context/CmsContext';
 import { TEST_TEMPLATES, checkIsAbnormal } from '../data/testTemplates';
 import { DashboardFooter } from './DashboardFooter';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface LabSoftwareAppProps {
   onBackToWebsite: () => void;
@@ -58,6 +58,9 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
     sendEntryToTechnician,
     acceptEntryByTechnician,
     completeTechnicianReport,
+    deleteReceptionEntry,
+    updateReceptionEntry,
+    vendorTests,
     logout,
   } = useCms();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'patients' | 'results' | 'reception_orders'>('dashboard');
@@ -65,7 +68,39 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
   const [receptionSearch, setReceptionSearch] = useState('');
   const [selectedBranch, setSelectedBranch] = useState('br-a');
   const [currentUser, setCurrentUser] = useState('Dr. Rohit Sharma (MD Pathologist)');
-  const [patients, setPatients] = useState<Patient[]>(MOCK_PATIENTS);
+
+  // Tenant-isolated patients derived directly from active vendor's reception queue
+  const patients = useMemo<Patient[]>(() => {
+    return receptionEntries.map((r) => {
+      const rawTests = r.tests;
+      const testList: string[] = Array.isArray(rawTests)
+        ? rawTests
+        : typeof rawTests === 'string'
+        ? (rawTests as string).split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+      return {
+        id: r.id,
+        uhid: r.uhid || `UHID-${r.id}`,
+        name: r.patientName || 'Unknown Patient',
+        age: Number(r.age) || 30,
+        gender: r.gender || 'Male',
+        mobile: r.mobile || '',
+        city: vendorLabSettings?.address ? vendorLabSettings.address.split(',').pop()?.trim() || 'City' : 'City',
+        referringDoctor: r.referringDoctor || 'Self / Walk-in',
+        registeredAt: r.registeredAt || 'Today',
+        reportId: r.reportId || '',
+        status: (r.status === 'Report Ready' ? 'Report Ready' : r.status === 'In Lab' ? 'In Progress' : 'Waiting') as any,
+        tests: testList,
+        totalBill: r.totalAmount || 0,
+        paidAmount: r.paidAmount || 0,
+        dueAmount: r.dueAmount || 0,
+        paymentMode: (r.paymentMode as any) || 'UPI',
+        labId: r.labId,
+        branchId: r.branchId,
+        branchName: r.branchName,
+      };
+    });
+  }, [receptionEntries, vendorLabSettings?.address]);
 
   // Reception Queue Computed metrics for Technician
   const pendingReceptionEntries = receptionEntries.filter((r) => r.sentToTechnician);
@@ -87,7 +122,17 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   // Workstation Tab (Tab 4: Results) State
-  const [workstationPatientId, setWorkstationPatientId] = useState<string>(MOCK_PATIENTS[0]?.id || '');
+  const [workstationPatientId, setWorkstationPatientId] = useState<string>('');
+
+  useEffect(() => {
+    if (patients.length > 0) {
+      if (!workstationPatientId || !patients.some((p) => p.id === workstationPatientId)) {
+        setWorkstationPatientId(patients[0].id);
+      }
+    } else {
+      setWorkstationPatientId('');
+    }
+  }, [patients, workstationPatientId]);
   const [workstationParams, setWorkstationParams] = useState<
     { id: string; testName: string; parameter: string; result: string; unit: string; referenceRange: string; isAbnormal: boolean }[]
   >([]);
@@ -164,7 +209,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
       message: `Are you sure you want to delete patient "${p.name}" (${p.uhid})? This will remove them from the today worklist and queue.`,
       confirmText: 'Yes, Delete Patient',
       onConfirm: () => {
-        setPatients((prev) => prev.filter((item) => item.id !== p.id));
+        deleteReceptionEntry(p.id);
         if (workstationPatientId === p.id) {
           const remaining = patients.filter((item) => item.id !== p.id);
           if (remaining.length > 0) setWorkstationPatientId(remaining[0].id);
@@ -179,7 +224,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
     if (!newPatientName.trim() || !newPatientMobile.trim()) return;
 
     const total = selectedTests.reduce((acc, testName) => {
-      const found = MOCK_TESTS.find((t) => t.name === testName);
+      const found = vendorTests.find((t) => t.name === testName);
       return acc + (found?.priceINR || 300);
     }, 0);
 
@@ -187,26 +232,19 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
     const due = Math.max(0, (total || 350) - paid);
 
     if (editingPatient) {
-      // Update existing patient
-      setPatients((prev) =>
-        prev.map((p) =>
-          p.id === editingPatient.id
-            ? {
-                ...p,
-                name: newPatientName.trim(),
-                age: Number(newPatientAge) || p.age,
-                gender: newPatientGender,
-                mobile: newPatientMobile.trim(),
-                referringDoctor: newPatientDoctor,
-                tests: selectedTests.length > 0 ? selectedTests : p.tests,
-                totalBill: total > 0 ? total : p.totalBill,
-                paidAmount: paid,
-                dueAmount: due,
-                paymentMode: paymentMode,
-              }
-            : p
-        )
-      );
+      // Update existing patient in reception entries
+      updateReceptionEntry(editingPatient.id, {
+        patientName: newPatientName.trim(),
+        age: Number(newPatientAge) || editingPatient.age,
+        gender: newPatientGender,
+        mobile: newPatientMobile.trim(),
+        referringDoctor: newPatientDoctor,
+        tests: selectedTests.length > 0 ? selectedTests : editingPatient.tests,
+        totalAmount: total > 0 ? total : editingPatient.totalBill,
+        paidAmount: paid,
+        dueAmount: due,
+        paymentMode: paymentMode,
+      });
     } else {
       // Create new patient is strictly blocked for technicians
       setShowRegModal(false);
@@ -247,8 +285,13 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
     }[] = [];
 
     const matchedTemplates: string[] = [];
-    pat.tests.forEach((t) => {
-      const lower = t.toLowerCase();
+    const patTests = Array.isArray(pat.tests)
+      ? pat.tests
+      : typeof pat.tests === 'string'
+      ? (pat.tests as string).split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    patTests.forEach((t) => {
+      const lower = String(t).toLowerCase();
       if (lower.includes('cbc') || lower.includes('blood count')) matchedTemplates.push('cbc');
       if (lower.includes('diabet') || lower.includes('sugar') || lower.includes('hba1c')) matchedTemplates.push('diabetes');
       if (lower.includes('lipid') || lower.includes('cholesterol')) matchedTemplates.push('lipid');
@@ -311,11 +354,10 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
       confirmText: 'Yes, Delete Report',
       onConfirm: () => {
         deleteLabReport(report.reportId);
-        setPatients((prev) =>
-          prev.map((p) =>
-            p.reportId === report.reportId ? { ...p, status: 'Sample Collected' } : p
-          )
-        );
+        const rec = receptionEntries.find((r) => r.reportId === report.reportId);
+        if (rec) {
+          updateReceptionEntry(rec.id, { reportId: undefined, status: 'In Lab', technicianStatus: 'Accepted' });
+        }
         if (previewReport?.reportId === report.reportId) {
           setIsPreviewModalOpen(false);
           setPreviewReport(null);
@@ -339,45 +381,33 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
     if (rec) {
       completeTechnicianReport(rec.id, report.reportId);
     }
-
-    setPatients((prev) =>
-      prev.map((p) => {
-        if (
-          (patientId && p.id === patientId) ||
-          p.uhid === report.uhid ||
-          p.mobile === report.mobile ||
-          p.reportId === report.reportId
-        ) {
-          return {
-            ...p,
-            status: 'Report Ready',
-            reportId: report.reportId,
-          };
-        }
-        return p;
-      })
-    );
     setPreviewReport(report);
   };
 
   const handleCreateReportForReceptionEntry = (entry: ReceptionPatientEntry) => {
+    const rawTests = entry.tests;
+    const testsArray = Array.isArray(rawTests)
+      ? rawTests
+      : typeof rawTests === 'string'
+      ? (rawTests as string).split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
     const convertedPatient: Patient = {
       id: entry.id,
-      uhid: entry.uhid,
-      name: entry.patientName,
+      uhid: entry.uhid || `UHID-${entry.id}`,
+      name: entry.patientName || 'Unknown Patient',
       age: Number(entry.age) || 30,
-      gender: entry.gender,
-      mobile: entry.mobile,
+      gender: entry.gender || 'Male',
+      mobile: entry.mobile || '',
       city: 'Ludhiana, PB',
-      referringDoctor: entry.referringDoctor,
-      registeredAt: entry.registeredAt,
+      referringDoctor: entry.referringDoctor || 'Dr. Self / Walk-In',
+      registeredAt: entry.registeredAt || 'Today',
       reportId: entry.reportId || `RPT-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       status: 'Sample Collected',
-      tests: entry.tests,
-      totalBill: entry.totalAmount,
-      paidAmount: entry.paidAmount,
-      dueAmount: entry.dueAmount,
-      paymentMode: entry.paymentMode,
+      tests: testsArray,
+      totalBill: entry.totalAmount || 0,
+      paidAmount: entry.paidAmount || 0,
+      dueAmount: entry.dueAmount || 0,
+      paymentMode: entry.paymentMode || 'UPI',
     };
     setSelectedPatientForReport(convertedPatient);
     setSelectedReportToEdit(null);
@@ -1845,7 +1875,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
               <div>
                 <label className="block font-bold text-slate-800 mb-1">Select Tests to Schedule</label>
                 <div className="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 rounded-lg border border-slate-200">
-                  {MOCK_TESTS.slice(0, 8).map((t) => {
+                  {vendorTests.slice(0, 8).map((t) => {
                     const isSelected = selectedTests.includes(t.name);
                     return (
                       <button
@@ -1925,25 +1955,27 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
       )}
 
       {/* MODAL: Full Interactive Report Creator & Editor */}
-      <CreateReportModal
-        isOpen={isCreateReportModalOpen}
-        onClose={() => {
-          setIsCreateReportModalOpen(false);
-          setSelectedReportToEdit(null);
-        }}
-        patients={patients}
-        existingReport={selectedReportToEdit || undefined}
-        allowNewPatientEntry={false}
-        onReportCreated={(createdReport) => {
-          handleReportCreated(createdReport, selectedPatientForReport?.id);
-          setPreviewReport(createdReport);
-          setIsPreviewModalOpen(true);
-        }}
-        preselectedPatient={selectedPatientForReport || undefined}
-        onOpenReportPreview={(rptId, mob) => {
-          handleOpenReportPreview(rptId, mob);
-        }}
-      />
+      <ErrorBoundary fallbackTitle="Report Generator Error" fallbackMessage="Report editor load karte waqt problem aayi. Please dobara koshish karein.">
+        <CreateReportModal
+          isOpen={isCreateReportModalOpen}
+          onClose={() => {
+            setIsCreateReportModalOpen(false);
+            setSelectedReportToEdit(null);
+          }}
+          patients={patients}
+          existingReport={selectedReportToEdit || undefined}
+          allowNewPatientEntry={false}
+          onReportCreated={(createdReport) => {
+            handleReportCreated(createdReport, selectedPatientForReport?.id);
+            setPreviewReport(createdReport);
+            setIsPreviewModalOpen(true);
+          }}
+          preselectedPatient={selectedPatientForReport || undefined}
+          onOpenReportPreview={(rptId, mob) => {
+            handleOpenReportPreview(rptId, mob);
+          }}
+        />
+      </ErrorBoundary>
 
       {/* MODAL: NABL Report Detail & Print/WhatsApp Preview */}
       {previewReport && (

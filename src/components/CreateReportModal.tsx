@@ -21,6 +21,7 @@ import {
 import { Patient, LabReport, ReportItem } from '../types';
 import { TEST_TEMPLATES, TestTemplate, checkIsAbnormal } from '../data/testTemplates';
 import { useCms } from '../context/CmsContext';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface CreateReportModalProps {
   isOpen: boolean;
@@ -68,6 +69,7 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
     patients: cmsPatients,
     receptionEntries,
     currentUser: cmsUser,
+    activeTenantId,
   } = useCms();
 
   const isTechnician = cmsUser?.role === 'technician';
@@ -75,24 +77,37 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
 
   // Combine provided patients with CMS patients and reception entries so registered patients are always available
   const basePatients = patients && patients.length > 0 ? patients : cmsPatients;
-  const receptionAsPatients: Patient[] = (receptionEntries || []).map((e) => ({
-    id: e.id,
-    name: e.patientName,
-    age: e.age,
-    gender: e.gender,
-    mobile: e.mobile,
-    referringDoctor: e.referringDoctor || 'Direct / Walk-In',
-    tests: e.tests || [],
-    uhid: e.uhid,
-    reportId: e.reportId,
-    status: (e.status === 'Report Ready' ? 'Report Ready' : 'In Lab') as any,
-    registeredAt: e.registeredAt || 'Today',
-  }));
+  const receptionAsPatients: Patient[] = (receptionEntries || []).map((e) => {
+    const rawTests = e.tests;
+    const testsList: string[] = Array.isArray(rawTests)
+      ? rawTests
+      : typeof rawTests === 'string'
+      ? (rawTests as string).split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    return {
+      id: e.id,
+      name: e.patientName || 'Unknown Patient',
+      age: Number(e.age) || 30,
+      gender: e.gender || 'Male',
+      mobile: e.mobile || '',
+      referringDoctor: e.referringDoctor || 'Direct / Walk-In',
+      tests: testsList,
+      uhid: e.uhid || `UHID-${e.id}`,
+      reportId: e.reportId,
+      status: (e.status === 'Report Ready' ? 'Report Ready' : 'In Lab') as any,
+      registeredAt: e.registeredAt || 'Today',
+      city: 'Ludhiana, PB',
+      totalBill: e.totalAmount || 0,
+      paidAmount: e.paidAmount || 0,
+      dueAmount: e.dueAmount || 0,
+      paymentMode: (e.paymentMode as any) || 'UPI',
+    };
+  });
 
   // Merge unique by UHID/id
   const combinedList = [...basePatients];
   receptionAsPatients.forEach((rp) => {
-    if (!combinedList.some((p) => p.uhid === rp.uhid || p.id === rp.id)) {
+    if (!combinedList.some((p) => (p.uhid && p.uhid === rp.uhid) || p.id === rp.id)) {
       combinedList.push(rp);
     }
   });
@@ -150,9 +165,6 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
     if (!targetReport && activePatient?.reportId) {
       targetReport = getReportById(activePatient.reportId) || reports.find((r) => r.reportId === activePatient.reportId);
     }
-    if (!targetReport && activePatient) {
-      targetReport = reports.find((r) => r.uhid === activePatient.uhid || (r.mobile === activePatient.mobile && r.patientName === activePatient.name));
-    }
 
     if (targetReport) {
       // -------------------------------------------------------------
@@ -164,8 +176,8 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
       setPatientName(targetReport.patientName || (activePatient ? activePatient.name : ''));
 
       if (activePatient) {
-        setPatientAge(String(activePatient.age));
-        setPatientGender(activePatient.gender);
+        setPatientAge(String(activePatient.age || 30));
+        setPatientGender(activePatient.gender || 'Male');
         setSelectedPatientId(activePatient.id);
       } else if (targetReport.ageGender) {
         const ageMatch = targetReport.ageGender.match(/(\d+)/);
@@ -178,8 +190,8 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
         if (matched) setSelectedPatientId(matched.id);
       }
 
-      setPatientMobile(targetReport.mobile || (activePatient ? activePatient.mobile : ''));
-      setReferringDoctor(targetReport.doctor || (activePatient ? activePatient.referringDoctor : 'Dr. Self / Direct'));
+      setPatientMobile(targetReport.mobile || (activePatient ? activePatient.mobile : '') || '');
+      setReferringDoctor(targetReport.doctor || (activePatient ? (activePatient.referringDoctor || (activePatient as any).doctor) : 'Dr. Self / Direct') || 'Dr. Self / Direct');
       setSampleCollectedAt(targetReport.sampleCollectedAt || 'Today, 08:30 AM');
       setReportedAt(targetReport.reportedAt || 'Today, Just Now');
       setPathologistName(targetReport.pathologist || 'Dr. Rohit Sharma, MD (Pathology)');
@@ -189,18 +201,20 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
       }
 
       // Populate parameters directly from the existing report items
-      if (targetReport.items && targetReport.items.length > 0) {
+      if (targetReport.items && Array.isArray(targetReport.items) && targetReport.items.length > 0) {
         const loadedParams: EditableParam[] = targetReport.items.map((item, idx) => ({
-          id: `edit-param-${idx}-${Date.now()}`,
-          testName: item.testName,
-          parameter: item.parameter,
-          result: item.result,
-          unit: item.unit,
-          referenceRange: item.referenceRange,
-          isAbnormal: item.isAbnormal,
+          id: `edit-param-${idx}-${Date.now()}-${Math.random()}`,
+          testName: item.testName || 'Test',
+          parameter: item.parameter || 'Parameter',
+          result: item.result || '',
+          unit: item.unit || '',
+          referenceRange: item.referenceRange || '',
+          isAbnormal: !!item.isAbnormal,
           notes: item.notes,
         }));
         setParams(loadedParams);
+      } else {
+        loadTemplatesIntoParams(['cbc']);
       }
       return;
     }
@@ -215,27 +229,35 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
     setReportedAt(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
 
     if (activePatient) {
-      setSelectedPatientId(activePatient.id);
-      setPatientName(activePatient.name);
-      setPatientAge(String(activePatient.age));
-      setPatientGender(activePatient.gender);
-      setPatientMobile(activePatient.mobile);
-      setReferringDoctor(activePatient.referringDoctor || 'Dr. Self / Walk-in');
-      setUhid(activePatient.uhid);
+      setSelectedPatientId(activePatient.id || '');
+      setPatientName(activePatient.name || '');
+      setPatientAge(String(activePatient.age || 30));
+      setPatientGender(activePatient.gender || 'Male');
+      setPatientMobile(activePatient.mobile || '');
+      setReferringDoctor(activePatient.referringDoctor || (activePatient as any).doctor || 'Dr. Self / Walk-in');
+      setUhid(activePatient.uhid || `LAB-2026-${Math.floor(1000 + Math.random() * 9000)}`);
       if (activePatient.reportId) {
         setReportId(activePatient.reportId);
       }
 
-      // Try to match patient tests to template IDs
+      // Try to match patient tests to template IDs (safely handle array or comma string)
+      const rawTests = activePatient.tests;
+      const testsList: string[] = Array.isArray(rawTests)
+        ? rawTests
+        : typeof rawTests === 'string'
+        ? (rawTests as string).split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+
       const matchedTemplates: string[] = [];
-      activePatient.tests.forEach((t) => {
-        const lower = t.toLowerCase();
-        if (lower.includes('cbc') || lower.includes('blood count')) matchedTemplates.push('cbc');
-        if (lower.includes('diabet') || lower.includes('sugar') || lower.includes('hba1c')) matchedTemplates.push('diabetes');
+      testsList.forEach((t) => {
+        if (!t) return;
+        const lower = String(t).toLowerCase();
+        if (lower.includes('cbc') || lower.includes('blood count') || lower.includes('hemogram')) matchedTemplates.push('cbc');
+        if (lower.includes('diabet') || lower.includes('sugar') || lower.includes('hba1c') || lower.includes('fbs') || lower.includes('rbs')) matchedTemplates.push('diabetes');
         if (lower.includes('lipid') || lower.includes('cholesterol')) matchedTemplates.push('lipid');
-        if (lower.includes('lft') || lower.includes('liver')) matchedTemplates.push('lft');
-        if (lower.includes('kft') || lower.includes('kidney') || lower.includes('renal')) matchedTemplates.push('kft');
-        if (lower.includes('thyroid') || lower.includes('t3')) matchedTemplates.push('thyroid');
+        if (lower.includes('lft') || lower.includes('liver') || lower.includes('bilirubin')) matchedTemplates.push('lft');
+        if (lower.includes('kft') || lower.includes('kidney') || lower.includes('renal') || lower.includes('creatinine') || lower.includes('urea')) matchedTemplates.push('kft');
+        if (lower.includes('thyroid') || lower.includes('t3') || lower.includes('t4') || lower.includes('tsh')) matchedTemplates.push('thyroid');
         if (lower.includes('urine')) matchedTemplates.push('urine_rm');
         if (lower.includes('dengue')) matchedTemplates.push('dengue');
         if (lower.includes('widal') || lower.includes('typhoid')) matchedTemplates.push('widal');
@@ -243,23 +265,56 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
       });
 
       if (matchedTemplates.length > 0) {
-        setSelectedTemplateIds(Array.from(new Set(matchedTemplates)));
-        loadTemplatesIntoParams(Array.from(new Set(matchedTemplates)));
+        const unique = Array.from(new Set(matchedTemplates));
+        setSelectedTemplateIds(unique);
+        loadTemplatesIntoParams(unique);
       } else {
         setSelectedTemplateIds(['cbc']);
         loadTemplatesIntoParams(['cbc']);
       }
     } else if (availablePatients.length > 0 && !selectedPatientId) {
       const first = availablePatients[0];
-      setSelectedPatientId(first.id);
-      setPatientName(first.name);
-      setPatientAge(String(first.age));
-      setPatientGender(first.gender);
-      setPatientMobile(first.mobile);
-      setReferringDoctor(first.referringDoctor);
-      setUhid(first.uhid);
-      setSelectedTemplateIds(['cbc']);
-      loadTemplatesIntoParams(['cbc']);
+      if (first) {
+        setSelectedPatientId(first.id || '');
+        setPatientName(first.name || '');
+        setPatientAge(String(first.age || 30));
+        setPatientGender(first.gender || 'Male');
+        setPatientMobile(first.mobile || '');
+        setReferringDoctor(first.referringDoctor || 'Dr. Self / Walk-in');
+        setUhid(first.uhid || `LAB-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+        
+        const rawTests = first.tests;
+        const testsList: string[] = Array.isArray(rawTests)
+          ? rawTests
+          : typeof rawTests === 'string'
+          ? (rawTests as string).split(',').map((s) => s.trim()).filter(Boolean)
+          : [];
+
+        const matchedTemplates: string[] = [];
+        testsList.forEach((t) => {
+          if (!t) return;
+          const lower = String(t).toLowerCase();
+          if (lower.includes('cbc') || lower.includes('blood count') || lower.includes('hemogram')) matchedTemplates.push('cbc');
+          if (lower.includes('diabet') || lower.includes('sugar') || lower.includes('hba1c') || lower.includes('fbs') || lower.includes('rbs')) matchedTemplates.push('diabetes');
+          if (lower.includes('lipid') || lower.includes('cholesterol')) matchedTemplates.push('lipid');
+          if (lower.includes('lft') || lower.includes('liver') || lower.includes('bilirubin')) matchedTemplates.push('lft');
+          if (lower.includes('kft') || lower.includes('kidney') || lower.includes('renal') || lower.includes('creatinine') || lower.includes('urea')) matchedTemplates.push('kft');
+          if (lower.includes('thyroid') || lower.includes('t3') || lower.includes('t4') || lower.includes('tsh')) matchedTemplates.push('thyroid');
+          if (lower.includes('urine')) matchedTemplates.push('urine_rm');
+          if (lower.includes('dengue')) matchedTemplates.push('dengue');
+          if (lower.includes('widal') || lower.includes('typhoid')) matchedTemplates.push('widal');
+          if (lower.includes('vitamin')) matchedTemplates.push('vitamins');
+        });
+
+        if (matchedTemplates.length > 0) {
+          const unique = Array.from(new Set(matchedTemplates));
+          setSelectedTemplateIds(unique);
+          loadTemplatesIntoParams(unique);
+        } else {
+          setSelectedTemplateIds(['cbc']);
+          loadTemplatesIntoParams(['cbc']);
+        }
+      }
     } else {
       setUhid(`LAB-2026-${Math.floor(1000 + Math.random() * 9000)}`);
       setSelectedTemplateIds(['cbc']);
@@ -269,17 +324,18 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
 
   const loadTemplatesIntoParams = (templateIds: string[]) => {
     const newParams: EditableParam[] = [];
-    templateIds.forEach((tmplId) => {
+    const validIds = Array.isArray(templateIds) && templateIds.length > 0 ? templateIds : ['cbc'];
+    validIds.forEach((tmplId) => {
       const tmpl = TEST_TEMPLATES.find((t) => t.id === tmplId);
-      if (tmpl) {
+      if (tmpl && Array.isArray(tmpl.parameters)) {
         tmpl.parameters.forEach((p, idx) => {
           newParams.push({
-            id: `${tmpl.id}-${idx}-${Date.now()}`,
+            id: `${tmpl.id}-${idx}-${Date.now()}-${Math.random()}`,
             testName: tmpl.name,
             parameter: p.name,
-            result: p.defaultNormalValue,
-            unit: p.unit,
-            referenceRange: p.referenceRange,
+            result: p.defaultNormalValue || '',
+            unit: p.unit || '',
+            referenceRange: p.referenceRange || '',
             isAbnormal: false,
             notes: p.notes,
             minNormal: p.minNormal,
@@ -306,34 +362,68 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
       setReferringDoctor('Dr. Self / Direct Consultation');
       setUhid(`LAB-2026-${Math.floor(1000 + Math.random() * 9000)}`);
       setReportId(`RPT-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+      loadTemplatesIntoParams(['cbc']);
     } else {
       const found = availablePatients.find((p) => p.id === patId);
       if (found) {
-        setPatientName(found.name);
-        setPatientAge(String(found.age));
-        setPatientGender(found.gender);
-        setPatientMobile(found.mobile);
-        setReferringDoctor(found.referringDoctor);
-        setUhid(found.uhid);
+        setPatientName(found.name || '');
+        setPatientAge(String(found.age || 30));
+        setPatientGender(found.gender || 'Male');
+        setPatientMobile(found.mobile || '');
+        setReferringDoctor(found.referringDoctor || 'Dr. Self / Walk-in');
+        setUhid(found.uhid || `LAB-2026-${Math.floor(1000 + Math.random() * 9000)}`);
         if (found.reportId) {
           setReportId(found.reportId);
           // Check if this patient already has a report
           const existing = getReportById(found.reportId) || reports.find((r) => r.reportId === found.reportId);
-          if (existing && existing.items.length > 0) {
+          if (existing && existing.items && Array.isArray(existing.items) && existing.items.length > 0) {
             setIsEditMode(true);
             setParams(
               existing.items.map((item, idx) => ({
-                id: `edit-param-${idx}-${Date.now()}`,
-                testName: item.testName,
-                parameter: item.parameter,
-                result: item.result,
-                unit: item.unit,
-                referenceRange: item.referenceRange,
-                isAbnormal: item.isAbnormal,
+                id: `edit-param-${idx}-${Date.now()}-${Math.random()}`,
+                testName: item.testName || 'Test',
+                parameter: item.parameter || 'Parameter',
+                result: item.result || '',
+                unit: item.unit || '',
+                referenceRange: item.referenceRange || '',
+                isAbnormal: !!item.isAbnormal,
                 notes: item.notes,
               }))
             );
+            return;
           }
+        }
+        // Match templates from patient's tests
+        const rawTests = found.tests;
+        const testsList: string[] = Array.isArray(rawTests)
+          ? rawTests
+          : typeof rawTests === 'string'
+          ? (rawTests as string).split(',').map((s) => s.trim()).filter(Boolean)
+          : [];
+
+        const matchedTemplates: string[] = [];
+        testsList.forEach((t) => {
+          if (!t) return;
+          const lower = String(t).toLowerCase();
+          if (lower.includes('cbc') || lower.includes('blood count') || lower.includes('hemogram')) matchedTemplates.push('cbc');
+          if (lower.includes('diabet') || lower.includes('sugar') || lower.includes('hba1c') || lower.includes('fbs') || lower.includes('rbs')) matchedTemplates.push('diabetes');
+          if (lower.includes('lipid') || lower.includes('cholesterol')) matchedTemplates.push('lipid');
+          if (lower.includes('lft') || lower.includes('liver') || lower.includes('bilirubin')) matchedTemplates.push('lft');
+          if (lower.includes('kft') || lower.includes('kidney') || lower.includes('renal') || lower.includes('creatinine') || lower.includes('urea')) matchedTemplates.push('kft');
+          if (lower.includes('thyroid') || lower.includes('t3') || lower.includes('t4') || lower.includes('tsh')) matchedTemplates.push('thyroid');
+          if (lower.includes('urine')) matchedTemplates.push('urine_rm');
+          if (lower.includes('dengue')) matchedTemplates.push('dengue');
+          if (lower.includes('widal') || lower.includes('typhoid')) matchedTemplates.push('widal');
+          if (lower.includes('vitamin')) matchedTemplates.push('vitamins');
+        });
+
+        if (matchedTemplates.length > 0) {
+          const unique = Array.from(new Set(matchedTemplates));
+          setSelectedTemplateIds(unique);
+          loadTemplatesIntoParams(unique);
+        } else {
+          setSelectedTemplateIds(['cbc']);
+          loadTemplatesIntoParams(['cbc']);
         }
       }
     }
@@ -466,6 +556,7 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
       verificationHash: `SHA256: ${Math.random().toString(36).substring(2, 10)}${Math.random().toString(36).substring(2, 10)}`,
       items: reportItems,
       clinicalImpression,
+      labId: activeTenantId !== 'all' ? activeTenantId : (existingReport?.labId || 'lab-apex'),
     };
 
     return finalReport;
