@@ -16,6 +16,9 @@ import {
   ExternalLink,
   Settings,
   Globe,
+  Home,
+  Building2,
+  MapPin,
   Trash2,
   Edit2,
   Check,
@@ -199,7 +202,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   // Queue search & status filter
   const [queueSearch, setQueueSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Waiting' | 'Sample Collected' | 'In Lab' | 'Report Ready'>('All');
-  const [paymentFilter, setPaymentFilter] = useState<'All' | 'Full Payment' | 'Advance' | 'Due'>('All');
+  const [paymentFilter, setPaymentFilter] = useState<'All' | 'Full Payment' | 'Advance' | 'Due' | 'Website'>('All');
 
   // Thermal Slip Modal
   const [selectedReceipt, setSelectedReceipt] = useState<ReceptionPatientEntry | null>(null);
@@ -698,6 +701,9 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   const pendingPaymentCount = receptionEntries.filter(
     (e) => e.paidAmount === 0 || e.paymentStatus === 'Pending' || e.paymentStatus === 'Due' || e.paymentStatus === 'Due Payment'
   ).length;
+  const websiteBookingCount = receptionEntries.filter(
+    (e) => e.bookingSource === 'Website' || e.notes?.toLowerCase().includes('website')
+  ).length;
 
   // Filtered Queue
   const filteredQueue = receptionEntries.filter((item) => {
@@ -706,7 +712,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       paymentFilter === 'All' ||
       (paymentFilter === 'Full Payment' && (item.dueAmount === 0 || item.paymentStatus === 'Full Payment' || item.paymentStatus === 'Paid')) ||
       (paymentFilter === 'Advance' && ((item.dueAmount > 0 && item.paidAmount > 0) || item.paymentStatus === 'Advance' || item.paymentStatus === 'Partial')) ||
-      (paymentFilter === 'Due' && (item.paidAmount === 0 || item.paymentStatus === 'Pending' || item.paymentStatus === 'Due' || item.paymentStatus === 'Due Payment'));
+      (paymentFilter === 'Due' && (item.paidAmount === 0 || item.paymentStatus === 'Pending' || item.paymentStatus === 'Due' || item.paymentStatus === 'Due Payment')) ||
+      (paymentFilter === 'Website' && (item.bookingSource === 'Website' || item.notes?.toLowerCase().includes('website')));
 
     const q = queueSearch.toLowerCase();
     const matchesSearch =
@@ -1647,6 +1654,18 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                 >
                   <span>❌ Due Payment ({pendingPaymentCount})</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentFilter('Website')}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                    paymentFilter === 'Website'
+                      ? 'bg-sky-700 text-white shadow-2xs'
+                      : 'bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100'
+                  }`}
+                >
+                  <Globe className="w-3 h-3 text-sky-600" />
+                  <span>🌐 Website Bookings ({websiteBookingCount})</span>
+                </button>
               </div>
             </div>
 
@@ -1705,12 +1724,28 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                          {/* Online Website Booking Pill */}
+                          {(entry.bookingSource === 'Website' || entry.notes?.toLowerCase().includes('website')) && (
+                            <span className="bg-sky-50 text-sky-900 border border-sky-300 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <Globe className="w-3 h-3 text-sky-600" />
+                              <span>Website</span>
+                            </span>
+                          )}
+
+                          {/* Home Collection Badge */}
+                          {entry.visitType === 'Home Collection' && (
+                            <span className="bg-teal-50 text-teal-900 border border-teal-300 text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                              <Home className="w-3 h-3 text-teal-600" />
+                              <span>Home Pickup</span>
+                            </span>
+                          )}
+
                           {/* Payment Status Pill */}
                           {paymentStatusType === 'Full Payment' && (
                             <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
                               <Check className="w-3 h-3 text-emerald-600" />
-                              <span>Full Paid</span>
+                              <span>{entry.paymentMode === 'UPI' && (entry.bookingSource === 'Website' || entry.notes?.includes('UPI')) ? 'Online UPI Paid' : 'Full Paid'}</span>
                             </span>
                           )}
                           {paymentStatusType === 'Advance' && (
@@ -1720,7 +1755,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                           )}
                           {paymentStatusType === 'Due' && (
                             <span className="bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <span>❌ Payment Due</span>
+                              <span>{(entry.bookingSource === 'Website' || entry.notes?.toLowerCase().includes('website')) ? '⚠️ Pay at Branch' : '❌ Payment Due'}</span>
                             </span>
                           )}
 
@@ -1762,6 +1797,21 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                           Ref: <strong>{entry.referringDoctor.split(' ')[1] || entry.referringDoctor}</strong>
                         </div>
                       </div>
+
+                      {/* Home Collection Address & Preferred Slot */}
+                      {entry.address && (
+                        <div className="text-[11px] text-slate-700 bg-teal-50/70 px-2.5 py-1.5 rounded-lg border border-teal-200 flex flex-wrap items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <MapPin className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+                            <span>Address: <strong>{entry.address}</strong></span>
+                          </span>
+                          {entry.preferredTimeSlot && (
+                            <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-teal-200 text-teal-900 font-bold shrink-0">
+                              Slot: {entry.preferredTimeSlot}
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                       {/* Lab Technician Pipeline Status Bar */}
                       <div className="pt-0.5">

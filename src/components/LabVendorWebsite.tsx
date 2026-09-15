@@ -32,6 +32,7 @@ import {
 import { useCms } from '../context/CmsContext';
 import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
 import { Language } from '../types';
+import { OnlineTestBookingModal } from './vendor/OnlineTestBookingModal';
 
 interface LabVendorWebsiteProps {
   language?: Language;
@@ -295,6 +296,21 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               </select>
             </div>
 
+            {/* Book Test Online Button */}
+            <button
+              onClick={() => {
+                setSelectedTestOrPackage('');
+                setIsBookingModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-[#123B6D] hover:bg-[#0c294d] text-white font-bold text-xs transition cursor-pointer shadow-sm shrink-0"
+              id="header-book-test-online-btn"
+              title="Book Lab Test Online (2-Step Booking)"
+            >
+              <FlaskConical className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <span className="hidden xs:inline">Book Test</span>
+              <span className="xs:hidden">Book</span>
+            </button>
+
             {/* Payment QR Button */}
             <button
               onClick={() => setIsPaymentQrModalOpen(true)}
@@ -383,6 +399,24 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
             {/* Action Buttons in Drawer */}
             <div className="pt-2 border-t border-slate-100 space-y-2">
+              {/* Book Test Online */}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setSelectedTestOrPackage('');
+                  setIsBookingModalOpen(true);
+                }}
+                className="w-full text-left py-2.5 px-3 rounded-lg bg-[#123B6D] text-white font-bold flex items-center justify-between text-sm shadow-xs cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <FlaskConical className="w-4 h-4 text-amber-300" />
+                  <span>Book Test Online (2-Step)</span>
+                </span>
+                <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-black">
+                  NEW
+                </span>
+              </button>
+
               {/* Payment QR */}
               <button
                 onClick={() => {
@@ -1582,99 +1616,13 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         </div>
       )}
 
-      {/* Booking Modal */}
-      {isBookingModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 relative shadow-2xl">
-            <button
-              onClick={() => setIsBookingModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <h3 className="text-base font-extrabold text-[#123B6D] mb-1">
-              Book Home Sample Collection
-            </h3>
-            <p className="text-xs text-[#64748B] mb-4">
-              Booking for: <strong className="text-slate-800">{selectedTestOrPackage}</strong>
-            </p>
-
-            <form onSubmit={handleBookingSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Patient Name</label>
-                <input
-                  type="text"
-                  required
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  placeholder="e.g. Ramesh Verma"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">10-Digit Mobile Number</label>
-                <input
-                  type="tel"
-                  required
-                  pattern="[0-9]{10}"
-                  value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="9876543210"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Full Home Address</label>
-                <textarea
-                  required
-                  rows={2}
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="House / Flat No, Street, Sector / Colony"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Preferred Slot</label>
-                <select
-                  value={bookingDate}
-                  onChange={(e) => setBookingDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
-                >
-                  <option>Tomorrow Morning: 6:30 AM – 8:30 AM (Fasting Preferred)</option>
-                  <option>Tomorrow: 8:30 AM – 10:30 AM</option>
-                  <option>Tomorrow: 10:30 AM – 12:30 PM</option>
-                  <option>Today: Urgent Sample Collection</option>
-                </select>
-              </div>
-
-              <div className="pt-2 flex gap-2">
-                <button
-                  type="submit"
-                  className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 rounded-lg text-xs font-bold transition shadow-xs"
-                >
-                  Confirm Booking
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleWhatsAppBooking(selectedTestOrPackage);
-                    setIsBookingModalOpen(false);
-                  }}
-                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-4 py-2.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>WhatsApp</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* 2-Step Online Test Booking Modal (Step 1: Test & Form, Step 2: QR / Pay at Branch) */}
+      <OnlineTestBookingModal
+        isOpen={isBookingModalOpen}
+        onClose={() => setIsBookingModalOpen(false)}
+        initialSelection={selectedTestOrPackage}
+        onOpenReportPortal={onOpenReportPortal}
+      />
       {/* Side Sticky Floating Action Buttons: WhatsApp & Call */}
       <aside
         aria-label="Quick contact buttons"

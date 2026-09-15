@@ -428,4 +428,9 @@ export interface ReceptionPatientEntry {
   labId?: string;
   branchId?: string;
   branchName?: string;
+  bookingSource?: 'Counter' | 'Website' | 'App' | string;
+  visitType?: 'Walk-in' | 'Home Collection' | string;
+  address?: string;
+  preferredTimeSlot?: string;
+  upiTransactionRef?: string;
 }
