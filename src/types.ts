@@ -131,7 +131,9 @@ export interface CompanyFaq {
   id: string;
   question: string;
   answer: string;
-  category: string;
+  q?: string;
+  a?: string;
+  category?: string;
 }
 
 export interface CompanyStat {
@@ -192,8 +194,10 @@ export interface VendorLabSettings {
   qrCode2Url?: string;
   qrCode2Label?: string;
   upiId2?: string;
+  upiId?: string;
   merchantName?: string;
   homeCollectionCharge?: number;
+  websiteDomain?: string;
 }
 
 export interface VendorPackage {
@@ -214,6 +218,7 @@ export interface VendorDoctor {
   degrees: string;
   qualification?: string;
   specialization: string;
+  specialty?: string;
   experience: string;
   bio: string;
   avatarEmoji: string;
@@ -262,7 +267,8 @@ export interface TestItem {
   unit: string;
   normalRange: string;
   priceINR: number;
-  turnaroundTime: string;
+  turnaroundTime?: string;
+  turnaroundHours?: number | string;
   tatHours?: number;
   description?: string;
   isPopular?: boolean;
@@ -324,6 +330,10 @@ export interface LabReport {
   verificationHash: string;
   clinicalImpression?: string;
   status?: 'Normal' | 'Verified' | 'Cancelled';
+  cancelled?: boolean;
+  cancelReason?: string;
+  totalAmount?: number;
+  paidAmount?: number;
   isCancelled?: boolean;
   cancellationReason?: string;
   cancelledAt?: string;
@@ -425,9 +435,11 @@ export interface ReceptionPatientEntry {
   paymentStatus: 'Full Payment' | 'Paid' | 'Advance' | 'Pending' | 'Partial' | 'Due' | 'Due Payment';
   status: 'Waiting' | 'Sample Collected' | 'In Lab' | 'Report Ready';
   registeredAt: string;
+  entryTime?: string;
+  testNames?: string[];
   notes?: string;
   sentToTechnician?: boolean;
-  technicianStatus?: 'Not Sent' | 'Sent to Lab' | 'Accepted' | 'Report Generated';
+  technicianStatus?: 'Not Sent' | 'Sent to Lab' | 'Accepted' | 'Report Generated' | 'Pending';
   sentToLabAt?: string;
   reportId?: string;
   technicianNotes?: string;

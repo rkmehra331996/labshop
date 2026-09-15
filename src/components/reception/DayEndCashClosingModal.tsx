@@ -31,6 +31,8 @@ interface DayEndCashClosingModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultDate?: string;
+  receptionEntries?: ReceptionPatientEntry[];
+  staffName?: string;
 }
 
 interface Denominations {
@@ -66,13 +68,16 @@ export const DayEndCashClosingModal: React.FC<DayEndCashClosingModalProps> = ({
   isOpen,
   onClose,
   defaultDate,
+  receptionEntries: propReceptionEntries,
+  staffName,
 }) => {
-  const { receptionEntries, vendorLabSettings, currentUser } = useCms();
+  const { receptionEntries: contextReceptionEntries, vendorLabSettings, currentUser } = useCms();
+  const receptionEntries = propReceptionEntries || contextReceptionEntries;
 
   const [activeTab, setActiveTab] = useState<'closing' | 'history'>('closing');
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('Today');
   const [cashierName, setCashierName] = useState<string>(
-    currentUser?.name || 'Receptionist (Counter #1)'
+    staffName || currentUser?.name || 'Receptionist (Counter #1)'
   );
   const [handoverTo, setHandoverTo] = useState<string>('Lab Owner / Accounts Manager');
   const [closingNotes, setClosingNotes] = useState<string>('');

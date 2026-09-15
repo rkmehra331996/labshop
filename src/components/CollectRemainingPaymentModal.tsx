@@ -6,12 +6,13 @@ interface CollectRemainingPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   entry: ReceptionPatientEntry | null;
-  onCollectPayment: (
+  onCollectPayment?: (
     entryId: string,
     collectedAmount: number,
     mode: 'Cash' | 'UPI' | 'Card',
     note?: string
   ) => void;
+  onPaymentCollected?: (updatedEntry: ReceptionPatientEntry) => void;
 }
 
 export const CollectRemainingPaymentModal: React.FC<CollectRemainingPaymentModalProps> = ({
@@ -19,6 +20,7 @@ export const CollectRemainingPaymentModal: React.FC<CollectRemainingPaymentModal
   onClose,
   entry,
   onCollectPayment,
+  onPaymentCollected,
 }) => {
   if (!isOpen || !entry) return null;
 
@@ -43,7 +45,26 @@ export const CollectRemainingPaymentModal: React.FC<CollectRemainingPaymentModal
       return;
     }
 
-    onCollectPayment(entry.id, collectAmount, paymentMode, receiptNote.trim() || undefined);
+    const newPaidAmount = (entry.paidAmount || 0) + collectAmount;
+    const newDueAmount = Math.max(0, currentDue - collectAmount);
+    const newStatus: ReceptionPatientEntry['paymentStatus'] = newDueAmount === 0 ? 'Full Payment' : 'Partial';
+
+    const updatedEntry: ReceptionPatientEntry = {
+      ...entry,
+      paidAmount: newPaidAmount,
+      dueAmount: newDueAmount,
+      paymentStatus: newStatus,
+      balancePaidAmount: collectAmount,
+      balancePaymentMode: paymentMode,
+      balancePaidAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    };
+
+    if (onCollectPayment) {
+      onCollectPayment(entry.id, collectAmount, paymentMode, receiptNote.trim() || undefined);
+    }
+    if (onPaymentCollected) {
+      onPaymentCollected(updatedEntry);
+    }
     onClose();
   };
 

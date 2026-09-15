@@ -31,6 +31,8 @@ import { safePrint } from '../../utils/printHelper';
 interface DoctorCommissionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  doctors?: VendorDoctor[];
+  receptionEntries?: ReceptionPatientEntry[];
 }
 
 interface DoctorReferralRow {
@@ -62,8 +64,12 @@ interface PayoutRecord {
 export const DoctorCommissionModal: React.FC<DoctorCommissionModalProps> = ({
   isOpen,
   onClose,
+  doctors: propDoctors,
+  receptionEntries: propReceptionEntries,
 }) => {
-  const { receptionEntries, vendorDoctors, vendorLabSettings } = useCms();
+  const { receptionEntries: contextReceptionEntries, vendorDoctors: contextVendorDoctors, vendorLabSettings } = useCms();
+  const receptionEntries = propReceptionEntries || contextReceptionEntries;
+  const vendorDoctors = propDoctors || contextVendorDoctors;
 
   const [searchTerm, setSearchTerm] = useState('');
   const [timeFilter, setTimeFilter] = useState<'All' | 'Today' | 'Month'>('All');

@@ -8,7 +8,7 @@ interface EditReceptionEntryModalProps {
   entry: ReceptionPatientEntry | null;
   onSave: (updatedEntry: ReceptionPatientEntry) => void;
   onSaveAndSendToLab?: (updatedEntry: ReceptionPatientEntry) => void;
-  vendorDoctors?: Array<{ id: string; name: string; specialty: string }>;
+  vendorDoctors?: Array<VendorDoctor | { id: string; name: string; specialty?: string; specialization?: string }>;
 }
 
 const COMMON_TESTS = [
@@ -363,11 +363,14 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                 <option value="Dr. Anita Joshi, MD (Obs & Gynae)">Dr. Anita Joshi, MD (Obs & Gynae)</option>
                 <option value="Dr. Hardeep Bawa, MS (Gen Surgery)">Dr. Hardeep Bawa, MS (Gen Surgery)</option>
                 <option value="Dr. M. K. Aggarwal, MD (Chest & Allergy)">Dr. M. K. Aggarwal, MD</option>
-                {vendorDoctors.map((doc) => (
-                  <option key={doc.id} value={`${doc.name} (${doc.specialty})`}>
-                    {doc.name} ({doc.specialty})
-                  </option>
-                ))}
+                {vendorDoctors.map((doc) => {
+                  const spec = doc.specialty || (doc as any).specialization || '';
+                  return (
+                    <option key={doc.id} value={spec ? `${doc.name} (${spec})` : doc.name}>
+                      {doc.name} {spec ? `(${spec})` : ''}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>

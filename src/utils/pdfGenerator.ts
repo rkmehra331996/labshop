@@ -498,19 +498,30 @@ export function generateThermalReceiptPdf(receipt: {
   uhid?: string;
   patientName: string;
   ageGender?: string;
+  age?: number | string;
+  gender?: string;
   mobile: string;
   tests: string[];
   totalAmount: number;
   discount?: number;
-  netPayable: number;
+  discountINR?: number;
+  netPayable?: number;
   paidAmount?: number;
   paymentMode: string;
-  dateTime: string;
+  dateTime?: string;
+  registeredAt?: string;
   doctorName?: string;
+  referringDoctor?: string;
   labName?: string;
   labPhone?: string;
 }): void {
   try {
+    const dateTime = receipt.dateTime || receipt.registeredAt || new Date().toLocaleString('en-IN');
+    const ageGender = receipt.ageGender || (receipt.age ? `${receipt.age} Y / ${receipt.gender || 'Male'}` : 'Adult');
+    const doctorName = receipt.doctorName || receipt.referringDoctor || 'Self / Direct';
+    const discount = receipt.discount !== undefined ? receipt.discount : (receipt.discountINR || 0);
+    const netPayable = receipt.netPayable !== undefined ? receipt.netPayable : (receipt.paidAmount !== undefined ? receipt.paidAmount : Math.max(0, receipt.totalAmount - discount));
+
     // 80mm thermal roll format: 80mm width, approx 170mm height
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -548,11 +559,11 @@ export function generateThermalReceiptPdf(receipt: {
     // Patient Details
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Date/Time: ${receipt.dateTime}`, 5, 29);
+    doc.text(`Date/Time: ${dateTime}`, 5, 29);
     doc.text(`Patient: ${receipt.patientName}`, 5, 34);
-    doc.text(`Age/Sex: ${receipt.ageGender || 'Adult'}`, 5, 39);
+    doc.text(`Age/Sex: ${ageGender}`, 5, 39);
     doc.text(`Mobile: +91 ${receipt.mobile}`, 5, 44);
-    doc.text(`Doctor: ${receipt.doctorName || 'Self / Direct'}`, 5, 49);
+    doc.text(`Doctor: ${doctorName}`, 5, 49);
 
     doc.setLineDashPattern([1, 1], 0);
     doc.line(4, 52, pageWidth - 4, 52);
@@ -565,7 +576,7 @@ export function generateThermalReceiptPdf(receipt: {
 
     doc.setFont('helvetica', 'normal');
     let itemY = 61;
-    receipt.tests.forEach((t) => {
+    (receipt.tests || []).forEach((t) => {
       doc.text(`• ${t.slice(0, 24)}`, 5, itemY);
       itemY += 4.5;
     });
@@ -579,17 +590,17 @@ export function generateThermalReceiptPdf(receipt: {
     doc.text(`Subtotal:`, 5, itemY);
     doc.text(`Rs. ${receipt.totalAmount}`, pageWidth - 5, itemY, { align: 'right' });
 
-    if (receipt.discount && receipt.discount > 0) {
+    if (discount > 0) {
       itemY += 4.5;
       doc.text(`Discount:`, 5, itemY);
-      doc.text(`-Rs. ${receipt.discount}`, pageWidth - 5, itemY, { align: 'right' });
+      doc.text(`-Rs. ${discount}`, pageWidth - 5, itemY, { align: 'right' });
     }
 
     itemY += 5;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.text(`NET PAID:`, 5, itemY);
-    doc.text(`Rs. ${receipt.netPayable} (${receipt.paymentMode})`, pageWidth - 5, itemY, { align: 'right' });
+    doc.text(`Rs. ${netPayable} (${receipt.paymentMode})`, pageWidth - 5, itemY, { align: 'right' });
 
     // Footer instructions
     itemY += 8;

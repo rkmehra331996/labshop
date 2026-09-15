@@ -918,7 +918,7 @@ interface CmsContextType {
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
   targetLoginRole: 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist' | null;
-  openLoginModal: (role?: 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist') => void;
+  openLoginModal: (role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist') => void;
 
   // Lab Staff Credentials (Lab Owner creates & resets Reception & Technician)
   staffAccounts: LabStaffAccount[];
@@ -2141,9 +2141,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const openLoginModal = (
-    role?: 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist'
+    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist'
   ) => {
-    setTargetLoginRole(role || null);
+    let normalizedRole: 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist' | null = null;
+    if (role === 'admin' || role === 'super_admin') normalizedRole = 'admin';
+    else if (role === 'vendor' || role === 'lab_admin') normalizedRole = 'vendor';
+    else if (role === 'branch_manager') normalizedRole = 'branch_manager';
+    else if (role === 'reception' || role === 'receptionist') normalizedRole = 'reception';
+    else if (role === 'technician') normalizedRole = 'technician';
+    else if (role === 'pathologist') normalizedRole = 'pathologist';
+
+    setTargetLoginRole(normalizedRole);
     setIsAuthModalOpen(true);
   };
 
