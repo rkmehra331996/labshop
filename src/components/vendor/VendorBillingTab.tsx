@@ -29,10 +29,14 @@ import {
   ArrowUpRight,
   TrendingUp,
   RefreshCw,
+  BadgePercent,
+  Calculator,
 } from 'lucide-react';
 import { useCms } from '../../context/CmsContext';
 import { ReceptionPatientEntry, TestItem } from '../../types';
 import { CollectRemainingPaymentModal } from '../CollectRemainingPaymentModal';
+import { DayEndCashClosingModal } from '../reception/DayEndCashClosingModal';
+import { DoctorCommissionModal } from './DoctorCommissionModal';
 
 // Built-in clean vector QR code data URIs for instant preview/testing
 const PRESET_QR_1 = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%23123B6D"><rect width="100" height="100" fill="white"/><rect x="10" y="10" width="24" height="24" fill="%23123B6D"/><rect x="14" y="14" width="16" height="16" fill="white"/><rect x="18" y="18" width="8" height="8" fill="%23123B6D"/><rect x="66" y="10" width="24" height="24" fill="%23123B6D"/><rect x="70" y="14" width="16" height="16" fill="white"/><rect x="74" y="18" width="8" height="8" fill="%23123B6D"/><rect x="10" y="66" width="24" height="24" fill="%23123B6D"/><rect x="14" y="70" width="16" height="16" fill="white"/><rect x="18" y="74" width="8" height="8" fill="%23123B6D"/><rect x="40" y="12" width="8" height="12"/><rect x="52" y="18" width="8" height="6"/><rect x="40" y="38" width="18" height="6"/><rect x="66" y="42" width="8" height="8"/><rect x="78" y="48" width="12" height="6"/><rect x="40" y="52" width="8" height="18"/><rect x="52" y="64" width="8" height="8"/><rect x="66" y="66" width="8" height="12"/><rect x="76" y="66" width="14" height="6"/><rect x="72" y="78" width="18" height="12"/><rect x="44" y="78" width="14" height="8"/><circle cx="50" cy="50" r="5" fill="%23F59E0B"/></svg>`;
@@ -79,6 +83,8 @@ export const VendorBillingTab: React.FC = () => {
   const [viewInvoiceEntry, setViewInvoiceEntry] = useState<ReceptionPatientEntry | null>(null);
   const [collectPaymentEntry, setCollectPaymentEntry] = useState<ReceptionPatientEntry | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
+  const [isDoctorCommissionOpen, setIsDoctorCommissionOpen] = useState(false);
 
   // Hidden file inputs
   const fileInputRef1 = useRef<HTMLInputElement | null>(null);
@@ -346,6 +352,30 @@ export const VendorBillingTab: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Day-End Cash Closing */}
+          <button
+            type="button"
+            id="billing-btn-cash-closing"
+            onClick={() => setIsCashClosingOpen(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            title="Day-End Reception Cash Closing (Daily Tally Sheet)"
+          >
+            <Calculator className="w-4 h-4 text-amber-300" />
+            <span>Daily Cash Closing</span>
+          </button>
+
+          {/* Doctor Commission & Referral Summary */}
+          <button
+            type="button"
+            id="billing-btn-doctor-commission"
+            onClick={() => setIsDoctorCommissionOpen(true)}
+            className="bg-teal-700 hover:bg-teal-800 active:bg-teal-900 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            title="Doctor Commission / Referral Business Summary"
+          >
+            <BadgePercent className="w-4 h-4 text-teal-200" />
+            <span>Doctor Commissions</span>
+          </button>
+
           <button
             onClick={() => setShowAddBillModal(true)}
             className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer"
@@ -1541,6 +1571,26 @@ export const VendorBillingTab: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* DAY-END RECEPTION CASH CLOSING MODAL */}
+      {isCashClosingOpen && (
+        <DayEndCashClosingModal
+          isOpen={isCashClosingOpen}
+          onClose={() => setIsCashClosingOpen(false)}
+          receptionEntries={receptionEntries}
+          staffName="Lab Owner / Chief Cashier"
+        />
+      )}
+
+      {/* DOCTOR COMMISSION / REFERRAL BUSINESS SUMMARY MODAL */}
+      {isDoctorCommissionOpen && (
+        <DoctorCommissionModal
+          isOpen={isDoctorCommissionOpen}
+          onClose={() => setIsDoctorCommissionOpen(false)}
+          doctors={vendorDoctors}
+          receptionEntries={receptionEntries}
+        />
       )}
     </div>
   );

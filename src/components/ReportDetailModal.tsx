@@ -7,17 +7,22 @@ import {
   QrCode,
   Download,
   AlertCircle,
+  AlertTriangle,
   Building,
   CheckCircle2,
   Edit3,
   Trash2,
   Check,
+  PhoneCall,
+  BellRing,
 } from 'lucide-react';
 import { LabReport } from '../types';
 import { maskMobileForOnlineReport } from '../utils/reportUtils';
 import { ReportCopyrightBottomBar } from './ReportCopyrightBottomBar';
 import { generateReportPdf } from '../utils/pdfGenerator';
 import { printReportSafely } from '../utils/printHelper';
+import { checkPanicOrCriticalValue } from '../utils/criticalAlerts';
+import { DigitalSignatureBadge } from './DigitalSignatureBadge';
 
 interface ReportDetailModalProps {
   report: LabReport | null;
@@ -36,6 +41,8 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   onDeleteReport,
 }) => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [doctorAlertLogged, setDoctorAlertLogged] = useState(false);
+  const [doctorAlertTime, setDoctorAlertTime] = useState<string>('');
 
   if (!isOpen || !report) return null;
 
@@ -74,7 +81,23 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
     }
   };
 
-  const abnormalItems = report.items.filter((i) => i.isAbnormal);
+  const handleLogDoctorTelephonicAlert = () => {
+    const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    setDoctorAlertTime(now);
+    setDoctorAlertLogged(true);
+  };
+
+  const itemsWithAlerts = report.items.map((item) => {
+    const critical = checkPanicOrCriticalValue(item.parameter, item.result, item.unit);
+    return {
+      ...item,
+      critical,
+      isPanic: critical.isCritical,
+    };
+  });
+
+  const criticalItems = itemsWithAlerts.filter((i) => i.isPanic);
+  const abnormalItems = itemsWithAlerts.filter((i) => i.isAbnormal && !i.isPanic);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
@@ -262,16 +285,71 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Abnormal notice banner if any */}
+          {/* 🚨 PANIC / CRITICAL VALUE BANNER (ISO 15189 / NABL Requirement) */}
+          {criticalItems.length > 0 && (
+            <div className="bg-linear-to-r from-rose-600 via-red-600 to-rose-700 text-white rounded-xl p-4 shadow-md space-y-2 border border-rose-800 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-white/20 rounded-lg text-xl shrink-0 animate-bounce">
+                    🚨
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-white text-rose-800 text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-wide shadow-xs">
+                        CRITICAL / PANIC LAB VALUE ALERT
+                      </span>
+                      <span className="text-[11px] text-rose-100 font-bold">
+                        ISO 15189 / NABL Telephonic Protocol
+                      </span>
+                    </div>
+                    <div className="text-sm font-black mt-1">
+                      Immediate Clinical Attention Required: {criticalItems.length} parameter(s) at life-threatening threshold!
+                    </div>
+                    <div className="text-xs text-rose-100 mt-0.5">
+                      {criticalItems.map((c) => `${c.parameter}: ${c.result} ${c.unit || ''} (${c.critical.label})`).join(' • ')}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-2">
+                  {doctorAlertLogged ? (
+                    <div className="bg-emerald-800/90 border border-emerald-400 text-emerald-100 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                      <span>Doctor Alerted via Call at {doctorAlertTime}</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleLogDoctorTelephonicAlert}
+                      className="bg-white hover:bg-rose-50 text-rose-800 px-3.5 py-1.5 rounded-lg text-xs font-black shadow-sm transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    >
+                      <PhoneCall className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Log Doctor Telephonic Alert</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Recommended Action Box */}
+              <div className="bg-black/20 rounded-lg p-2 text-xs text-rose-100 flex items-center gap-2">
+                <BellRing className="w-4 h-4 text-amber-300 shrink-0" />
+                <span>
+                  <strong>Action Directive:</strong> Telephonic verbal notification to referring doctor ({report.doctor}) mandated before final report release.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Standard Abnormal notice banner if any non-panic abnormal items exist */}
           {abnormalItems.length > 0 && (
-            <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-xs text-rose-800 flex items-center justify-between">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>
                   <strong>Clinical Attention:</strong> {abnormalItems.length} parameter(s) reported outside standard biological reference intervals.
                 </span>
               </div>
-              <span className="text-[11px] font-bold text-rose-700">Please consult your referring physician</span>
+              <span className="text-[11px] font-bold text-amber-800">Please consult your referring physician</span>
             </div>
           )}
 
@@ -293,17 +371,39 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {report.items.map((item, idx) => (
+                  {itemsWithAlerts.map((item, idx) => (
                     <tr
                       key={idx}
-                      className={item.isAbnormal ? 'bg-rose-50/60 font-semibold' : 'hover:bg-slate-50/50'}
+                      className={
+                        item.isPanic
+                          ? 'bg-rose-100/80 border-l-4 border-rose-600 font-bold'
+                          : item.isAbnormal
+                          ? 'bg-amber-50/70 border-l-4 border-amber-500 font-semibold'
+                          : 'hover:bg-slate-50/50'
+                      }
                     >
                       <td className="py-2.5 px-3">
-                        <div className="font-bold text-slate-900">{item.parameter}</div>
+                        <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                          {item.isPanic && <span className="text-rose-600 text-sm">🚨</span>}
+                          <span>{item.parameter}</span>
+                        </div>
                         <div className="text-[10px] text-slate-400">{item.testName}</div>
+                        {item.isPanic && item.critical.clinicalImplication && (
+                          <div className="text-[10px] text-rose-800 font-normal mt-0.5 max-w-sm">
+                            ⚠️ {item.critical.clinicalImplication}
+                          </div>
+                        )}
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono font-bold text-sm">
-                        <span className={item.isAbnormal ? 'text-rose-700' : 'text-slate-900'}>
+                        <span
+                          className={
+                            item.isPanic
+                              ? 'text-rose-700 font-black text-base'
+                              : item.isAbnormal
+                              ? 'text-amber-700'
+                              : 'text-slate-900'
+                          }
+                        >
                           {item.result}
                         </span>
                       </td>
@@ -314,8 +414,12 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
                         {item.referenceRange}
                       </td>
                       <td className="py-2.5 px-3 text-center">
-                        {item.isAbnormal ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                        {item.isPanic ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-black bg-rose-600 text-white shadow-xs animate-pulse">
+                            <span>{item.critical.type === 'CRITICAL_LOW' ? '⚠️ CRITICAL LOW' : '🚨 CRITICAL HIGH'}</span>
+                          </span>
+                        ) : item.isAbnormal ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
                             ABNORMAL
                           </span>
                         ) : (
@@ -331,37 +435,28 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Signatures & Footer Authenticity */}
-          <div className="pt-8 border-t border-slate-300 grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs">
+          {/* Signatures & Footer Authenticity with Pathologist Digital Signature Badge */}
+          <div className="pt-8 border-t border-slate-300 grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs">
             <div>
               <div className="text-[11px] font-bold text-slate-700 mb-1">Authenticity & Clinical Notes:</div>
               <p className="text-slate-500 text-[11px] leading-relaxed">
-                Test results relate only to the specimen tested. Partial reproduction of this report is not permitted. Biological reference intervals are based on ISO 15189 standard population datasets.
+                Test results relate only to the specimen tested. Partial reproduction of this report is not permitted. Biological reference intervals are based on ISO 15189 standard population datasets. All panic critical findings are verbally communicated to the referring clinician under NABL alert protocol.
               </p>
               <div className="mt-2 text-[10px] font-mono text-slate-400">
                 Digital Hash: {report.verificationHash}
               </div>
             </div>
 
-            <div className="flex flex-col items-start sm:items-end justify-between text-right">
-              <div className="border border-emerald-500 bg-emerald-50/40 rounded-lg p-2.5 text-left w-full sm:w-64 mb-2">
-                <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-[11px]">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Digitally Authorized</span>
-                </div>
-                <div className="text-[10px] text-slate-600 mt-0.5">
-                  Signed electronically using DSC Token. Valid without physical signature.
-                </div>
-              </div>
-
-              <div>
-                <div className="font-extrabold text-slate-900 text-sm">
-                  {report.pathologist}
-                </div>
-                <div className="text-slate-500 text-[11px]">
-                  {report.pathologistDegrees}
-                </div>
-              </div>
+            {/* Pathologist Digital Signature with Official Lab Stamp */}
+            <div>
+              <DigitalSignatureBadge
+                pathologistName={report.pathologist || 'Dr. Rohit Sharma'}
+                pathologistDegrees={report.pathologistDegrees || 'Consultant Pathologist • Reg No: PMC-48192'}
+                pathologistRegNo="PMC-48192"
+                signedAt={report.reportedAt || '03-Sep-2026 12:45 PM'}
+                verificationHash={report.verificationHash}
+                labName={report.labName}
+              />
             </div>
           </div>
 

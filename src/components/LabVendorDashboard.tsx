@@ -57,6 +57,7 @@ import {
 import { VendorWebsiteCmsTab } from './vendor/VendorWebsiteCmsTab';
 import { VendorBillingTab } from './vendor/VendorBillingTab';
 import { VendorTestsTab } from './vendor/VendorTestsTab';
+import { DoctorCommissionModal } from './vendor/DoctorCommissionModal';
 
 interface LabVendorDashboardProps {
   onNavigateView: (view: AppView) => void;
@@ -88,6 +89,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
     updateBookingStatus,
     deleteBooking,
     resetAllToDefaults,
+    receptionEntries,
     staffAccounts,
     addStaffAccount,
     updateStaffAccount,
@@ -98,6 +100,9 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const [activeTab, setActiveTab] = useState<
     'website' | 'billing' | 'tests' | 'packages' | 'doctors' | 'profile' | 'staff'
   >('website');
+
+  const [isDoctorCommissionModalOpen, setIsDoctorCommissionModalOpen] = useState(false);
+  const [selectedDoctorForCommission, setSelectedDoctorForCommission] = useState<VendorDoctor | null>(null);
 
   const [toastMessage, setToastMessage] = useState('');
   const [testSearch, setTestSearch] = useState('');
@@ -1032,22 +1037,37 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
         {/* 4. DOCTORS / PATHOLOGISTS TAB */}
         {activeTab === 'doctors' && (
           <div className="space-y-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between">
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-base font-extrabold text-[#123B6D]">
                   Pathologist & Medical Specialist Panel
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Showcase qualified doctors with AIIMS/NABL credentials on your lab website.
+                  Showcase qualified doctors with AIIMS/NABL credentials, track referral commissions, and tally monthly incentives.
                 </p>
               </div>
-              <button
-                onClick={handleOpenAddDoctor}
-                className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
-              >
-                <Plus className="w-4 h-4 text-amber-400" />
-                <span>Add Doctor</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  id="btn-doctor-commission-summary"
+                  onClick={() => {
+                    setSelectedDoctorForCommission(null);
+                    setIsDoctorCommissionModalOpen(true);
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  title="Doctor Commission & Referral Business Summary"
+                >
+                  <BadgePercent className="w-4 h-4 text-emerald-200" />
+                  <span>Doctor Commission & Referral Tally</span>
+                </button>
+                <button
+                  onClick={handleOpenAddDoctor}
+                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-amber-400" />
+                  <span>Add Doctor</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -1087,21 +1107,35 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                     </div>
                   </div>
 
-                  <div className="pt-3 mt-3 border-t border-slate-100 flex justify-end gap-2">
+                  <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between gap-1.5">
                     <button
-                      onClick={() => handleOpenEditDoctor(doc)}
-                      className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1"
+                      type="button"
+                      onClick={() => {
+                        setSelectedDoctorForCommission(doc);
+                        setIsDoctorCommissionModalOpen(true);
+                      }}
+                      className="p-1.5 px-2.5 rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1 cursor-pointer transition"
+                      title="View Referral Tally & Settle Commission"
                     >
-                      <Edit2 className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Edit</span>
+                      <BadgePercent className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Commission</span>
                     </button>
-                    <button
-                      onClick={() => handleDeleteDoctor(doc.id, doc.name)}
-                      className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                      <span>Delete</span>
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenEditDoctor(doc)}
+                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDoctor(doc.id, doc.name)}
+                        className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -2417,6 +2451,20 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
             </div>
           </div>
         </div>
+      )}
+
+      {/* Doctor Commission / Referral Business Summary Modal */}
+      {isDoctorCommissionModalOpen && (
+        <DoctorCommissionModal
+          isOpen={isDoctorCommissionModalOpen}
+          onClose={() => {
+            setIsDoctorCommissionModalOpen(false);
+            setSelectedDoctorForCommission(null);
+          }}
+          doctors={vendorDoctors}
+          receptionEntries={receptionEntries}
+          selectedDoctorId={selectedDoctorForCommission?.id}
+        />
       )}
 
       {/* Footer with Lab Copyright, labname.com link and Customer Care Helpline */}

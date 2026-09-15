@@ -37,12 +37,14 @@ import {
   Save,
   LogOut,
   Download,
+  Calculator,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
 import { AppView, ReceptionPatientEntry } from '../types';
 import { EditReceptionEntryModal } from './EditReceptionEntryModal';
 import { CollectRemainingPaymentModal } from './CollectRemainingPaymentModal';
+import { DayEndCashClosingModal } from './reception/DayEndCashClosingModal';
 import { generateThermalReceiptPdf } from '../utils/pdfGenerator';
 import { safePrint } from '../utils/printHelper';
 
@@ -78,6 +80,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   // --- FORM STATE ---
   // In-form Editing Mode (allows editing any patient directly without re-typing)
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  // Day-End Reception Cash Closing & Daily Tally Sheet Modal State
+  const [isCashClosingOpen, setIsCashClosingOpen] = useState(false);
 
   // Snapshot of last filled data before submit or clear (so user can 1-click restore if they made a mistake)
   const [lastFormSnapshot, setLastFormSnapshot] = useState<{
@@ -807,8 +811,20 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
             </div>
           </div>
 
-          {/* Action Buttons: Vendor Home Website + Log Out */}
+          {/* Action Buttons: Vendor Home Website + Daily Cash Closing + Log Out */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {/* Day-End Cash Closing Tally Sheet Button */}
+            <button
+              type="button"
+              id="reception-btn-cash-closing"
+              onClick={() => setIsCashClosingOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border border-emerald-500 whitespace-nowrap"
+              title="Day-End Reception Cash Closing (Daily Tally Sheet)"
+            >
+              <Calculator className="w-3.5 h-3.5 text-amber-300" />
+              <span>Day-End Cash Closing</span>
+            </button>
+
             {/* Vendor Home Website Button */}
             <button
               type="button"
@@ -901,6 +917,14 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
               <span>•</span>
               <span>UPI: ₹{totalUpiCollected}</span>
             </div>
+            <button
+              type="button"
+              onClick={() => setIsCashClosingOpen(true)}
+              className="mt-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg w-full flex items-center justify-center gap-1 cursor-pointer transition"
+            >
+              <Calculator className="w-3 h-3 text-emerald-600" />
+              <span>Daily Tally Sheet</span>
+            </button>
           </div>
 
           {/* Card 4: Pending Due Balance */}
@@ -2227,6 +2251,16 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
           }}
           entry={collectingPaymentEntry}
           onCollectPayment={handleCollectPayment}
+        />
+      )}
+
+      {/* 8. Day-End Reception Cash Closing (Daily Tally Sheet) Modal */}
+      {isCashClosingOpen && (
+        <DayEndCashClosingModal
+          isOpen={isCashClosingOpen}
+          onClose={() => setIsCashClosingOpen(false)}
+          receptionEntries={receptionEntries}
+          staffName={currentUser?.name || 'Reception Staff'}
         />
       )}
 
