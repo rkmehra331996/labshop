@@ -20,6 +20,8 @@ import {
   VendorWebsiteSections,
   VendorStatus,
   AppView,
+  UserRole,
+  Patient,
 } from '../types';
 import { MOCK_TESTS, FAQ_LIST, SAMPLE_REPORT, INITIAL_REPORTS, VENDOR_LABS_DIRECTORY, INITIAL_RECEPTION_ENTRIES } from '../data/mockData';
 import { getPermissionsForRole, LAB_OPTIONS } from '../utils/rbac';
@@ -371,6 +373,109 @@ const DEFAULT_ALL_VENDOR_PACKAGES: VendorPackage[] = [
       'Kidney Screening (Creatinine, Urea)',
     ],
   },
+  // HealTech packages (lab-healtech-pending)
+  {
+    id: 'pkg-ht-1',
+    labId: 'lab-healtech-pending',
+    name: 'HealTech Comprehensive Allergy & Immunity Shield',
+    testsCount: 45,
+    description: 'Specialized allergy, IgE profiling, absolute eosinophil count, and immune health panel in Patiala.',
+    priceINR: 1899,
+    mrpINR: 4200,
+    isPopular: true,
+    features: [
+      'Total Serum IgE (Quantitative)',
+      'Absolute Eosinophil Count (AEC)',
+      'CBC with 5-Part Differential',
+      'Liver Function Enzymes (LFT)',
+      'Serum Ferritin & Iron Studies',
+      'Renal Clearance Panel',
+    ],
+  },
+  {
+    id: 'pkg-ht-2',
+    labId: 'lab-healtech-pending',
+    name: 'HealTech Food Intolerance & Gut Screen',
+    testsCount: 30,
+    description: '30 common dietary antigens IgG screen with personalized gut allergen report.',
+    priceINR: 2399,
+    mrpINR: 5000,
+    isPopular: false,
+    features: [
+      'Food Intolerance 30-Antigen Assay',
+      'Complete Hemogram CBC',
+      'Urine Routine & Microscopy',
+    ],
+  },
+  // Pulse packages (lab-pulse)
+  {
+    id: 'pkg-pls-1',
+    labId: 'lab-pulse',
+    name: 'Pulse Neuro-Cardiac Shield',
+    testsCount: 55,
+    description: 'High-acuity cardiovascular and cerebrovascular risk screening with rapid stat testing in Panchkula.',
+    priceINR: 2199,
+    mrpINR: 5200,
+    isPopular: true,
+    features: [
+      'High Sensitivity Cardiac Troponin-I',
+      'Quantitative D-Dimer Assay',
+      'Direct LDL & Apo-B Lipid Risk Profile',
+      'HbA1c Glycated Hemoglobin',
+      '5-Part Differential CBC',
+      'Renal Function & Serum Electrolytes',
+    ],
+  },
+  {
+    id: 'pkg-pls-2',
+    labId: 'lab-pulse',
+    name: 'Pulse Diabetic & Renal Wellness',
+    testsCount: 28,
+    description: 'Routine glycemic control, microalbuminuria, and kidney clearance evaluation.',
+    priceINR: 899,
+    mrpINR: 1900,
+    isPopular: false,
+    features: [
+      'HbA1c & Fasting Glucose',
+      'Lipid Profile Screen',
+      'Serum Creatinine & Blood Urea',
+      'Urine Routine & Albumin Ratio',
+    ],
+  },
+  // CarePoint packages (lab-carepoint)
+  {
+    id: 'pkg-cp-1',
+    labId: 'lab-carepoint',
+    name: 'CarePoint Hillside Family Health Panel',
+    testsCount: 42,
+    description: 'Comprehensive baseline health package adapted for high-altitude cold climate wellness in Shimla.',
+    priceINR: 999,
+    mrpINR: 2400,
+    isPopular: true,
+    features: [
+      'Complete Blood Count (CBC)',
+      'Fasting Blood Sugar',
+      'Thyroid Profile (T3, T4, TSH)',
+      'Liver Function Test (LFT)',
+      'Kidney Function Test (KFT)',
+      'Lipid Profile (Cholesterol & Triglycerides)',
+    ],
+  },
+  {
+    id: 'pkg-cp-2',
+    labId: 'lab-carepoint',
+    name: 'CarePoint Sunlight & Bone Health Panel',
+    testsCount: 12,
+    description: 'Vitamin D3, Serum Calcium, Alkaline Phosphatase, and basic hemogram.',
+    priceINR: 799,
+    mrpINR: 1800,
+    isPopular: false,
+    features: [
+      'Vitamin D3 (25-OH)',
+      'Serum Calcium & Phosphorus',
+      'Complete Blood Count (CBC)',
+    ],
+  },
 ];
 
 const DEFAULT_VENDOR_PACKAGES = DEFAULT_ALL_VENDOR_PACKAGES;
@@ -511,6 +616,87 @@ const DEFAULT_ALL_VENDOR_DOCTORS: VendorDoctor[] = [
     monthlyReferrals: 18,
     totalReferredBilling: 22000,
   },
+  // HealTech Doctors (lab-healtech-pending)
+  {
+    id: 'doc-ht-1',
+    labId: 'lab-healtech-pending',
+    name: 'Dr. Vandana Sood',
+    degrees: 'MBBS, MD (Allergy & Immuno)',
+    specialization: 'Senior Immunologist & Allergy Consultant',
+    experience: 'Patiala Medical College • 15+ Years Experience',
+    bio: 'Pioneer in food intolerance screening, aeroallergen desensitization panels, and clinical immunology.',
+    avatarEmoji: '👩‍⚕️',
+    referralCommissionPct: 15,
+    monthlyReferrals: 38,
+    totalReferredBilling: 72000,
+  },
+  {
+    id: 'doc-ht-2',
+    labId: 'lab-healtech-pending',
+    name: 'Dr. P. K. Sehgal',
+    degrees: 'MBBS, MD (Pathology)',
+    specialization: 'Consultant Clinical Pathologist',
+    experience: 'Government Rajindra Hospital • 12+ Years Experience',
+    bio: 'Oversees absolute eosinophil counts, autoimmune serology lines, and hematology quality.',
+    avatarEmoji: '👨‍⚕️',
+    referralCommissionPct: 12,
+    monthlyReferrals: 25,
+    totalReferredBilling: 41000,
+  },
+  // Pulse Doctors (lab-pulse)
+  {
+    id: 'doc-pls-1',
+    labId: 'lab-pulse',
+    name: 'Dr. Vikram Singhal',
+    degrees: 'MD, DM (Cardiology)',
+    specialization: 'Director of Interventional Diagnostics',
+    experience: 'PGI Chandigarh Trained • 17+ Years Experience',
+    bio: 'Specialist in hyper-acute cardiac enzyme trends, high-sensitivity troponin assays, and vascular risk.',
+    avatarEmoji: '👨‍⚕️',
+    referralCommissionPct: 18,
+    monthlyReferrals: 52,
+    totalReferredBilling: 114000,
+  },
+  {
+    id: 'doc-pls-2',
+    labId: 'lab-pulse',
+    name: 'Dr. Neena Gupta',
+    degrees: 'MBBS, MD (Pathology)',
+    specialization: 'Head of Laboratory Medicine',
+    experience: 'Fortis Healthcare • 14+ Years Experience',
+    bio: 'Supervises coagulopathy lines, D-Dimer protocols, and 24x7 emergency stat reports.',
+    avatarEmoji: '👩‍⚕️',
+    referralCommissionPct: 14,
+    monthlyReferrals: 34,
+    totalReferredBilling: 62000,
+  },
+  // CarePoint Doctors (lab-carepoint)
+  {
+    id: 'doc-cp-1',
+    labId: 'lab-carepoint',
+    name: 'Dr. Alok Verma',
+    degrees: 'MBBS, MD (Internal Medicine)',
+    specialization: 'Consultant Physician & Family Medicine',
+    experience: 'IGMC Shimla • 16+ Years Experience',
+    bio: 'Serves regional clinical health camps, diabetes management, and high-altitude preventive health.',
+    avatarEmoji: '👨‍⚕️',
+    referralCommissionPct: 12,
+    monthlyReferrals: 44,
+    totalReferredBilling: 51000,
+  },
+  {
+    id: 'doc-cp-2',
+    labId: 'lab-carepoint',
+    name: 'Dr. Sunita Negi',
+    degrees: 'MBBS, DCP',
+    specialization: 'Clinical Pathologist',
+    experience: 'DDU Hospital Shimla • 9+ Years Experience',
+    bio: 'In charge of bone metabolism profiles, routine biochemical assays, and thyroid kinetics.',
+    avatarEmoji: '👩‍⚕️',
+    referralCommissionPct: 10,
+    monthlyReferrals: 20,
+    totalReferredBilling: 24500,
+  },
 ];
 
 const DEFAULT_VENDOR_DOCTORS = DEFAULT_ALL_VENDOR_DOCTORS;
@@ -631,6 +817,106 @@ const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
     phone: '+91 9417098765',
     timings: 'Mon–Sun: 7:00 AM – 8:30 PM',
   },
+  // Sanjivani Branches (lab-sanjivani)
+  {
+    id: 'branch-sanj-1',
+    labId: 'lab-sanjivani',
+    name: 'Sanjivani Civil Lines Lab',
+    badge: 'Main Center',
+    address: 'Near Gate 2, District Civil Hospital Road, Amritsar',
+    phone: '+91 9888123456',
+    timings: 'Mon–Sat: 7:00 AM – 8:30 PM',
+    isEmergency: true,
+  },
+  {
+    id: 'branch-sanj-2',
+    labId: 'lab-sanjivani',
+    name: 'GT Road Sample Collection Booth',
+    badge: 'Express Desk',
+    address: 'Opp. Interstate Bus Terminal, GT Road, Amritsar',
+    phone: '+91 9888123456',
+    timings: 'Mon–Sun: 7:00 AM – 7:30 PM',
+  },
+  // LifeLine Branches (lab-lifeline-due)
+  {
+    id: 'branch-life-1',
+    labId: 'lab-lifeline-due',
+    name: 'LifeLine Main Diagnostic Desk',
+    badge: 'Main Facility',
+    address: 'Opp. Civil Hospital Gate 1, Jalandhar',
+    phone: '+91 9872011223',
+    timings: 'Mon–Sat: 7:30 AM – 8:00 PM',
+    isEmergency: true,
+  },
+  {
+    id: 'branch-life-2',
+    labId: 'lab-lifeline-due',
+    name: 'Model Town Jalandhar Express Desk',
+    badge: 'Collection Point',
+    address: '14 Link Road, Model Town, Jalandhar',
+    phone: '+91 9872011223',
+    timings: 'Mon–Sun: 7:00 AM – 7:00 PM',
+  },
+  // HealTech Branches (lab-healtech-pending)
+  {
+    id: 'branch-ht-1',
+    labId: 'lab-healtech-pending',
+    name: 'HealTech Patiala Central Hub',
+    badge: 'Molecular & Allergy Center',
+    address: 'Leela Bhawan Commercial Complex, Patiala',
+    phone: '+91 9876512345',
+    timings: 'Mon–Sat: 8:00 AM – 8:00 PM',
+    isEmergency: true,
+  },
+  {
+    id: 'branch-ht-2',
+    labId: 'lab-healtech-pending',
+    name: 'Baradari Garden Sample Desk',
+    badge: 'Collection Centre',
+    address: 'Near Circuit House, Baradari, Patiala',
+    phone: '+91 9876512345',
+    timings: 'Mon–Sun: 7:30 AM – 7:00 PM',
+  },
+  // Pulse Branches (lab-pulse)
+  {
+    id: 'branch-pls-1',
+    labId: 'lab-pulse',
+    name: 'Pulse Sector 5 Diagnostics & MRI Hub',
+    badge: 'Super Specialty & 24x7 Stat Lab',
+    address: 'SCO 88, Sector 5, MDC, Panchkula',
+    phone: '+91 9815099881',
+    timings: 'Open 24x7',
+    isEmergency: true,
+  },
+  {
+    id: 'branch-pls-2',
+    labId: 'lab-pulse',
+    name: 'Sector 20 Panchkula Collection Desk',
+    badge: 'Collection Point',
+    address: 'Booth 12, Main Market, Sector 20, Panchkula',
+    phone: '+91 9815099881',
+    timings: 'Mon–Sun: 7:00 AM – 8:30 PM',
+  },
+  // CarePoint Branches (lab-carepoint)
+  {
+    id: 'branch-cp-1',
+    labId: 'lab-carepoint',
+    name: 'CarePoint Mall Road Diagnostic Centre',
+    badge: 'Central Lab',
+    address: 'The Mall Road, Near Lift, Shimla',
+    phone: '+91 9816044332',
+    timings: 'Mon–Sat: 8:00 AM – 7:30 PM',
+    isEmergency: true,
+  },
+  {
+    id: 'branch-cp-2',
+    labId: 'lab-carepoint',
+    name: 'Sanjauli Express Collection Booth',
+    badge: 'Express Counter',
+    address: 'Main Bazaar, Near Tunnel, Sanjauli, Shimla',
+    phone: '+91 9816044332',
+    timings: 'Mon–Sun: 7:30 AM – 6:30 PM',
+  },
 ];
 
 const DEFAULT_VENDOR_BOOKINGS: HomeCollectionBooking[] = [
@@ -701,6 +987,66 @@ const DEFAULT_VENDOR_BOOKINGS: HomeCollectionBooking[] = [
     packageOrTest: 'Cardiac Risk Marker Panel (₹1,800)',
     status: 'Sample Collected',
     createdAt: 'Today, 07:15 AM',
+  },
+  // Sanjivani Bookings (lab-sanjivani)
+  {
+    id: 'book-sanj-401',
+    labId: 'lab-sanjivani',
+    patientName: 'Pratap Singh Sandhu',
+    mobile: '9888123456',
+    address: 'Village Wadala Bhittewad, Near Amritsar',
+    timeSlot: 'Tomorrow: 7:30 AM - 9:30 AM',
+    packageOrTest: 'Sanjivani Aarogya Swasthya (₹799)',
+    status: 'Phlebotomist Assigned',
+    createdAt: 'Today, 08:00 AM',
+  },
+  // LifeLine Bookings (lab-lifeline-due)
+  {
+    id: 'book-life-501',
+    labId: 'lab-lifeline-due',
+    patientName: 'Paramjit Kaur',
+    mobile: '9872011223',
+    address: 'Kapurthala Road, Opp. DAV College, Jalandhar',
+    timeSlot: 'Tomorrow: 8:00 AM - 10:00 AM',
+    packageOrTest: 'LifeLine Essential Blood Panel (₹599)',
+    status: 'Pending',
+    createdAt: 'Today, 09:00 AM',
+  },
+  // HealTech Bookings (lab-healtech-pending)
+  {
+    id: 'book-ht-601',
+    labId: 'lab-healtech-pending',
+    patientName: 'Ritu Bhargava',
+    mobile: '9876512345',
+    address: 'Urban Estate Phase 2, Patiala',
+    timeSlot: 'Today: 11:30 AM - 1:00 PM',
+    packageOrTest: 'Comprehensive Allergy & Immunity Shield (₹1,899)',
+    status: 'Sample Collected',
+    createdAt: 'Today, 08:30 AM',
+  },
+  // Pulse Bookings (lab-pulse)
+  {
+    id: 'book-pls-701',
+    labId: 'lab-pulse',
+    patientName: 'Brig. S. K. Nanda',
+    mobile: '9815099881',
+    address: 'Sector 6, MDC, Panchkula',
+    timeSlot: 'Tomorrow: 7:00 AM - 8:30 AM',
+    packageOrTest: 'Pulse Neuro-Cardiac Shield (₹2,199)',
+    status: 'Phlebotomist Assigned',
+    createdAt: 'Today, 07:30 AM',
+  },
+  // CarePoint Bookings (lab-carepoint)
+  {
+    id: 'book-cp-801',
+    labId: 'lab-carepoint',
+    patientName: 'Anil Sood',
+    mobile: '9816044332',
+    address: 'Chotta Shimla, Near Secretariat, Shimla',
+    timeSlot: 'Tomorrow: 8:30 AM - 10:30 AM',
+    packageOrTest: 'CarePoint Hillside Family Health Panel (₹999)',
+    status: 'Pending',
+    createdAt: 'Today, 09:15 AM',
   },
 ];
 
@@ -900,6 +1246,187 @@ export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
     shift: 'Clinical Sign-off Hours (9:00 AM - 7:00 PM)',
     notes: 'Consultant Molecular Pathologist, NABL accredited digital signatory',
   },
+  // --- SANJIVANI PATHOLOGY STAFF (lab-sanjivani) ---
+  {
+    id: 'staff-sanj-reception-1',
+    name: 'Kiranpreet Kaur',
+    role: 'reception',
+    username: 'reception@sanjivani.com',
+    phone: '+91 98881 11223',
+    password: 'reception123',
+    status: 'active',
+    labId: 'lab-sanjivani',
+    labName: 'Sanjivani Pathology & Preventive Health Lab',
+    branchId: 'branch-sanj-1',
+    branchName: 'Sanjivani Civil Lines Lab',
+    lastPasswordReset: '01 Sep 2026, 09:00 AM',
+    shift: 'Morning Shift (7:30 AM - 3:30 PM)',
+    notes: 'Patient reception, token dispensing, Punjabi/Hindi billing communication',
+  },
+  {
+    id: 'staff-sanj-tech-1',
+    name: 'Harbhajan Singh (DMLT)',
+    role: 'technician',
+    username: 'technician@sanjivani.com',
+    phone: '+91 98881 44556',
+    password: 'tech123',
+    status: 'active',
+    labId: 'lab-sanjivani',
+    labName: 'Sanjivani Pathology & Preventive Health Lab',
+    branchId: 'branch-sanj-1',
+    branchName: 'Sanjivani Civil Lines Lab',
+    lastPasswordReset: '01 Sep 2026, 09:30 AM',
+    shift: 'Lab Analysis Shift (8:00 AM - 5:00 PM)',
+    notes: 'Routine hematology, glucose test strips, urine chemistry analyst',
+  },
+  {
+    id: 'staff-sanj-patho-1',
+    name: 'Dr. Gurinder Singh (MD Path)',
+    role: 'pathologist',
+    username: 'pathologist@sanjivani.com',
+    phone: '+91 98881 23456',
+    password: 'patho123',
+    status: 'active',
+    labId: 'lab-sanjivani',
+    labName: 'Sanjivani Pathology & Preventive Health Lab',
+    branchId: 'all',
+    branchName: 'All Branches (Central Sign-off Authority)',
+    lastPasswordReset: '02 Sep 2026, 11:00 AM',
+    shift: 'Clinical Sign-off (10:00 AM - 6:00 PM)',
+    notes: 'Chief Pathologist, approves outpatient and clinical pathology reports',
+  },
+  // --- LIFELINE PATHCARE STAFF (lab-lifeline-due) ---
+  {
+    id: 'staff-life-reception-1',
+    name: 'Manpreet Sodhi',
+    role: 'reception',
+    username: 'reception@lifeline.com',
+    phone: '+91 98720 11223',
+    password: 'reception123',
+    status: 'active',
+    labId: 'lab-lifeline-due',
+    labName: 'LifeLine PathCare Diagnostic Centre',
+    branchId: 'branch-life-1',
+    branchName: 'LifeLine Main Diagnostic Desk',
+    lastPasswordReset: '01 Sep 2026, 08:30 AM',
+    shift: 'General Desk (8:00 AM - 4:00 PM)',
+    notes: 'Counter bookings, home collection logs, patient registration',
+  },
+  {
+    id: 'staff-life-tech-1',
+    name: 'Davinder Pal (MLT)',
+    role: 'technician',
+    username: 'technician@lifeline.com',
+    phone: '+91 98720 33445',
+    password: 'tech123',
+    status: 'active',
+    labId: 'lab-lifeline-due',
+    labName: 'LifeLine PathCare Diagnostic Centre',
+    branchId: 'branch-life-1',
+    branchName: 'LifeLine Main Diagnostic Desk',
+    lastPasswordReset: '01 Sep 2026, 09:00 AM',
+    shift: 'Processing Shift (8:30 AM - 5:30 PM)',
+    notes: 'Biochemistry, hematology analyzer runner, serum separation',
+  },
+  // --- HEALTECH MOLECULAR STAFF (lab-healtech-pending) ---
+  {
+    id: 'staff-ht-reception-1',
+    name: 'Ramanjit Dhillon',
+    role: 'reception',
+    username: 'reception@healtech.com',
+    phone: '+91 98765 11223',
+    password: 'reception123',
+    status: 'active',
+    labId: 'lab-healtech-pending',
+    labName: 'HealTech Molecular & Allergy Diagnostic Lab',
+    branchId: 'branch-ht-1',
+    branchName: 'HealTech Patiala Central Hub',
+    lastPasswordReset: '01 Sep 2026, 08:00 AM',
+    shift: 'Front Desk Shift (8:00 AM - 4:00 PM)',
+    notes: 'Allergy panel requisition handling and patient registration',
+  },
+  {
+    id: 'staff-ht-tech-1',
+    name: 'Dr. Tarun Sachdeva (M.Sc Biotech)',
+    role: 'technician',
+    username: 'technician@healtech.com',
+    phone: '+91 98765 33445',
+    password: 'tech123',
+    status: 'active',
+    labId: 'lab-healtech-pending',
+    labName: 'HealTech Molecular & Allergy Diagnostic Lab',
+    branchId: 'branch-ht-1',
+    branchName: 'HealTech Patiala Central Hub',
+    lastPasswordReset: '01 Sep 2026, 09:15 AM',
+    shift: 'Molecular Lab (9:00 AM - 6:00 PM)',
+    notes: 'ELISA immuno-blotting, Total IgE assay & flow cytometry processing',
+  },
+  // --- PULSE DIAGNOSTICS STAFF (lab-pulse) ---
+  {
+    id: 'staff-pls-reception-1',
+    name: 'Simran Jolly',
+    role: 'reception',
+    username: 'reception@pulselab.com',
+    phone: '+91 98150 11223',
+    password: 'reception123',
+    status: 'active',
+    labId: 'lab-pulse',
+    labName: 'Pulse Diagnostics & MRI Centre',
+    branchId: 'branch-pls-1',
+    branchName: 'Pulse Sector 5 Diagnostics & MRI Hub',
+    lastPasswordReset: '01 Sep 2026, 07:30 AM',
+    shift: 'Emergency Intake Desk (7:00 AM - 3:00 PM)',
+    notes: 'Stat cardiac biomarker orders, token queue management',
+  },
+  {
+    id: 'staff-pls-tech-1',
+    name: 'Gaurav Aggarwal (Senior MLT)',
+    role: 'technician',
+    username: 'technician@pulselab.com',
+    phone: '+91 98150 44556',
+    password: 'tech123',
+    status: 'active',
+    labId: 'lab-pulse',
+    labName: 'Pulse Diagnostics & MRI Centre',
+    branchId: 'branch-pls-1',
+    branchName: 'Pulse Sector 5 Diagnostics & MRI Hub',
+    lastPasswordReset: '01 Sep 2026, 08:30 AM',
+    shift: 'Stat Testing Shift (8:00 AM - 5:00 PM)',
+    notes: 'Emergency cardiac enzyme run, D-Dimer test validation',
+  },
+  // --- CAREPOINT CLINICAL LAB STAFF (lab-carepoint) ---
+  {
+    id: 'staff-cp-reception-1',
+    name: 'Priya Sharma',
+    role: 'reception',
+    username: 'reception@carepointlab.com',
+    phone: '+91 98160 11223',
+    password: 'reception123',
+    status: 'active',
+    labId: 'lab-carepoint',
+    labName: 'CarePoint Clinical Laboratory',
+    branchId: 'branch-cp-1',
+    branchName: 'CarePoint Mall Road Diagnostic Centre',
+    lastPasswordReset: '01 Sep 2026, 08:30 AM',
+    shift: 'Hillside Desk (8:00 AM - 4:30 PM)',
+    notes: 'Outpatient register, cash/UPI receipt issue, token management',
+  },
+  {
+    id: 'staff-cp-tech-1',
+    name: 'Chetan Chauhan (DMLT)',
+    role: 'technician',
+    username: 'technician@carepointlab.com',
+    phone: '+91 98160 33445',
+    password: 'tech123',
+    status: 'active',
+    labId: 'lab-carepoint',
+    labName: 'CarePoint Clinical Laboratory',
+    branchId: 'branch-cp-1',
+    branchName: 'CarePoint Mall Road Diagnostic Centre',
+    lastPasswordReset: '01 Sep 2026, 09:00 AM',
+    shift: 'Analysis Shift (8:30 AM - 5:30 PM)',
+    notes: 'Cold specimen preparation, routine biochemistry & microscopy',
+  },
 ];
 
 // --- CMS CONTEXT INTERFACE ---
@@ -1001,6 +1528,7 @@ interface CmsContextType {
 
   // Reception Desk Patients Store
   receptionEntries: ReceptionPatientEntry[];
+  patients: Patient[];
   addReceptionEntry: (entry: Omit<ReceptionPatientEntry, 'id'>) => ReceptionPatientEntry;
   updateReceptionStatus: (id: string, status: ReceptionPatientEntry['status']) => void;
   updateReceptionEntry: (id: string, updates: Partial<ReceptionPatientEntry>) => void;
@@ -1217,10 +1745,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasOtherLabs = parsed.some((p: any) => p.labId === 'lab-citycare' || p.labId === 'lab-sanjivani');
-          if (hasOtherLabs) return parsed;
-          const otherPkgs = DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => p.labId && p.labId !== 'lab-apex');
-          return [...parsed.map((p: any) => ({ ...p, labId: p.labId || 'lab-apex' })), ...otherPkgs];
+          const existingIds = new Set(parsed.map((p: any) => p.id));
+          const existingLabIds = new Set(parsed.map((p: any) => p.labId));
+          const missingPkgs = DEFAULT_ALL_VENDOR_PACKAGES.filter((p) => !existingIds.has(p.id) && !existingLabIds.has(p.labId));
+          return [...parsed.map((p: any) => ({ ...p, labId: p.labId || 'lab-apex' })), ...missingPkgs];
         }
       }
       return DEFAULT_ALL_VENDOR_PACKAGES;
@@ -1235,10 +1763,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasOtherLabs = parsed.some((d: any) => d.labId === 'lab-citycare' || d.labId === 'lab-sanjivani');
-          if (hasOtherLabs) return parsed;
-          const otherDocs = DEFAULT_ALL_VENDOR_DOCTORS.filter((d) => d.labId && d.labId !== 'lab-apex');
-          return [...parsed.map((d: any) => ({ ...d, labId: d.labId || 'lab-apex' })), ...otherDocs];
+          const existingIds = new Set(parsed.map((d: any) => d.id));
+          const existingLabIds = new Set(parsed.map((d: any) => d.labId));
+          const missingDocs = DEFAULT_ALL_VENDOR_DOCTORS.filter((d) => !existingIds.has(d.id) && !existingLabIds.has(d.labId));
+          return [...parsed.map((d: any) => ({ ...d, labId: d.labId || 'lab-apex' })), ...missingDocs];
         }
       }
       return DEFAULT_ALL_VENDOR_DOCTORS;
@@ -1264,10 +1792,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasOtherLabs = parsed.some((r: any) => r.labId === 'lab-citycare' || r.labId === 'lab-metropath');
-          if (hasOtherLabs) return parsed;
-          const otherLabReports = INITIAL_REPORTS.filter((r) => r.labId && r.labId !== 'lab-apex');
-          return [...parsed, ...otherLabReports];
+          const existingIds = new Set(parsed.map((r: any) => r.reportId));
+          const existingLabIds = new Set(parsed.map((r: any) => r.labId));
+          const missingReports = INITIAL_REPORTS.filter((r) => !existingIds.has(r.reportId) && !existingLabIds.has(r.labId));
+          return [...parsed.map((r: any) => ({ ...r, labId: r.labId || 'lab-apex' })), ...missingReports];
         }
       }
       return INITIAL_REPORTS;
@@ -1281,17 +1809,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('cms_reception_entries');
       const rawList = saved ? JSON.parse(saved) : INITIAL_RECEPTION_ENTRIES;
       let list = Array.isArray(rawList) ? rawList : INITIAL_RECEPTION_ENTRIES;
-      const hasOtherLabs = list.some((e: any) => e.labId === 'lab-citycare' || e.labId === 'lab-metropath');
-      if (!hasOtherLabs) {
-        const otherLabEntries = INITIAL_RECEPTION_ENTRIES.filter((e) => e.labId && e.labId !== 'lab-apex');
-        list = [...list, ...otherLabEntries];
-      }
+      const existingIds = new Set(list.map((e: any) => e.id));
+      const existingLabIds = new Set(list.map((e: any) => e.labId));
+      const missingEntries = INITIAL_RECEPTION_ENTRIES.filter((e) => !existingIds.has(e.id) && !existingLabIds.has(e.labId));
+      list = [...list, ...missingEntries];
       return list.filter(Boolean).map((e: any, idx: number) => {
         const token = String(e?.tokenNumber || e?.tokenNo || `TK-${101 + idx}`);
         return {
           ...e,
           tokenNumber: token,
           tokenNo: token,
+          labId: e.labId || 'lab-apex',
         };
       });
     } catch {
@@ -1305,10 +1833,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasOtherLabs = parsed.some((b: any) => b.labId === 'lab-citycare' || b.labId === 'lab-metropath');
-          if (hasOtherLabs) return parsed;
-          const otherBranches = DEFAULT_VENDOR_BRANCHES.filter((b) => b.labId && b.labId !== 'lab-apex');
-          return [...parsed, ...otherBranches];
+          const existingIds = new Set(parsed.map((b: any) => b.id));
+          const existingLabIds = new Set(parsed.map((b: any) => b.labId));
+          const missingBranches = DEFAULT_VENDOR_BRANCHES.filter((b) => !existingIds.has(b.id) && !existingLabIds.has(b.labId));
+          return [...parsed.map((b: any) => ({ ...b, labId: b.labId || 'lab-apex' })), ...missingBranches];
         }
       }
       return DEFAULT_VENDOR_BRANCHES;
@@ -1323,10 +1851,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasOtherLabs = parsed.some((b: any) => b.labId === 'lab-citycare' || b.labId === 'lab-metropath');
-          if (hasOtherLabs) return parsed;
-          const otherBookings = DEFAULT_VENDOR_BOOKINGS.filter((b) => b.labId && b.labId !== 'lab-apex');
-          return [...parsed, ...otherBookings];
+          const existingIds = new Set(parsed.map((b: any) => b.id));
+          const existingLabIds = new Set(parsed.map((b: any) => b.labId));
+          const missingBookings = DEFAULT_VENDOR_BOOKINGS.filter((b) => !existingIds.has(b.id) && !existingLabIds.has(b.labId));
+          return [...parsed.map((b: any) => ({ ...b, labId: b.labId || 'lab-apex' })), ...missingBookings];
         }
       }
       return DEFAULT_VENDOR_BOOKINGS;
@@ -1341,10 +1869,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasOtherLabs = parsed.some((s: any) => s.labId === 'lab-citycare' || s.labId === 'lab-metropath');
-          if (hasOtherLabs) return parsed;
-          const otherStaff = DEFAULT_STAFF_ACCOUNTS.filter((s) => s.labId && s.labId !== 'lab-apex');
-          return [...parsed, ...otherStaff];
+          const existingIds = new Set(parsed.map((s: any) => s.id));
+          const existingLabIds = new Set(parsed.map((s: any) => s.labId));
+          const missingStaff = DEFAULT_STAFF_ACCOUNTS.filter((s) => !existingIds.has(s.id) && !existingLabIds.has(s.labId));
+          return [...parsed.map((s: any) => ({ ...s, labId: s.labId || 'lab-apex' })), ...missingStaff];
         }
       }
       return DEFAULT_STAFF_ACCOUNTS;
@@ -1359,10 +1887,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasOtherLabs = parsed.some((t: any) => t.labId === 'lab-citycare' || t.labId === 'lab-sanjivani');
-          if (hasOtherLabs) return parsed.map((t: any) => ({ ...t, labId: t.labId || 'lab-apex' }));
-          const otherTests = MOCK_TESTS.filter((t) => t.labId && t.labId !== 'lab-apex');
-          return [...parsed.map((t: any) => ({ ...t, labId: t.labId || 'lab-apex' })), ...otherTests];
+          const existingIds = new Set(parsed.map((t: any) => t.id));
+          const existingLabIds = new Set(parsed.map((t: any) => t.labId));
+          const missingTests = MOCK_TESTS.filter((t) => !existingIds.has(t.id) && !existingLabIds.has(t.labId));
+          return [...parsed.map((t: any) => ({ ...t, labId: t.labId || 'lab-apex' })), ...missingTests];
         }
       }
       return MOCK_TESTS;
@@ -1862,42 +2390,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('cms_company_stats', JSON.stringify(companyStats));
     } catch {}
   }, [companyStats]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('cms_vendor_lab_settings', JSON.stringify(vendorLabSettings));
-    } catch {}
-  }, [vendorLabSettings]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('cms_vendor_packages', JSON.stringify(vendorPackages));
-    } catch {}
-  }, [vendorPackages]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('cms_vendor_tests', JSON.stringify(vendorTests));
-    } catch {}
-  }, [vendorTests]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('cms_vendor_doctors', JSON.stringify(vendorDoctors));
-    } catch {}
-  }, [vendorDoctors]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('cms_vendor_branches', JSON.stringify(vendorBranches));
-    } catch {}
-  }, [vendorBranches]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('cms_vendor_bookings', JSON.stringify(vendorBookings));
-    } catch {}
-  }, [vendorBookings]);
 
   // Lab Staff Accounts Mutators (Isolated by tenant labId)
   const resetStaffPassword = (id: string, newPassword: string) => {
@@ -2537,6 +3029,30 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.clear();
   };
 
+  const patients: Patient[] = useMemo(() => {
+    return (receptionEntries || []).map((e) => ({
+      id: e.id,
+      uhid: e.uhid,
+      name: e.patientName,
+      age: typeof e.age === 'number' ? e.age : parseInt(String(e.age), 10) || 30,
+      gender: e.gender,
+      mobile: e.mobile,
+      city: 'Mohali',
+      referringDoctor: e.referringDoctor,
+      registeredAt: e.registeredAt || new Date().toISOString(),
+      reportId: e.reportId || '',
+      status: (e.status === 'Report Ready' ? 'Report Ready' : 'In Processing') as Patient['status'],
+      tests: e.tests || e.testNames || [],
+      totalBill: e.totalAmount,
+      paidAmount: e.paidAmount,
+      dueAmount: e.dueAmount,
+      paymentMode: e.paymentMode,
+      labId: e.labId,
+      branchId: e.branchId,
+      branchName: e.branchName,
+    }));
+  }, [receptionEntries]);
+
   return (
     <CmsContext.Provider
       value={{
@@ -2620,6 +3136,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getReportById,
         getReportByMobile,
 
+        patients,
         receptionEntries,
         addReceptionEntry,
         updateReceptionStatus,

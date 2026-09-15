@@ -31,6 +31,7 @@ import { DashboardFooter } from './DashboardFooter';
 
 interface BranchManagerDashboardProps {
   onNavigateView: (view: AppView) => void;
+  onOpenReportPortal?: (reportId?: string, mobile?: string) => void;
 }
 
 interface SampleDispatchBatch {
@@ -80,6 +81,7 @@ const INITIAL_BATCHES: SampleDispatchBatch[] = [
 
 export const BranchManagerDashboard: React.FC<BranchManagerDashboardProps> = ({
   onNavigateView,
+  onOpenReportPortal,
 }) => {
   const { currentUser, receptionEntries, vendorBranches, activeBranchId } = useCms();
   const [activeTab, setActiveTab] = useState<'reconciliation' | 'worklist' | 'logistics' | 'staff'>(

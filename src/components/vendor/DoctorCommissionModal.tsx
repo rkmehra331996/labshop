@@ -33,6 +33,7 @@ interface DoctorCommissionModalProps {
   onClose: () => void;
   doctors?: VendorDoctor[];
   receptionEntries?: ReceptionPatientEntry[];
+  selectedDoctorId?: string;
 }
 
 interface DoctorReferralRow {
@@ -66,6 +67,7 @@ export const DoctorCommissionModal: React.FC<DoctorCommissionModalProps> = ({
   onClose,
   doctors: propDoctors,
   receptionEntries: propReceptionEntries,
+  selectedDoctorId,
 }) => {
   const { receptionEntries: contextReceptionEntries, vendorDoctors: contextVendorDoctors, vendorLabSettings } = useCms();
   const receptionEntries = propReceptionEntries || contextReceptionEntries;

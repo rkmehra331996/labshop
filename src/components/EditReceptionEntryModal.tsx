@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Check, FlaskConical, AlertCircle, Save, Lock, CreditCard, IndianRupee } from 'lucide-react';
-import { ReceptionPatientEntry } from '../types';
+import { ReceptionPatientEntry, VendorDoctor } from '../types';
 
 interface EditReceptionEntryModalProps {
   isOpen: boolean;
@@ -51,7 +51,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   const [discountINR, setDiscountINR] = useState<number>(entry.discountINR || 0);
   const [paidAmount, setPaidAmount] = useState<number>(entry.paidAmount);
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Card'>(entry.paymentMode || 'UPI');
-  const [paymentStatus, setPaymentStatus] = useState<'Full Payment' | 'Advance' | 'Pending' | 'Paid'>(
+  const [paymentStatus, setPaymentStatus] = useState<ReceptionPatientEntry['paymentStatus']>(
     entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid'
       ? 'Full Payment'
       : entry.paymentStatus === 'Advance' || (entry.paidAmount > 0 && entry.dueAmount > 0)

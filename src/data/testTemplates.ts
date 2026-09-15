@@ -636,7 +636,7 @@ export const TEST_TEMPLATES: TestTemplate[] = [
 export const checkIsAbnormal = (
   paramName: string,
   valStr: string,
-  template?: ParameterTemplate
+  template?: ParameterTemplate | string
 ): boolean => {
   if (!valStr || !valStr.trim()) return false;
   const valLower = valStr.toLowerCase().trim();
@@ -646,10 +646,30 @@ export const checkIsAbnormal = (
     return true;
   }
 
-  if (template && template.isNumeric && template.minNormal !== undefined && template.maxNormal !== undefined) {
+  if (template && typeof template === 'object') {
+    if (template.isNumeric && template.minNormal !== undefined && template.maxNormal !== undefined) {
+      const num = parseFloat(valStr.replace(/[^0-9.]/g, ''));
+      if (!isNaN(num)) {
+        return num < template.minNormal || num > template.maxNormal;
+      }
+    }
+  } else if (typeof template === 'string') {
     const num = parseFloat(valStr.replace(/[^0-9.]/g, ''));
     if (!isNaN(num)) {
-      return num < template.minNormal || num > template.maxNormal;
+      const parts = template.split(/[-–—to]/).map(s => parseFloat(s.replace(/[^0-9.]/g, ''))).filter(n => !isNaN(n));
+      if (parts.length >= 2) {
+        const min = Math.min(parts[0], parts[1]);
+        const max = Math.max(parts[0], parts[1]);
+        return num < min || num > max;
+      }
+      if (template.includes('<')) {
+        const max = parseFloat(template.replace(/[^0-9.]/g, ''));
+        if (!isNaN(max)) return num >= max;
+      }
+      if (template.includes('>')) {
+        const min = parseFloat(template.replace(/[^0-9.]/g, ''));
+        if (!isNaN(min)) return num <= min;
+      }
     }
   }
 

@@ -27,11 +27,13 @@ import { DashboardFooter } from './DashboardFooter';
 interface PathologistDashboardProps {
   onNavigateView: (view: AppView) => void;
   onOpenReportPreview?: (reportId: string, mobile: string) => void;
+  onOpenReportPortal?: (reportId?: string, mobile?: string) => void;
 }
 
 export const PathologistDashboard: React.FC<PathologistDashboardProps> = ({
   onNavigateView,
   onOpenReportPreview,
+  onOpenReportPortal,
 }) => {
   const { currentUser, labReports, updateLabReport, vendorLabSettings } = useCms();
   const [selectedReportId, setSelectedReportId] = useState<string | null>(

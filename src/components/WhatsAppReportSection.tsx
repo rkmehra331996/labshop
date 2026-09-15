@@ -3,7 +3,11 @@ import { MessageSquare, Download, Share2, CheckCheck, Clock, FileText, CheckCirc
 import { SAMPLE_REPORT } from '../data/mockData';
 import { generateReportPdf } from '../utils/pdfGenerator';
 
-export const WhatsAppReportSection: React.FC = () => {
+interface WhatsAppReportSectionProps {
+  onLaunchApp?: () => void;
+}
+
+export const WhatsAppReportSection: React.FC<WhatsAppReportSectionProps> = ({ onLaunchApp }) => {
   const [copied, setCopied] = useState(false);
   const [downloadDone, setDownloadDone] = useState(false);
 

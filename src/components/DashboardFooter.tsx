@@ -5,6 +5,8 @@ import { useCms } from '../context/CmsContext';
 interface DashboardFooterProps {
   className?: string;
   customLabName?: string;
+  currentRoleTitle?: string;
+  onNavigateView?: (view: any) => void;
 }
 
 export const DashboardFooter: React.FC<DashboardFooterProps> = ({

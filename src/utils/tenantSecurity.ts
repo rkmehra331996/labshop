@@ -5,6 +5,10 @@ export const KNOWN_TENANTS = [
   { id: 'lab-citycare', name: 'CityCare Advanced Diagnostics & Scan Centre', code: 'CITY' },
   { id: 'lab-metropath', name: 'MetroPath Scans & Molecular Pathology Hub', code: 'METRO' },
   { id: 'lab-lifeline-due', name: 'LifeLine PathCare Diagnostic Centre', code: 'LIFE' },
+  { id: 'lab-sanjivani', name: 'Sanjivani Pathology & Preventive Health Lab', code: 'SANJ' },
+  { id: 'lab-healtech-pending', name: 'HealTech Molecular & Allergy Diagnostic Lab', code: 'HEAL' },
+  { id: 'lab-pulse', name: 'Pulse Diagnostics & MRI Centre', code: 'PULSE' },
+  { id: 'lab-carepoint', name: 'CarePoint Clinical Laboratory', code: 'CARE' },
 ] as const;
 
 export const DEFAULT_TENANT_ID = 'lab-apex';

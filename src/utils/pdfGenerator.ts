@@ -494,14 +494,16 @@ export function downloadReportAsHtml(report: LabReport): void {
  * Generate and download thermal receipt PDF for reception slip
  */
 export function generateThermalReceiptPdf(receipt: {
-  tokenNumber: string;
+  tokenNumber?: string;
+  tokenNo?: string;
   uhid?: string;
   patientName: string;
   ageGender?: string;
   age?: number | string;
   gender?: string;
   mobile: string;
-  tests: string[];
+  tests?: string[];
+  testNames?: string[];
   totalAmount: number;
   discount?: number;
   discountINR?: number;
@@ -550,7 +552,7 @@ export function generateThermalReceiptPdf(receipt: {
     // Token
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text(`TOKEN: #${receipt.tokenNumber}`, pageWidth / 2, 22, { align: 'center' });
+    doc.text(`TOKEN: #${receipt.tokenNumber || receipt.tokenNo || '001'}`, pageWidth / 2, 22, { align: 'center' });
 
     doc.setLineDashPattern([1, 1], 0);
     doc.line(4, 25, pageWidth - 4, 25);
@@ -576,7 +578,7 @@ export function generateThermalReceiptPdf(receipt: {
 
     doc.setFont('helvetica', 'normal');
     let itemY = 61;
-    (receipt.tests || []).forEach((t) => {
+    (receipt.tests || receipt.testNames || []).forEach((t) => {
       doc.text(`• ${t.slice(0, 24)}`, 5, itemY);
       itemY += 4.5;
     });

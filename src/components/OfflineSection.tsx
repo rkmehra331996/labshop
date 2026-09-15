@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { Wifi, WifiOff, Cloud, RefreshCw, ArrowDown, CheckCircle2, Zap, Server, ShieldCheck } from 'lucide-react';
 
-export const OfflineSection: React.FC = () => {
+interface OfflineSectionProps {
+  onLaunchApp?: () => void;
+}
+
+export const OfflineSection: React.FC<OfflineSectionProps> = ({ onLaunchApp }) => {
   const [isSimulatedOffline, setIsSimulatedOffline] = useState(false);
   const [simulatedQueue, setSimulatedQueue] = useState(3);
   const [syncingState, setSyncingState] = useState(false);

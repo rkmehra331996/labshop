@@ -8,9 +8,13 @@ import { printReportSafely } from '../utils/printHelper';
 
 interface ReportPreviewSectionProps {
   onOpenVerifyModal?: () => void;
+  onViewFullReport?: () => void;
 }
 
-export const ReportPreviewSection: React.FC<ReportPreviewSectionProps> = ({ onOpenVerifyModal }) => {
+export const ReportPreviewSection: React.FC<ReportPreviewSectionProps> = ({
+  onOpenVerifyModal,
+  onViewFullReport,
+}) => {
   const report = SAMPLE_REPORT;
   const [downloadDone, setDownloadDone] = useState(false);
 

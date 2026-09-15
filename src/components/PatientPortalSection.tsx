@@ -4,13 +4,15 @@ import { SAMPLE_REPORT } from '../data/mockData';
 import { generateReportPdf } from '../utils/pdfGenerator';
 
 interface PatientPortalSectionProps {
-  onViewReport: (reportId?: string, mobile?: string) => void;
-  onOpenVerifyModal: (reportId: string) => void;
+  onViewReport?: (reportId?: string, mobile?: string) => void;
+  onOpenVerifyModal?: (reportId: string) => void;
+  onOpenPortal?: () => void;
 }
 
 export const PatientPortalSection: React.FC<PatientPortalSectionProps> = ({
   onViewReport,
   onOpenVerifyModal,
+  onOpenPortal,
 }) => {
   const [searchMethod, setSearchMethod] = useState<'name_mobile' | 'report_id'>('name_mobile');
   const [patientName, setPatientName] = useState('');

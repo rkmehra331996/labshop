@@ -325,6 +325,7 @@ export interface LabReport {
   pathologist: string;
   pathologistDegrees: string;
   barcode: string;
+  tokenNumber?: string;
   items: ReportItem[];
   verified: boolean;
   verificationHash: string;
@@ -418,23 +419,23 @@ export interface VendorLabDirectoryItem {
 export interface ReceptionPatientEntry {
   id: string;
   uhid: string;
-  tokenNumber: string;
+  tokenNumber?: string;
   tokenNo?: string;
   patientName: string;
   age: number | string;
   gender: 'Male' | 'Female' | 'Other';
   mobile: string;
   referringDoctor: string;
-  tests: string[];
+  tests?: string[];
   sampleType: string;
   totalAmount: number;
-  discountINR: number;
+  discountINR?: number;
   paidAmount: number;
   dueAmount: number;
   paymentMode: 'Cash' | 'UPI' | 'Card';
   paymentStatus: 'Full Payment' | 'Paid' | 'Advance' | 'Pending' | 'Partial' | 'Due' | 'Due Payment';
   status: 'Waiting' | 'Sample Collected' | 'In Lab' | 'Report Ready';
-  registeredAt: string;
+  registeredAt?: string;
   entryTime?: string;
   testNames?: string[];
   notes?: string;

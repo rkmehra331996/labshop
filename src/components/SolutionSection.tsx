@@ -1,7 +1,11 @@
 import React from 'react';
 import { UserCheck, FlaskConical, TestTube2, FileCheck, IndianRupee, MessageSquare, CheckCircle2 } from 'lucide-react';
 
-export const SolutionSection: React.FC = () => {
+interface SolutionSectionProps {
+  onLaunchApp?: () => void;
+}
+
+export const SolutionSection: React.FC<SolutionSectionProps> = ({ onLaunchApp }) => {
   const solutions = [
     {
       title: 'Patient Management',
