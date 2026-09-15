@@ -192,6 +192,7 @@ export interface VendorLabSettings {
   qrCode2Label?: string;
   upiId2?: string;
   merchantName?: string;
+  homeCollectionCharge?: number;
 }
 
 export interface VendorPackage {
@@ -265,6 +266,8 @@ export interface TestItem {
   description?: string;
   isPopular?: boolean;
   labId?: string;
+  status?: 'Active' | 'Inactive';
+  isActive?: boolean;
 }
 
 export interface Patient {
@@ -433,4 +436,12 @@ export interface ReceptionPatientEntry {
   address?: string;
   preferredTimeSlot?: string;
   upiTransactionRef?: string;
+  receiptNumber?: string;
+  paymentScreenshot?: string;
+  paymentVerificationStatus?: 'Pending Verification' | 'Verified' | 'Pay on Spot / Unpaid';
+  homeCollectionCharges?: number;
+  areaLocality?: string;
+  city?: string;
+  pincode?: string;
+  selectedTestsBreakdown?: Array<{ name: string; price: number }>;
 }

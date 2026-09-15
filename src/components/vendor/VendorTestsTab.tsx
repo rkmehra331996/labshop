@@ -41,6 +41,8 @@ export const VendorTestsTab: React.FC = () => {
     tatHours: 4,
     description: 'Quantitative in-vitro diagnostic test',
     isPopular: false,
+    status: 'Active',
+    isActive: true,
   });
 
   const categories = [
@@ -76,6 +78,8 @@ export const VendorTestsTab: React.FC = () => {
       tatHours: 4,
       description: 'Standard clinical pathology diagnostic test',
       isPopular: false,
+      status: 'Active',
+      isActive: true,
     });
     setIsTestModalOpen(true);
   };
@@ -93,6 +97,8 @@ export const VendorTestsTab: React.FC = () => {
       tatHours: test.tatHours,
       description: test.description,
       isPopular: !!test.isPopular,
+      status: test.status || (test.isActive === false ? 'Inactive' : 'Active'),
+      isActive: test.isActive !== false && test.status !== 'Inactive',
     });
     setIsTestModalOpen(true);
   };
@@ -194,19 +200,22 @@ export const VendorTestsTab: React.FC = () => {
                 <th className="px-4 py-3">Biological Reference Interval</th>
                 <th className="px-4 py-3">Turnaround Time</th>
                 <th className="px-4 py-3">Price (INR)</th>
+                <th className="px-4 py-3 text-center">Status</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {filteredTests.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-slate-400 text-xs">
+                  <td colSpan={8} className="px-4 py-10 text-center text-slate-400 text-xs">
                     No matching diagnostic tests found.
                   </td>
                 </tr>
               ) : (
-                filteredTests.map((test) => (
-                  <tr key={test.id} className="hover:bg-slate-50/70 transition">
+                filteredTests.map((test) => {
+                  const isInactive = test.status === 'Inactive' || test.isActive === false;
+                  return (
+                  <tr key={test.id} className={`hover:bg-slate-50/70 transition ${isInactive ? 'opacity-60 bg-slate-50/40' : ''}`}>
                     <td className="px-4 py-3.5">
                       <div className="font-bold text-slate-900 flex items-center gap-2">
                         <span>{test.name}</span>
@@ -245,6 +254,26 @@ export const VendorTestsTab: React.FC = () => {
                       ₹{test.priceINR}
                     </td>
 
+                    <td className="px-4 py-3.5 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newStatus = isInactive ? 'Active' : 'Inactive';
+                          updateVendorTest(test.id, { status: newStatus, isActive: newStatus === 'Active' });
+                          setToastMessage(`Test "${test.name}" marked as ${newStatus}. It will ${newStatus === 'Active' ? 'appear' : 'be hidden'} in website booking form.`);
+                          setTimeout(() => setToastMessage(''), 3000);
+                        }}
+                        className={`px-2 py-1 rounded-md text-[10px] font-bold cursor-pointer transition border ${
+                          isInactive
+                            ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                        title="Toggle Active / Inactive for online booking"
+                      >
+                        {isInactive ? '✕ Inactive' : '✓ Active'}
+                      </button>
+                    </td>
+
                     <td className="px-4 py-3.5 text-right space-x-1">
                       <button
                         onClick={() => handleOpenEditModal(test)}
@@ -263,7 +292,8 @@ export const VendorTestsTab: React.FC = () => {
                       </button>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -408,6 +438,32 @@ export const VendorTestsTab: React.FC = () => {
                     onChange={(e) => setTestForm({ ...testForm, tatHours: parseInt(e.target.value) || 4 })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
                   />
+                </div>
+
+                <div className="md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <label className="block text-[12px] font-bold text-slate-800">
+                      Enable Test for Online Patient Booking
+                    </label>
+                    <p className="text-[11px] text-slate-500">
+                      When Active, patients can select and book this test on the website Hero Section. If Inactive, it is hidden from booking.
+                    </p>
+                  </div>
+                  <select
+                    value={testForm.status || 'Active'}
+                    onChange={(e) => {
+                      const val = e.target.value as 'Active' | 'Inactive';
+                      setTestForm({ ...testForm, status: val, isActive: val === 'Active' });
+                    }}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-lg border focus:outline-none cursor-pointer ${
+                      testForm.status === 'Inactive'
+                        ? 'bg-rose-50 text-rose-700 border-rose-300'
+                        : 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    }`}
+                  >
+                    <option value="Active">✓ Active (Show on Website)</option>
+                    <option value="Inactive">✕ Inactive (Hide from Website)</option>
+                  </select>
                 </div>
               </div>
 

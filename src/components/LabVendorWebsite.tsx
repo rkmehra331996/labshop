@@ -33,6 +33,7 @@ import { useCms } from '../context/CmsContext';
 import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
 import { Language } from '../types';
 import { OnlineTestBookingModal } from './vendor/OnlineTestBookingModal';
+import { HeroBookingForm } from './vendor/HeroBookingForm';
 
 interface LabVendorWebsiteProps {
   language?: Language;
@@ -608,138 +609,9 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               </div>
             </div>
 
-            {/* Right: Quick Home Sample Booking Card */}
+            {/* Right: Lab Test Booking / Sample Collection Form */}
             <div className="lg:col-span-5">
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-6 sm:p-7 relative">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
-                  <div>
-                    <h3 className="text-base font-extrabold text-[#123B6D]">
-                      Book Home Sample Collection
-                    </h3>
-                    <p className="text-xs text-[#64748B] mt-0.5">
-                      Our certified phlebotomist will arrive with barcoded sterile vacutainers
-                    </p>
-                  </div>
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
-                    0₹
-                  </div>
-                </div>
-
-                <form onSubmit={handleBookingSubmit} className="space-y-3.5 text-xs">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Patient Full Name <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={patientName}
-                      onChange={(e) => setPatientName(e.target.value)}
-                      placeholder="e.g. Ramesh Kumar"
-                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        10-Digit Mobile <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        pattern="[0-9]{10}"
-                        value={mobileNumber}
-                        onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        placeholder="9876543210"
-                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        Preferred Time
-                      </label>
-                      <select
-                        value={bookingDate}
-                        onChange={(e) => setBookingDate(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
-                      >
-                        <option>Tomorrow: 6:30 AM - 8:30 AM</option>
-                        <option>Tomorrow: 8:30 AM - 10:30 AM</option>
-                        <option>Tomorrow: 10:30 AM - 12:30 PM</option>
-                        <option>Today: Urgent Collection (within 1 hr)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Select Health Package or Test
-                    </label>
-                    <select
-                      value={selectedTestOrPackage}
-                      onChange={(e) => setSelectedTestOrPackage(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-semibold text-[#123B6D]"
-                    >
-                      <option>Full Body Health Checkup (68 Tests) - ₹999</option>
-                      <option>Complete Diabetic Care Profile - ₹599</option>
-                      <option>Senior Citizen Advanced Health Profile - ₹1,499</option>
-                      <option>Thyroid Profile (T3, T4, TSH) - ₹350</option>
-                      <option>Complete Blood Count (CBC) - ₹250</option>
-                      <option>Lipid Profile (Cholesterol & Triglycerides) - ₹450</option>
-                      <option>Liver Function Test (LFT) - ₹500</option>
-                      <option>Kidney Function Test (KFT) - ₹500</option>
-                      <option>Vitamin D3 + Vitamin B12 - ₹999</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Home Address / Sector / Landmark
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="House No, Street, Sector / Area"
-                      className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-3 rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5 mt-2"
-                  >
-                    <span>Confirm Home Collection Booking</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                  </button>
-
-                  <div className="text-[10px] text-center text-[#64748B]">
-                    🔒 Zero prepayment required. Pay online via UPI or Cash after sample collection.
-                  </div>
-                </form>
-
-                {bookedSuccess && (
-                  <div className="absolute inset-0 bg-white/95 rounded-2xl flex flex-col items-center justify-center p-6 text-center z-10">
-                    <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
-                      <CheckCircle2 className="w-7 h-7" />
-                    </div>
-                    <h4 className="text-base font-extrabold text-[#172033]">
-                      Booking Confirmed!
-                    </h4>
-                    <p className="text-xs text-[#64748B] mt-1 max-w-xs">
-                      Thank you {patientName || 'Sir/Madam'}. Our phlebotomist is scheduled for <strong>{bookingDate}</strong>. Confirmation sent to {mobileNumber || 'your phone'}.
-                    </p>
-                    <button
-                      onClick={() => setBookedSuccess(false)}
-                      className="mt-4 bg-[#123B6D] text-white px-4 py-2 rounded-lg text-xs font-bold"
-                    >
-                      Book Another Test
-                    </button>
-                  </div>
-                )}
-              </div>
+              <HeroBookingForm onOpenReportPortal={() => onOpenReportPortal()} />
             </div>
           </div>
         </div>

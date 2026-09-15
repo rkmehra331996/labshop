@@ -191,6 +191,7 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
   upiId2: 'apexdiag@oksbi',
   qrCode2Label: 'Home Sample Collection QR (Phlebotomist Handheld)',
   qrCode2Url: '',
+  homeCollectionCharge: 100,
   sections: DEFAULT_VENDOR_SECTIONS,
 };
 

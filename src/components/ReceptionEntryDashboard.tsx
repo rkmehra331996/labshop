@@ -1742,20 +1742,23 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                           )}
 
                           {/* Payment Status Pill */}
-                          {paymentStatusType === 'Full Payment' && (
+                          {entry.paymentVerificationStatus === 'Pending Verification' ? (
+                            <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-amber-600" />
+                              <span>Pending Verification</span>
+                            </span>
+                          ) : paymentStatusType === 'Full Payment' ? (
                             <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
                               <Check className="w-3 h-3 text-emerald-600" />
                               <span>{entry.paymentMode === 'UPI' && (entry.bookingSource === 'Website' || entry.notes?.includes('UPI')) ? 'Online UPI Paid' : 'Full Paid'}</span>
                             </span>
-                          )}
-                          {paymentStatusType === 'Advance' && (
+                          ) : paymentStatusType === 'Advance' ? (
                             <span className="bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
                               <span>⚠️ Advance Paid</span>
                             </span>
-                          )}
-                          {paymentStatusType === 'Due' && (
+                          ) : (
                             <span className="bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <span>{(entry.bookingSource === 'Website' || entry.notes?.toLowerCase().includes('website')) ? '⚠️ Pay at Branch' : '❌ Payment Due'}</span>
+                              <span>{(entry.bookingSource === 'Website' || entry.notes?.toLowerCase().includes('website')) ? '⚠️ Pay on Spot' : '❌ Payment Due'}</span>
                             </span>
                           )}
 
@@ -1809,6 +1812,40 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                             <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-teal-200 text-teal-900 font-bold shrink-0">
                               Slot: {entry.preferredTimeSlot}
                             </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Online UPI Verification Bar if UTR is provided */}
+                      {entry.upiTransactionRef && (
+                        <div className="text-[11px] bg-sky-50 px-2.5 py-1.5 rounded-lg border border-sky-200 flex flex-wrap items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 text-sky-950">
+                            <QrCode className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                            <span>Online UPI Ref / UTR: <strong className="font-mono">{entry.upiTransactionRef}</strong></span>
+                            {entry.paymentVerificationStatus === 'Pending Verification' && (
+                              <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.5 rounded">
+                                Verification Pending
+                              </span>
+                            )}
+                          </span>
+
+                          {entry.paymentVerificationStatus === 'Pending Verification' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateReceptionEntry(entry.id, {
+                                  paymentVerificationStatus: 'Verified',
+                                  paymentStatus: 'Full Payment',
+                                  paidAmount: entry.totalAmount,
+                                  dueAmount: 0,
+                                });
+                                showToast(`✅ Payment verified for token ${entry.tokenNumber}! Status: Full Paid`);
+                              }}
+                              className="px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold text-[10px] cursor-pointer transition flex items-center gap-1 shadow-2xs"
+                            >
+                              <Check className="w-3 h-3 text-amber-300" />
+                              <span>Verify & Confirm Payment</span>
+                            </button>
                           )}
                         </div>
                       )}
