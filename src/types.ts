@@ -333,6 +333,11 @@ export interface LabReport {
   pathologistSigned?: boolean;
   pathologistSignatureTime?: string;
   pathologistSignedBy?: string;
+  isPublished?: boolean;
+  publishedAt?: string;
+  publishedBy?: string;
+  paymentStatus?: string;
+  dueAmount?: number;
 }
 
 export interface BranchStat {
@@ -444,4 +449,7 @@ export interface ReceptionPatientEntry {
   city?: string;
   pincode?: string;
   selectedTestsBreakdown?: Array<{ name: string; price: number }>;
+  isReportPublished?: boolean;
+  publishedAt?: string;
+  publishedBy?: string;
 }

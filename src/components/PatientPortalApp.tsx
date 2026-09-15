@@ -19,10 +19,17 @@ import {
   RefreshCw,
   Sparkles,
   Check,
+  Lock,
+  Phone,
+  MapPin,
+  CreditCard,
+  IndianRupee,
+  Clock,
+  ExternalLink,
 } from 'lucide-react';
 import { QRVerifyModal } from './Modals';
 import { useCms } from '../context/CmsContext';
-import { LabReport } from '../types';
+import { LabReport, ReceptionPatientEntry } from '../types';
 import { maskMobileForOnlineReport } from '../utils/reportUtils';
 import { ReportCopyrightBottomBar } from './ReportCopyrightBottomBar';
 import { generateReportPdf } from '../utils/pdfGenerator';
@@ -39,7 +46,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
   initialReportId = '',
   initialMobile = '',
 }) => {
-  const { reports, receptionEntries } = useCms();
+  const { reports, receptionEntries, vendorLabSettings, updateReceptionEntry } = useCms();
 
   // Search Option: 'name_mobile' | 'report_id'
   const [searchMethod, setSearchMethod] = useState<'name_mobile' | 'report_id'>('name_mobile');
@@ -54,6 +61,14 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
   // Current Searched Report State (null by default - no report shown until searched & matched)
   const [searchedReport, setSearchedReport] = useState<LabReport | null>(null);
 
+  // Matched Reception Entry (for checking payment dues and publication status)
+  const [matchedEntry, setMatchedEntry] = useState<ReceptionPatientEntry | null>(null);
+
+  // Online Payment Clearance Modal
+  const [showPayOnlineModal, setShowPayOnlineModal] = useState(false);
+  const [payingMode, setPayingMode] = useState<'UPI' | 'Card'>('UPI');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
   // Pending Sample Status (for samples in lab registered at reception but report not finalized yet)
   const [pendingSampleStatus, setPendingSampleStatus] = useState<{
     tokenNumber: string;
@@ -63,6 +78,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     registeredAt: string;
     status: string;
     technicianStatus: string;
+    branchName?: string;
+    branchPhone?: string;
   } | null>(null);
 
   // Error States
@@ -71,6 +88,22 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
   // QR Modal
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+
+  // Lab details for contact
+  const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory';
+  const labPhone = vendorLabSettings?.phone || '7087033009';
+  const labAddress = vendorLabSettings?.address || 'SCO 42, Green Park Avenue, Near Civil Hospital, Ludhiana, Punjab';
+  const labUpi = vendorLabSettings?.upiId || 'apexlab@upi';
+
+  // Calculate active due amount
+  const activeDueAmount =
+    matchedEntry !== null && matchedEntry.dueAmount !== undefined
+      ? matchedEntry.dueAmount
+      : searchedReport?.dueAmount !== undefined
+      ? searchedReport.dueAmount
+      : 0;
+
+  const isPaymentPending = activeDueAmount > 0;
 
   // Initialize from props only if explicitly passed (e.g. from lab queue direct link)
   useEffect(() => {
@@ -85,6 +118,13 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         setSearchMethod('report_id');
         setErrorMessage(null);
         setErrorDetails(null);
+
+        const match = (receptionEntries || []).find(
+          (e) =>
+            (e.reportId && e.reportId.toLowerCase() === found.reportId.toLowerCase()) ||
+            (e.uhid && found.uhid && e.uhid.toLowerCase() === found.uhid.toLowerCase())
+        );
+        setMatchedEntry(match || null);
       }
     } else if (initialMobile && initialMobile.trim()) {
       const cleanMob = initialMobile.replace(/\D/g, '');
@@ -96,9 +136,14 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         setSearchMethod('name_mobile');
         setErrorMessage(null);
         setErrorDetails(null);
+
+        const match = (receptionEntries || []).find(
+          (e) => (e.mobile || '').replace(/\D/g, '') === cleanMob
+        );
+        setMatchedEntry(match || null);
       }
     }
-  }, [initialReportId, initialMobile, reports]);
+  }, [initialReportId, initialMobile, reports, receptionEntries]);
 
   // Option 1: Search by Patient Name + Mobile Number (Both must match)
   const handleSearchByNameAndMobile = (e: React.FormEvent) => {
@@ -145,6 +190,13 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
     if (matched) {
       setSearchedReport(matched);
+      const match = (receptionEntries || []).find(
+        (e) =>
+          (e.reportId && e.reportId.toLowerCase() === matched.reportId.toLowerCase()) ||
+          (e.uhid && matched.uhid && e.uhid.toLowerCase() === matched.uhid.toLowerCase()) ||
+          (e.mobile && (e.mobile.replace(/\D/g, '') === inputMobile || inputMobile.endsWith(e.mobile.replace(/\D/g, ''))))
+      );
+      setMatchedEntry(match || null);
       return;
     }
 
@@ -162,7 +214,13 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     });
 
     if (receptionMatch) {
-      if (receptionMatch.reportId) {
+      setMatchedEntry(receptionMatch);
+      const hasReportReady =
+        receptionMatch.status === 'Report Ready' ||
+        receptionMatch.technicianStatus === 'Report Generated' ||
+        Boolean(receptionMatch.reportId);
+
+      if (hasReportReady && receptionMatch.reportId) {
         const found = reports.find(
           (r) =>
             r.reportId.toLowerCase() === receptionMatch.reportId?.toLowerCase() ||
@@ -174,6 +232,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         }
       }
 
+      // If report is not yet finalized, show live sample progress status!
       setPendingSampleStatus({
         tokenNumber: receptionMatch.tokenNumber,
         patientName: receptionMatch.patientName,
@@ -182,6 +241,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         registeredAt: receptionMatch.registeredAt || 'Today',
         status: receptionMatch.status || 'Sample in Testing',
         technicianStatus: receptionMatch.technicianStatus || 'Sent to Lab',
+        branchName: receptionMatch.branchName || 'Apex Central Diagnostic Hub',
+        branchPhone: labPhone,
       });
       return;
     }
@@ -199,6 +260,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     setErrorMessage(null);
     setErrorDetails(null);
     setSearchedReport(null);
+    setMatchedEntry(null);
     setPendingSampleStatus(null);
 
     const raw = reportIdInput.trim().toLowerCase();
@@ -224,6 +286,13 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
     if (reportMatch) {
       setSearchedReport(reportMatch);
+      const match = (receptionEntries || []).find(
+        (e) =>
+          (e.reportId && e.reportId.toLowerCase() === reportMatch.reportId.toLowerCase()) ||
+          (e.uhid && reportMatch.uhid && e.uhid.toLowerCase() === reportMatch.uhid.toLowerCase()) ||
+          (e.tokenNumber && reportMatch.tokenNumber && e.tokenNumber.toLowerCase() === reportMatch.tokenNumber.toLowerCase())
+      );
+      setMatchedEntry(match || null);
       return;
     }
 
@@ -245,8 +314,14 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     });
 
     if (receptionMatch) {
+      setMatchedEntry(receptionMatch);
+      const hasReportReady =
+        receptionMatch.status === 'Report Ready' ||
+        receptionMatch.technicianStatus === 'Report Generated' ||
+        Boolean(receptionMatch.reportId);
+
       // Check if report already exists for this entry
-      if (receptionMatch.reportId) {
+      if (hasReportReady && receptionMatch.reportId) {
         const foundReport = reports.find(
           (r) =>
             r.reportId.toLowerCase() === receptionMatch.reportId?.toLowerCase() ||
@@ -267,6 +342,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         registeredAt: receptionMatch.registeredAt || 'Today',
         status: receptionMatch.status || 'Sample in Testing',
         technicianStatus: receptionMatch.technicianStatus || 'Sent to Lab',
+        branchName: receptionMatch.branchName || 'Apex Central Diagnostic Hub',
+        branchPhone: labPhone,
       });
       return;
     }
@@ -280,6 +357,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
   const handleResetSearch = () => {
     setSearchedReport(null);
+    setMatchedEntry(null);
     setPendingSampleStatus(null);
     setErrorMessage(null);
     setErrorDetails(null);
@@ -290,6 +368,58 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
   const [downloadSuccessToast, setDownloadSuccessToast] = useState<string | null>(null);
   const [printIframeNotice, setPrintIframeNotice] = useState(false);
+
+  // Online Payment Clearance Handler (Simulates immediate clearance & unlocks report)
+  const handlePayDueOnline = () => {
+    setIsProcessingPayment(true);
+    setTimeout(() => {
+      if (matchedEntry) {
+        const updatedPaid = (matchedEntry.paidAmount || 0) + activeDueAmount;
+        updateReceptionEntry(matchedEntry.id, {
+          paidAmount: updatedPaid,
+          dueAmount: 0,
+          paymentStatus: 'Full Payment',
+          paymentMode: payingMode,
+          isReportPublished: true,
+          publishedAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+          publishedBy: 'Online Portal Gateway',
+          balancePaidAmount: (matchedEntry.balancePaidAmount || 0) + activeDueAmount,
+          balancePaymentMode: payingMode,
+          balancePaidAt: `Today, ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`,
+        });
+        setMatchedEntry((prev) =>
+          prev
+            ? {
+                ...prev,
+                paidAmount: updatedPaid,
+                dueAmount: 0,
+                paymentStatus: 'Full Payment',
+                paymentMode: payingMode,
+                isReportPublished: true,
+              }
+            : null
+        );
+      }
+      if (searchedReport) {
+        setSearchedReport((prev) =>
+          prev
+            ? {
+                ...prev,
+                dueAmount: 0,
+                paidAmount: (prev.paidAmount || 0) + activeDueAmount,
+                isReportPublished: true,
+              }
+            : null
+        );
+      }
+      setIsProcessingPayment(false);
+      setShowPayOnlineModal(false);
+      setDownloadSuccessToast(
+        `Payment of ₹${activeDueAmount} received successfully! Your complete diagnostic report is now unlocked.`
+      );
+      setTimeout(() => setDownloadSuccessToast(null), 5000);
+    }, 800);
+  };
 
   const handleDownloadPdf = () => {
     if (!searchedReport) return;
@@ -582,7 +712,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
           <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
             <span className="text-slate-500 font-medium flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Quick Demo Testing:</span>
+              <span>Quick Test Scenarios:</span>
             </span>
             <div className="flex flex-wrap gap-1.5">
               <button
@@ -591,23 +721,39 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   setSearchMethod('name_mobile');
                   handleQuickFill('Ramesh Kumar Verma', '9876543210', 'RPT-2026-8812');
                 }}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition cursor-pointer"
-                title="Ramesh Kumar Verma (CBC + Sugar)"
+                className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold transition cursor-pointer border border-emerald-200 flex items-center gap-1"
+                title="Ramesh Kumar Verma (Fully Paid & Unlocked Report)"
               >
-                👤 Ramesh (9876543210)
+                <Check className="w-3 h-3 text-emerald-600" />
+                <span>Ramesh (Paid • Unlocked)</span>
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setSearchMethod('report_id');
-                  setReportIdInput('TK-101');
+                  setReportIdInput('TK-104');
                   setErrorMessage(null);
                   setErrorDetails(null);
                 }}
-                className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#123B6D] text-[11px] font-semibold transition cursor-pointer"
-                title="Token #TK-101"
+                className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-semibold transition cursor-pointer border border-amber-200 flex items-center gap-1"
+                title="Sunita Devi (TK-104 / RPT-2026-8815) - Report Ready but Due ₹300 (Locked/Blurred)"
               >
-                🎫 Token #TK-101
+                <Lock className="w-3 h-3 text-amber-700" />
+                <span>TK-104 (Sunita • Due ₹300 Locked)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchMethod('report_id');
+                  setReportIdInput('TK-103');
+                  setErrorMessage(null);
+                  setErrorDetails(null);
+                }}
+                className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#123B6D] text-[11px] font-semibold transition cursor-pointer border border-blue-200 flex items-center gap-1"
+                title="Rajesh Sharma (TK-103) - Sample In Lab Processing"
+              >
+                <Clock className="w-3 h-3 text-blue-600" />
+                <span>TK-103 (Rajesh • In Lab Processing)</span>
               </button>
               <button
                 type="button"
@@ -617,23 +763,10 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   setErrorMessage(null);
                   setErrorDetails(null);
                 }}
-                className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold transition cursor-pointer"
-                title="Report #RPT-2026-8812"
+                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition cursor-pointer"
+                title="Direct Report ID RPT-2026-8812"
               >
-                📄 Report #RPT-2026-8812
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchMethod('report_id');
-                  setReportIdInput('RPT-2026-8815');
-                  setErrorMessage(null);
-                  setErrorDetails(null);
-                }}
-                className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 text-[11px] font-semibold transition cursor-pointer"
-                title="Cancelled Report #RPT-2026-8815"
-              >
-                ⚠️ Cancelled #RPT-2026-8815
+                📄 #RPT-2026-8812
               </button>
             </div>
           </div>
@@ -641,34 +774,82 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
         {/* LIVE SAMPLE PROGRESS STATE (When Token or Patient is registered but lab testing is still in progress) */}
         {pendingSampleStatus && !searchedReport && (
-          <div className="bg-white rounded-2xl border border-amber-200 shadow-md p-6 sm:p-7 space-y-4 text-xs animate-in fade-in duration-200 no-print">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-amber-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 font-black flex items-center justify-center text-lg">
-                  🔬
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded uppercase">
-                      Live Sample Status
-                    </span>
-                    <span className="text-[11px] text-slate-500">Registered: {pendingSampleStatus.registeredAt}</span>
-                  </div>
-                  <h2 className="text-base font-black text-slate-900 mt-0.5">
-                    Token #{pendingSampleStatus.tokenNumber} • {pendingSampleStatus.patientName}
-                  </h2>
-                </div>
+          <div className="bg-white rounded-2xl border-2 border-blue-300 shadow-md p-6 sm:p-7 space-y-5 text-xs animate-in fade-in duration-200 no-print">
+            {/* Primary Hindi Notification Banner requested by user */}
+            <div className="p-4 sm:p-5 bg-blue-50 border-2 border-blue-200 rounded-xl text-blue-950 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-blue-900">
+                <span className="w-3 h-3 rounded-full bg-blue-600 animate-ping shrink-0" />
+                <span>Lab Processing Status / लैब स्थिति</span>
               </div>
-              <span className="self-start sm:self-auto bg-blue-50 text-[#123B6D] border border-blue-200 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
-                <span>{pendingSampleStatus.status}</span>
-              </span>
+              <div className="text-base sm:text-lg font-black text-slate-900 leading-snug">
+                “Aapki report abhi lab mein process ho rahi hai, please wait.”
+              </div>
+              <p className="text-xs text-blue-800 leading-relaxed">
+                Your biological sample is currently undergoing scientific testing and biochemical analyzer processing. Once verified and authorized by our Pathologist, it will be published here.
+              </p>
             </div>
 
-            <div className="bg-slate-50 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {/* Lab & Branch Contact Information Box */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">
+                  Diagnostic Centre & Branch
+                </span>
+                <span className="font-black text-slate-900 text-xs sm:text-sm block mt-0.5">
+                  {labName}
+                </span>
+                <span className="text-[11px] text-teal-800 font-bold flex items-center gap-1 mt-0.5">
+                  <Building className="w-3 h-3 text-teal-600 shrink-0" />
+                  <span>{pendingSampleStatus.branchName || 'Main Diagnostic & Testing Hub'}</span>
+                </span>
+              </div>
+
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">
+                  Helpline / Contact Number
+                </span>
+                <span className="font-black text-[#123B6D] text-xs sm:text-sm flex items-center gap-1 font-mono mt-0.5">
+                  <Phone className="w-3.5 h-3.5 text-[#123B6D] shrink-0" />
+                  <span>+91 {labPhone}</span>
+                </span>
+                <div className="flex items-center gap-2 pt-1.5">
+                  <a
+                    href={`tel:${labPhone}`}
+                    className="px-2.5 py-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <Phone className="w-3 h-3" />
+                    <span>Call Lab</span>
+                  </a>
+                  <a
+                    href={`https://wa.me/91${labPhone.replace(/\D/g, '')}?text=Hello,%20checking%20status%20of%20Token%20${pendingSampleStatus.tokenNumber}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <MessageSquare className="w-3 h-3" />
+                    <span>WhatsApp</span>
+                  </a>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">
+                  Centre Address & Hours
+                </span>
+                <span className="text-[11px] text-slate-700 block mt-0.5 leading-snug">
+                  {labAddress}
+                </span>
+                <span className="text-[10px] text-slate-500 block mt-1">
+                  Sample Processing: 24x7 Emergency Services
+                </span>
+              </div>
+            </div>
+
+            {/* Token & Patient Demographics Summary */}
+            <div className="bg-white border border-slate-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Patient Name</span>
-                <span className="font-bold text-slate-800 text-sm">{pendingSampleStatus.patientName}</span>
+                <span className="font-bold text-slate-800 text-xs sm:text-sm">{pendingSampleStatus.patientName}</span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Age / Gender</span>
@@ -676,28 +857,25 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
               </div>
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Token Number</span>
-                <span className="font-mono font-black text-base text-[#123B6D]">{pendingSampleStatus.tokenNumber}</span>
+                <span className="font-mono font-black text-sm text-[#123B6D]">{pendingSampleStatus.tokenNumber}</span>
               </div>
-              <div className="col-span-2 sm:col-span-3">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Booked Tests / Investigations</span>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Current Stage</span>
+                <span className="inline-flex items-center gap-1 text-blue-700 font-bold text-[11px] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
+                  <span>{pendingSampleStatus.status}</span>
+                </span>
+              </div>
+              <div className="col-span-2 sm:col-span-4 pt-1">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Investigations in Laboratory</span>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                   {pendingSampleStatus.tests.map((t, idx) => (
-                    <span key={idx} className="px-2 py-0.5 rounded-md bg-white border border-slate-200 font-semibold text-slate-800">
+                    <span key={idx} className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 font-semibold text-slate-800 text-[11px]">
                       {t}
                     </span>
                   ))}
                 </div>
               </div>
-            </div>
-
-            <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-xl text-blue-950 space-y-1.5">
-              <div className="font-bold flex items-center gap-2 text-xs text-blue-900">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
-                <span>Sample Under Processing in Laboratory Analyzer</span>
-              </div>
-              <p className="text-[11px] text-blue-800 leading-relaxed">
-                Your sample has been securely registered and barcoded. Our laboratory technician is performing automated analysis. Once certified and authorized by the Pathologist, your complete report and digital QR barcode will appear here automatically.
-              </p>
             </div>
           </div>
         )}
@@ -758,6 +936,72 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
               </div>
             )}
 
+            {/* MANDATORY PAYMENT PENDING NOTIFICATION BANNER (When Report is Ready but Payment is Due) */}
+            {isPaymentPending && (
+              <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-5 text-xs text-amber-950 shadow-md space-y-3.5 no-print">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-amber-100 border-2 border-amber-300 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                    <Lock className="w-6 h-6 text-amber-700" />
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="bg-amber-600 text-white font-black px-2.5 py-0.5 rounded text-[11px] uppercase tracking-wide">
+                        REPORT READY • PAYMENT PENDING / भुगतान बकाया
+                      </span>
+                      <span className="text-[11px] text-amber-900 font-bold bg-amber-200/80 px-2 py-0.5 rounded">
+                        Pending Amount: ₹{activeDueAmount}
+                      </span>
+                    </div>
+                    <div className="text-sm sm:text-base font-black text-slate-900 leading-snug">
+                      “Aapki report ready hai, lekin payment clear na hone ki wajah se report abhi view nahi ki ja sakti. Payment clear karne ke baad aap complete report dekh sakte hain.”
+                    </div>
+                    <p className="text-[11px] text-amber-900 leading-relaxed">
+                      Pathologist has verified and certified your lab report. As per clinic billing protocol, investigation parameter results and official PDF download are locked until the outstanding dues of ₹{activeDueAmount} are cleared.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Lab & Branch Contact Information Strip */}
+                <div className="bg-white/90 border border-amber-200 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-1">
+                    <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Building className="w-3.5 h-3.5 text-[#123B6D]" />
+                      <span>{labName}</span>
+                      <span className="text-slate-400">•</span>
+                      <span className="text-teal-800 font-bold">
+                        Branch: {matchedEntry?.branchName || searchedReport.branchName || 'Apex Central Diagnostic Hub'}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-600 flex items-center gap-2 flex-wrap">
+                      <span className="flex items-center gap-1 text-[#123B6D] font-mono font-bold">
+                        <Phone className="w-3 h-3" />
+                        <span>Helpline: +91 {labPhone}</span>
+                      </span>
+                      <span className="text-slate-400">•</span>
+                      <span>{labAddress}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowPayOnlineModal(true)}
+                      className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2 rounded-xl text-xs font-black transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <CreditCard className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Pay ₹{activeDueAmount} Online</span>
+                    </button>
+                    <a
+                      href={`tel:${labPhone}`}
+                      className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <Phone className="w-3 h-3 text-slate-600" />
+                      <span>Call Lab</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Success Download / Print Toast */}
             {downloadSuccessToast && (
               <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2">
@@ -778,9 +1022,24 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             {/* Action Bar for Patient */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs no-print">
               <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${searchedReport.cancelled ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    searchedReport.cancelled
+                      ? 'bg-rose-500'
+                      : isPaymentPending
+                      ? 'bg-amber-500 animate-pulse'
+                      : 'bg-emerald-500 animate-pulse'
+                  }`}
+                />
                 <span className="text-xs font-bold text-[#172033]">
-                  {searchedReport.cancelled ? 'Cancelled Report for' : 'Report Verified for'} <strong>{searchedReport.patientName}</strong> ({searchedReport.reportId})
+                  {searchedReport.cancelled ? (
+                    <>Cancelled Report for <strong>{searchedReport.patientName}</strong></>
+                  ) : isPaymentPending ? (
+                    <>Report Ready (Locked • Due ₹{activeDueAmount}) for <strong>{searchedReport.patientName}</strong></>
+                  ) : (
+                    <>Report Verified & Unlocked for <strong>{searchedReport.patientName}</strong></>
+                  )}{' '}
+                  <span className="text-slate-400 font-mono">({searchedReport.reportId})</span>
                 </span>
               </div>
 
@@ -794,27 +1053,51 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   <span>Search Another</span>
                 </button>
 
-                {/* 1. Direct PDF Download Button */}
-                <button
-                  id="btn-download-pdf-portal"
-                  onClick={handleDownloadPdf}
-                  className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
-                  title="Download Official NABL Medical Report PDF"
-                >
-                  <Download className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>Download PDF</span>
-                </button>
+                {/* 1. PDF Download Button (Conditional on Payment Clearance) */}
+                {isPaymentPending ? (
+                  <button
+                    id="btn-download-pdf-portal-locked"
+                    onClick={() => setShowPayOnlineModal(true)}
+                    className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    title={`Payment pending: Clear ₹${activeDueAmount} to download report PDF`}
+                  >
+                    <Lock className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Download PDF (Due ₹{activeDueAmount})</span>
+                  </button>
+                ) : (
+                  <button
+                    id="btn-download-pdf-portal"
+                    onClick={handleDownloadPdf}
+                    className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+                    title="Download Official NABL Medical Report PDF"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-300" />
+                    <span>Download PDF</span>
+                  </button>
+                )}
 
-                {/* 2. Print Report Button */}
-                <button
-                  id="btn-print-report-portal"
-                  onClick={handlePrint}
-                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
-                  title="Print Report on A4 / Letterhead"
-                >
-                  <Printer className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Print Report</span>
-                </button>
+                {/* 2. Print Report Button (Conditional on Payment Clearance) */}
+                {isPaymentPending ? (
+                  <button
+                    id="btn-print-report-portal-locked"
+                    onClick={() => setShowPayOnlineModal(true)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                    title={`Payment pending: Clear ₹${activeDueAmount} to print report`}
+                  >
+                    <Lock className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Print (Locked)</span>
+                  </button>
+                ) : (
+                  <button
+                    id="btn-print-report-portal"
+                    onClick={handlePrint}
+                    className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
+                    title="Print Report on A4 / Letterhead"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Print Report</span>
+                  </button>
+                )}
 
                 <button
                   onClick={handleShareWhatsApp}
@@ -903,16 +1186,30 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   <span className="text-slate-700">{searchedReport.sampleCollectedAt}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Report Authorized</span>
-                  <span className="text-slate-700">{searchedReport.reportedAt}</span>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Report Status</span>
+                  {searchedReport.cancelled ? (
+                    <span className="text-rose-700 font-bold">Cancelled</span>
+                  ) : isPaymentPending ? (
+                    <span className="text-amber-700 font-bold">Ready (Pending Clearance)</span>
+                  ) : (
+                    <span className="text-emerald-700 font-bold">Verified & Authorized</span>
+                  )}
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Report Status</span>
-                  <span className="text-emerald-700 font-bold">Verified & Authorized</span>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Payment Clearance</span>
+                  {isPaymentPending ? (
+                    <span className="text-rose-700 font-black bg-rose-50 px-2 py-0.5 rounded border border-rose-200 inline-block font-mono">
+                      Due: ₹{activeDueAmount}
+                    </span>
+                  ) : (
+                    <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block">
+                      ✓ Cleared & Published
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Test Results Table */}
+              {/* Test Results Table (BLURRED & LOCKED IF PAYMENT IS PENDING) */}
               <div className="space-y-6">
                 <div className="space-y-2">
                   <div className="bg-[#123B6D]/10 px-3 py-1.5 rounded-lg text-xs font-bold text-[#123B6D] uppercase tracking-wider flex items-center justify-between">
@@ -920,57 +1217,148 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                     <span className="text-[10px] text-slate-500 lowercase font-normal">Method: Automated NABL Sysmex / HPLC</span>
                   </div>
 
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-300 text-slate-500 text-[11px]">
-                          <th className="py-2 px-3 font-bold">Investigation Parameter</th>
-                          <th className="py-2 px-3 font-bold">Observed Value</th>
-                          <th className="py-2 px-3 font-bold">Unit</th>
-                          <th className="py-2 px-3 font-bold">Biological Ref Range</th>
-                          <th className="py-2 px-3 font-bold text-center">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {searchedReport.items.map((res, rIdx) => (
-                          <tr
-                            key={rIdx}
-                            className={res.isAbnormal ? 'bg-rose-50/40 font-semibold' : 'hover:bg-slate-50'}
+                  {isPaymentPending ? (
+                    /* LOCKED & BLURRED REPORT SECTION */
+                    <div className="relative rounded-2xl overflow-hidden border-2 border-amber-300 bg-amber-50/20 p-2">
+                      {/* Blurred Background Table */}
+                      <div className="filter blur-md select-none pointer-events-none opacity-25" aria-hidden="true">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-slate-300 text-slate-500 text-[11px]">
+                              <th className="py-2 px-3 font-bold">Investigation Parameter</th>
+                              <th className="py-2 px-3 font-bold">Observed Value</th>
+                              <th className="py-2 px-3 font-bold">Unit</th>
+                              <th className="py-2 px-3 font-bold">Biological Ref Range</th>
+                              <th className="py-2 px-3 font-bold text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {searchedReport.items.map((res, rIdx) => (
+                              <tr key={rIdx}>
+                                <td className="py-2.5 px-3 font-bold text-slate-800">{res.parameter}</td>
+                                <td className="py-2.5 px-3 font-mono font-bold text-slate-900">XX.XX</td>
+                                <td className="py-2.5 px-3 font-mono">{res.unit}</td>
+                                <td className="py-2.5 px-3 font-mono text-[11px]">{res.referenceRange}</td>
+                                <td className="py-2.5 px-3 text-center">Protected</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Prominent Frosted Lock Overlay with Required Hindi Message & Lab Contact */}
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 sm:p-8 bg-white/90 backdrop-blur-[4px] text-center space-y-4">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-100 border-2 border-amber-300 text-amber-800 flex items-center justify-center shadow-md">
+                          <Lock className="w-7 h-7 text-amber-700" />
+                        </div>
+
+                        <div className="max-w-lg space-y-2">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-amber-900 bg-amber-100 border border-amber-300 px-3 py-1 rounded-full inline-block">
+                            REPORT LOCKED • PAYMENT CLEARANCE REQUIRED
+                          </span>
+                          <h3 className="text-sm sm:text-base font-black text-slate-900 leading-snug">
+                            “Aapki report ready hai, lekin payment clear na hone ki wajah se report abhi view nahi ki ja sakti. Payment clear karne ke baad aap complete report dekh sakte hain.”
+                          </h3>
+                          <div className="text-xs text-slate-600 font-medium">
+                            Total Outstanding Due: <strong className="text-rose-600 font-black text-sm">₹{activeDueAmount}</strong>
+                          </div>
+                        </div>
+
+                        {/* Lab and Branch Contact Details */}
+                        <div className="w-full max-w-md bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-left space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 font-semibold">Diagnostic Lab:</span>
+                            <span className="font-bold text-slate-900">{labName}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 font-semibold">Branch Centre:</span>
+                            <span className="font-bold text-teal-800">
+                              {matchedEntry?.branchName || searchedReport.branchName || 'Apex Central Diagnostic Hub'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 font-semibold">Helpline Contact:</span>
+                            <span className="font-bold font-mono text-[#123B6D] flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              <span>+91 {labPhone}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowPayOnlineModal(true)}
+                            className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-6 py-2.5 rounded-xl text-xs font-black transition shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
                           >
-                            <td className="py-2.5 px-3">
-                              <span className={res.isAbnormal ? 'text-rose-900 font-bold' : 'text-slate-800'}>
-                                {res.parameter}
-                              </span>
-                              <div className="text-[10px] text-slate-400 font-normal">{res.testName}</div>
-                            </td>
-                            <td className="py-2.5 px-3 font-mono">
-                              <span
-                                className={
-                                  res.isAbnormal
-                                    ? 'text-rose-700 font-black px-1.5 py-0.5 rounded bg-rose-100'
-                                    : 'text-slate-900 font-bold'
-                                }
-                              >
-                                {res.result}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-slate-500 font-mono">{res.unit}</td>
-                            <td className="py-2.5 px-3 text-slate-600 font-mono text-[11px]">{res.referenceRange}</td>
-                            <td className="py-2.5 px-3 text-center">
-                              {!res.isAbnormal ? (
-                                <span className="text-emerald-700 font-medium text-[10px]">Normal</span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-rose-700 font-bold text-[10px] bg-rose-100 px-2 py-0.5 rounded-full">
-                                  <AlertTriangle className="w-3 h-3" />
-                                  <span>High</span>
-                                </span>
-                              )}
-                            </td>
+                            <CreditCard className="w-4 h-4 text-amber-300" />
+                            <span>Pay ₹{activeDueAmount} Online & Unlock Complete Report</span>
+                          </button>
+                          <a
+                            href={`tel:${labPhone}`}
+                            className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Phone className="w-3.5 h-3.5 text-slate-600" />
+                            <span>Call Reception Desk</span>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* UNLOCKED FULL TABLE */
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-300 text-slate-500 text-[11px]">
+                            <th className="py-2 px-3 font-bold">Investigation Parameter</th>
+                            <th className="py-2 px-3 font-bold">Observed Value</th>
+                            <th className="py-2 px-3 font-bold">Unit</th>
+                            <th className="py-2 px-3 font-bold">Biological Ref Range</th>
+                            <th className="py-2 px-3 font-bold text-center">Status</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {searchedReport.items.map((res, rIdx) => (
+                            <tr
+                              key={rIdx}
+                              className={res.isAbnormal ? 'bg-rose-50/40 font-semibold' : 'hover:bg-slate-50'}
+                            >
+                              <td className="py-2.5 px-3">
+                                <span className={res.isAbnormal ? 'text-rose-900 font-bold' : 'text-slate-800'}>
+                                  {res.parameter}
+                                </span>
+                                <div className="text-[10px] text-slate-400 font-normal">{res.testName}</div>
+                              </td>
+                              <td className="py-2.5 px-3 font-mono">
+                                <span
+                                  className={
+                                    res.isAbnormal
+                                      ? 'text-rose-700 font-black px-1.5 py-0.5 rounded bg-rose-100'
+                                      : 'text-slate-900 font-bold'
+                                  }
+                                >
+                                  {res.result}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-slate-500 font-mono">{res.unit}</td>
+                              <td className="py-2.5 px-3 text-slate-600 font-mono text-[11px]">{res.referenceRange}</td>
+                              <td className="py-2.5 px-3 text-center">
+                                {!res.isAbnormal ? (
+                                  <span className="text-emerald-700 font-medium text-[10px]">Normal</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-rose-700 font-bold text-[10px] bg-rose-100 px-2 py-0.5 rounded-full">
+                                    <AlertTriangle className="w-3 h-3" />
+                                    <span>High</span>
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1016,28 +1404,185 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   Official A4 Format • Valid For Medical Reference & Hospital Submission
                 </span>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleDownloadPdf}
-                    className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
-                  >
-                    <Download className="w-4 h-4 text-emerald-300" />
-                    <span>Download PDF Report</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handlePrint}
-                    className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
-                  >
-                    <Printer className="w-4 h-4 text-amber-300" />
-                    <span>Print Report</span>
-                  </button>
+                  {isPaymentPending ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowPayOnlineModal(true)}
+                      className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      <CreditCard className="w-4 h-4 text-amber-300" />
+                      <span>Pay ₹{activeDueAmount} to Unlock & Download</span>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleDownloadPdf}
+                        className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+                      >
+                        <Download className="w-4 h-4 text-emerald-300" />
+                        <span>Download PDF Report</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handlePrint}
+                        className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
+                      >
+                        <Printer className="w-4 h-4 text-amber-300" />
+                        <span>Print Report</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         )}
       </main>
+
+      {/* ONLINE PAYMENT CLEARANCE MODAL (Simulated Instant Clearance to Unlock Report) */}
+      {showPayOnlineModal && searchedReport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                  <CreditCard className="w-5 h-5 text-amber-700" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-sm">
+                    Clear Balance & Unlock Report
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Secure Patient Payment Portal • {searchedReport.reportId}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPayOnlineModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Bill & Due Summary */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2.5 text-xs">
+              <div className="flex justify-between items-center text-slate-600">
+                <span>Patient Name:</span>
+                <span className="font-bold text-slate-900">{searchedReport.patientName}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600">
+                <span>UHID / Token:</span>
+                <span className="font-mono font-bold text-[#123B6D]">{searchedReport.uhid}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600">
+                <span>Total Investigation Cost:</span>
+                <span className="font-mono font-semibold text-slate-800">
+                  ₹{matchedEntry?.totalAmount || searchedReport.totalAmount || 650}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600">
+                <span>Already Paid at Counter:</span>
+                <span className="font-mono font-semibold text-emerald-700">
+                  ₹{matchedEntry?.paidAmount || searchedReport.paidAmount || 350}
+                </span>
+              </div>
+              <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm font-black">
+                <span className="text-slate-900">Outstanding Balance to Clear:</span>
+                <span className="text-rose-600 font-mono text-base">₹{activeDueAmount}</span>
+              </div>
+            </div>
+
+            {/* Payment Method Selector */}
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-slate-800">
+                Select Payment Mode / भुगतान का तरीका
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPayingMode('UPI')}
+                  className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                    payingMode === 'UPI'
+                      ? 'border-[#123B6D] bg-[#123B6D]/5 text-[#123B6D] font-bold ring-2 ring-[#123B6D]/20'
+                      : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <Smartphone className="w-4 h-4 text-[#0F766E]" />
+                  <div>
+                    <div className="text-xs font-bold">UPI / QR Code</div>
+                    <div className="text-[10px] text-slate-500">GPay, PhonePe, Paytm</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPayingMode('Card')}
+                  className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                    payingMode === 'Card'
+                      ? 'border-[#123B6D] bg-[#123B6D]/5 text-[#123B6D] font-bold ring-2 ring-[#123B6D]/20'
+                      : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4 text-[#123B6D]" />
+                  <div>
+                    <div className="text-xs font-bold">Debit / Card</div>
+                    <div className="text-[10px] text-slate-500">Visa, RuPay, Master</div>
+                  </div>
+                </button>
+              </div>
+
+              {/* UPI QR Display Box */}
+              {payingMode === 'UPI' && (
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center gap-4 text-xs">
+                  <div className="w-16 h-16 bg-white p-1 rounded-lg border border-slate-300 flex items-center justify-center shrink-0">
+                    <QrCode className="w-14 h-14 text-slate-800" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="font-bold text-slate-900">Scan & Pay via any UPI App</div>
+                    <div className="text-[11px] text-slate-600 font-mono">UPI ID: <strong>{labUpi}</strong></div>
+                    <div className="text-[10px] text-emerald-700 font-semibold">
+                      Instant automatic payment webhook verification
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pay Action Buttons */}
+            <div className="pt-2 flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowPayOnlineModal(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isProcessingPayment}
+                onClick={handlePayDueOnline}
+                className="flex-2 py-2.5 rounded-xl bg-[#0F766E] hover:bg-[#0d655e] text-white text-xs font-black transition shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isProcessingPayment ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Authorizing Payment...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Pay ₹{activeDueAmount} & Unlock Report</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Verification Modal */}
       {searchedReport && (

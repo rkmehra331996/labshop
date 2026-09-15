@@ -69,6 +69,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     updateReceptionEntry,
     deleteReceptionEntry,
     sendEntryToTechnician,
+    publishReport,
+    unpublishReport,
   } = useCms();
 
   const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory';
@@ -205,7 +207,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   // Queue search & status filter
   const [queueSearch, setQueueSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Waiting' | 'Sample Collected' | 'In Lab' | 'Report Ready'>('All');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Waiting' | 'Sample Collected' | 'In Lab' | 'Report Ready' | 'Publish Pending'>('All');
   const [paymentFilter, setPaymentFilter] = useState<'All' | 'Full Payment' | 'Advance' | 'Due' | 'Website'>('All');
 
   // Thermal Slip Modal
@@ -627,6 +629,19 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       balancePaidAmount: (entry.balancePaidAmount || 0) + collectedAmount,
       balancePaymentMode: mode,
       balancePaidAt: `Today, ${nowTime}`,
+      // If full payment is now cleared and report is ready, auto-publish complete report to patient portal
+      isReportPublished:
+        newDueAmount === 0 && (entry.status === 'Report Ready' || entry.technicianStatus === 'Report Generated' || Boolean(entry.reportId))
+          ? true
+          : entry.isReportPublished,
+      publishedAt:
+        newDueAmount === 0 && (entry.status === 'Report Ready' || entry.technicianStatus === 'Report Generated' || Boolean(entry.reportId))
+          ? `Today, ${nowTime}`
+          : entry.publishedAt,
+      publishedBy:
+        newDueAmount === 0 && (entry.status === 'Report Ready' || entry.technicianStatus === 'Report Generated' || Boolean(entry.reportId))
+          ? currentUser?.name || 'Reception Desk'
+          : entry.publishedBy,
       notes: note
         ? entry.notes
           ? `${entry.notes} • [Paid ₹${collectedAmount} via ${mode}: ${note}]`
@@ -635,7 +650,11 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     };
 
     updateReceptionEntry(entryId, updated);
-    showToast(`✅ Collected ₹${collectedAmount} for ${entry.tokenNumber}! Status: ${newPaymentStatus}`);
+    if (newDueAmount === 0 && (entry.status === 'Report Ready' || entry.technicianStatus === 'Report Generated' || Boolean(entry.reportId))) {
+      showToast(`✅ Payment Cleared (₹0 Due) & Report Published! Patient can now view/download complete report.`);
+    } else {
+      showToast(`✅ Collected ₹${collectedAmount} for ${entry.tokenNumber}! Status: ${newPaymentStatus}`);
+    }
 
     setSelectedReceipt(updated);
     setIsReceiptModalOpen(true);
@@ -711,7 +730,15 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   // Filtered Queue
   const filteredQueue = receptionEntries.filter((item) => {
-    const matchesFilter = statusFilter === 'All' || item.status === statusFilter;
+    const isReady = item.status === 'Report Ready' || item.technicianStatus === 'Report Generated' || Boolean(item.reportId);
+    const matchesFilter =
+      statusFilter === 'All'
+        ? true
+        : statusFilter === 'Publish Pending'
+        ? isReady && !item.isReportPublished
+        : statusFilter === 'Report Ready'
+        ? isReady
+        : item.status === statusFilter;
     const matchesPayment =
       paymentFilter === 'All' ||
       (paymentFilter === 'Full Payment' && (item.dueAmount === 0 || item.paymentStatus === 'Full Payment' || item.paymentStatus === 'Paid')) ||
@@ -1606,23 +1633,29 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
             <div className="space-y-2">
               {/* Status Filter Tabs */}
               <div className="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl text-xs font-bold">
-                {(['All', 'Waiting', 'Sample Collected', 'In Lab', 'Report Ready'] as const).map((st) => {
+                {(['All', 'Waiting', 'Sample Collected', 'In Lab', 'Report Ready', 'Publish Pending'] as const).map((st) => {
                   const count =
                     st === 'All'
                       ? receptionEntries.length
+                      : st === 'Report Ready'
+                      ? receptionEntries.filter((e) => e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || Boolean(e.reportId)).length
+                      : st === 'Publish Pending'
+                      ? receptionEntries.filter((e) => (e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || Boolean(e.reportId)) && !e.isReportPublished).length
                       : receptionEntries.filter((e) => e.status === st).length;
                   return (
                     <button
                       key={st}
                       onClick={() => setStatusFilter(st)}
-                      className={`py-1 px-2.5 rounded-lg transition text-[11px] flex items-center gap-1 cursor-pointer ${
+                      className={`py-1 px-2.5 rounded-lg transition text-[11px] flex items-center gap-1.5 cursor-pointer ${
                         statusFilter === st
                           ? 'bg-white text-teal-800 font-black shadow-2xs'
                           : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <span>{st}</span>
-                      <span className="text-[10px] opacity-75">({count})</span>
+                      <span>{st === 'Publish Pending' ? '🔔 Publish Pending' : st}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${st === 'Publish Pending' && count > 0 ? 'bg-amber-200 text-amber-950 font-black' : 'opacity-75'}`}>
+                        {count}
+                      </span>
                     </button>
                   );
                 })}
@@ -1915,21 +1948,126 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                             </span>
                           </div>
                         ) : (
-                          <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg text-xs">
-                            <span className="text-emerald-900 font-bold text-[11px] flex items-center gap-1.5">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>Report Completed • {entry.reportId}</span>
-                            </span>
-                            {entry.reportId && (
-                              <button
-                                type="button"
-                                onClick={() => onOpenReportPortal?.(entry.reportId, entry.mobile)}
-                                className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-md text-[11px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
-                              >
-                                <Eye className="w-3 h-3" />
-                                <span>View Report</span>
-                              </button>
-                            )}
+                          <div className="bg-emerald-50/80 border border-emerald-200 p-2.5 rounded-lg text-xs space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0">
+                                  ✓
+                                </span>
+                                <div>
+                                  <div className="text-emerald-950 font-extrabold text-xs flex items-center gap-1.5">
+                                    <span>Report Ready from Technician</span>
+                                    {entry.reportId && (
+                                      <span className="font-mono bg-emerald-100/90 text-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                        {entry.reportId}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] text-slate-600 flex items-center gap-1.5 mt-0.5">
+                                    <span>Payment Check:</span>
+                                    {entry.dueAmount === 0 ? (
+                                      <span className="text-emerald-700 font-bold bg-emerald-100/80 px-1.5 py-0.2 rounded text-[10px] flex items-center gap-0.5">
+                                        <Check className="w-3 h-3" /> Fully Cleared (₹0 Due)
+                                      </span>
+                                    ) : (
+                                      <span className="text-rose-700 font-extrabold bg-rose-100/80 px-1.5 py-0.2 rounded text-[10px] flex items-center gap-0.5">
+                                        <Lock className="w-3 h-3" /> Due Pending: ₹{entry.dueAmount}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Publish Status & Actions */}
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {entry.isReportPublished ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span
+                                      className={`text-[10px] font-bold px-2 py-1 rounded-md border flex items-center gap-1 ${
+                                        entry.dueAmount > 0
+                                          ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                          : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                      }`}
+                                      title={entry.publishedAt ? `Published ${entry.publishedAt} by ${entry.publishedBy || 'Reception'}` : 'Published'}
+                                    >
+                                      <Globe className="w-3 h-3 text-emerald-700" />
+                                      <span>
+                                        {entry.dueAmount > 0 ? 'Published (Locked / Dues Pending)' : 'Published to Portal (Unlocked)'}
+                                      </span>
+                                    </span>
+                                    {entry.reportId && (
+                                      <button
+                                        type="button"
+                                        onClick={() => onOpenReportPortal?.(entry.reportId, entry.mobile)}
+                                        className="px-2 py-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-md text-[11px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                                        title="View customer report view on website"
+                                      >
+                                        <Eye className="w-3 h-3 text-teal-700" />
+                                        <span>Portal View</span>
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        unpublishReport(entry.id);
+                                        showToast(`Report ${entry.reportId || entry.tokenNumber} unpublished from portal`);
+                                      }}
+                                      className="px-2 py-1 text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded text-[10px] font-medium transition cursor-pointer"
+                                      title="Unpublish report from patient portal"
+                                    >
+                                      Unpublish
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-md">
+                                      Awaiting Publish
+                                    </span>
+                                    {entry.dueAmount > 0 ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setCollectingPaymentEntry(entry);
+                                            setIsCollectPaymentOpen(true);
+                                          }}
+                                          className="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded-md text-[11px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                                          title={`Collect pending ₹${entry.dueAmount} and publish complete unblurred report`}
+                                        >
+                                          <IndianRupee className="w-3 h-3 text-amber-300" />
+                                          <span>Collect ₹{entry.dueAmount} & Publish</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            publishReport(entry.id, currentUser?.name || 'Reception Staff');
+                                            showToast(`Report ${entry.reportId || entry.tokenNumber} published in Locked Mode (Customer must clear ₹${entry.dueAmount} due)`);
+                                          }}
+                                          className="px-2 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded-md text-[10px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                                          title="Publish now in locked mode with pending payment message"
+                                        >
+                                          <Lock className="w-3 h-3 text-amber-300" />
+                                          <span>Publish Locked</span>
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          publishReport(entry.id, currentUser?.name || 'Reception Staff');
+                                          showToast(`✓ Report ${entry.reportId || entry.tokenNumber} published! Patient can view and download.`);
+                                        }}
+                                        className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-md text-[11px] font-black shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
+                                        title="Payment is clear. Publish report so patient can view and download complete report"
+                                      >
+                                        <Globe className="w-3.5 h-3.5 text-amber-300" />
+                                        <span>Check Payment & Publish Report</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>

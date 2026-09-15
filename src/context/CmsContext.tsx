@@ -726,6 +726,8 @@ interface CmsContextType {
   sendEntryToTechnician: (id: string) => void;
   acceptEntryByTechnician: (id: string) => void;
   completeTechnicianReport: (id: string, reportId: string) => void;
+  publishReport: (id: string, publishedBy?: string) => void;
+  unpublishReport: (id: string) => void;
 
   // Reset demo
   resetAllToDefaults: () => void;
@@ -1267,6 +1269,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateReceptionEntry = (id: string, updates: Partial<ReceptionPatientEntry>) => {
+    let targetReportId = '';
     setAllReceptionEntries((prev) =>
       prev.map((e) => {
         if (e.id === id) {
@@ -1274,11 +1277,28 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant patient update`);
             return e;
           }
-          return { ...e, ...updates };
+          const updated = { ...e, ...updates };
+          targetReportId = updated.reportId || '';
+          return updated;
         }
         return e;
       })
     );
+
+    if (targetReportId && (updates.dueAmount !== undefined || updates.paymentStatus !== undefined)) {
+      setAllReports((prev) =>
+        prev.map((r) => {
+          if (r.reportId === targetReportId) {
+            return {
+              ...r,
+              dueAmount: updates.dueAmount !== undefined ? updates.dueAmount : r.dueAmount,
+              paymentStatus: updates.paymentStatus || r.paymentStatus,
+            };
+          }
+          return r;
+        })
+      );
+    }
   };
 
   const deleteReceptionEntry = (id: string) => {
@@ -1356,11 +1376,86 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             technicianStatus: 'Report Generated',
             status: 'Report Ready',
             reportId: reportId,
+            isReportPublished: false, // Receptionist will review payment and publish!
           };
         }
         return e;
       })
     );
+  };
+
+  const publishReport = (id: string, publishedBy?: string) => {
+    const timeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const author = publishedBy || currentUser?.name || 'Reception Desk';
+
+    let targetReportId = '';
+    let targetDueAmount = 0;
+    let targetPaymentStatus = '';
+
+    setAllReceptionEntries((prev) =>
+      prev.map((e) => {
+        if (e.id === id) {
+          targetReportId = e.reportId || '';
+          targetDueAmount = e.dueAmount;
+          targetPaymentStatus = e.paymentStatus;
+          return {
+            ...e,
+            isReportPublished: true,
+            publishedAt: timeStr,
+            publishedBy: author,
+          };
+        }
+        return e;
+      })
+    );
+
+    if (targetReportId) {
+      setAllReports((prev) =>
+        prev.map((r) => {
+          if (r.reportId === targetReportId) {
+            return {
+              ...r,
+              isPublished: true,
+              publishedAt: timeStr,
+              publishedBy: author,
+              dueAmount: targetDueAmount,
+              paymentStatus: targetPaymentStatus,
+            };
+          }
+          return r;
+        })
+      );
+    }
+  };
+
+  const unpublishReport = (id: string) => {
+    let targetReportId = '';
+    setAllReceptionEntries((prev) =>
+      prev.map((e) => {
+        if (e.id === id) {
+          targetReportId = e.reportId || '';
+          return {
+            ...e,
+            isReportPublished: false,
+          };
+        }
+        return e;
+      })
+    );
+
+    if (targetReportId) {
+      setAllReports((prev) =>
+        prev.map((r) => {
+          if (r.reportId === targetReportId) {
+            return {
+              ...r,
+              isPublished: false,
+            };
+          }
+          return r;
+        })
+      );
+    }
   };
 
   // Save to LocalStorage effects
@@ -2114,6 +2209,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         sendEntryToTechnician,
         acceptEntryByTechnician,
         completeTechnicianReport,
+        publishReport,
+        unpublishReport,
 
         resetAllToDefaults,
 
