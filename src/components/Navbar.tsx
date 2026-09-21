@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu, X, ArrowRight, ChevronDown, Building2, ExternalLink, Sparkles } from 'lucide-react';
+import { Menu, X, ArrowRight, ChevronDown, Building2, ExternalLink, Sparkles, KeyRound } from 'lucide-react';
 import { AppView } from '../types';
 import { useCms } from '../context/CmsContext';
 
@@ -19,7 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [vendorDropdownOpen, setVendorDropdownOpen] = useState(false);
   const vendorDropdownRef = useRef<HTMLDivElement>(null);
-  const { vendorLabsList, selectVendorLab } = useCms();
+  const { vendorLabsList, selectVendorLab, openLoginModal, openRegisterLabModal } = useCms();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -244,20 +244,31 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Right Actions */}
-          <div className="hidden sm:flex items-center gap-2.5">
-            {/* Book a Demo */}
+          <div className="hidden sm:flex items-center gap-2">
+            {/* Login */}
             <button
-              onClick={onOpenDemo}
-              className="text-xs font-bold text-[#123B6D] hover:text-[#0e2c52] px-3.5 py-2 border border-slate-200 hover:border-slate-300 rounded-lg transition cursor-pointer"
-              id="navbar-btn-demo"
+              onClick={() => openLoginModal(undefined, 'login')}
+              className="text-xs font-bold text-[#123B6D] hover:text-[#0e2c52] px-3 py-2 rounded-lg hover:bg-slate-100 transition flex items-center gap-1.5 cursor-pointer"
+              id="navbar-btn-login"
             >
-              Book a Demo
+              <KeyRound className="w-3.5 h-3.5 text-amber-500" />
+              <span>Login</span>
+            </button>
+
+            {/* Register / Create Lab */}
+            <button
+              onClick={() => openRegisterLabModal()}
+              className="text-xs font-bold text-slate-700 hover:text-slate-950 px-3 py-2 border border-slate-200 hover:border-slate-300 rounded-lg transition flex items-center gap-1.5 cursor-pointer bg-slate-50 hover:bg-slate-100"
+              id="navbar-btn-register-lab"
+            >
+              <Building2 className="w-3.5 h-3.5 text-[#123B6D]" />
+              <span>Create Lab</span>
             </button>
 
             {/* Start Free Trial CTA */}
             <button
               onClick={onOpenTrial}
-              className="bg-[#F59E0B] hover:bg-[#D97706] text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-md transition flex items-center gap-1.5 cursor-pointer"
+              className="bg-[#F59E0B] hover:bg-[#D97706] text-white px-4 py-2 rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1 cursor-pointer"
               id="navbar-btn-trial"
             >
               <span>Start Free Trial</span>
@@ -350,12 +361,35 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openLoginModal(undefined, 'login');
+                }}
+                className="w-full bg-[#123B6D] text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                <span>Login</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openRegisterLabModal();
+                }}
+                className="w-full bg-amber-400 text-slate-950 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <Building2 className="w-3.5 h-3.5 text-slate-950" />
+                <span>Create Lab</span>
+              </button>
+            </div>
+
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
                 onOpenTrial();
               }}
-              className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+              className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-white py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
             >
               <span>Start Free Trial</span>
               <ArrowRight className="w-3.5 h-3.5" />

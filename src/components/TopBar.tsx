@@ -17,7 +17,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   language = 'en',
   onSelectLanguage = (_lang: Language) => {},
 }) => {
-  const { currentUser, logout, openLoginModal, companySettings } = useCms();
+  const { currentUser, logout, openLoginModal, openRegisterLabModal, companySettings } = useCms();
   const supportPhone = companySettings.supportPhone || '+91 7087033009';
 
   const handleLaunchDepartment = (role: UserRole, view: AppView) => {
@@ -216,43 +216,27 @@ export const TopBar: React.FC<TopBarProps> = ({
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => handleLaunchDepartment('reception', 'reception_dashboard')}
-                className="px-2 py-1 bg-teal-500 hover:bg-teal-400 text-white font-bold rounded-lg text-[11px] flex items-center gap-1 transition shadow-2xs cursor-pointer"
-                title="Login / Open Reception Department"
-              >
-                <span>🖥️ Reception</span>
-              </button>
-              <button
-                onClick={() => handleLaunchDepartment('technician', 'technician_dashboard')}
-                className="hidden sm:inline-flex px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-[11px] items-center gap-1 transition shadow-2xs cursor-pointer"
-                title="Login / Open Technician Department"
-              >
-                <span>🔬 Tech</span>
-              </button>
-              <button
-                onClick={() => handleLaunchDepartment('pathologist', 'pathologist_dashboard')}
-                className="hidden md:inline-flex px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-[11px] items-center gap-1 transition shadow-2xs cursor-pointer"
-                title="Login / Open Pathologist Desk"
-              >
-                <span>🩺 Pathologist</span>
-              </button>
-              <button
-                onClick={() => handleLaunchDepartment('vendor', 'vendor_dashboard')}
-                className="px-2 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-lg text-[11px] flex items-center gap-1 transition shadow-2xs cursor-pointer"
-                title="Login / Open Lab Owner Panel"
-              >
-                <span>👑 Lab Admin</span>
-              </button>
-              <button
-                onClick={() => openLoginModal()}
+                type="button"
+                onClick={() => openLoginModal(undefined, 'login')}
                 id="topbar-btn-staff-login"
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-[11px] border border-white/20 transition cursor-pointer"
-                title="Role-Based Login"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/20 transition cursor-pointer active:scale-95"
+                title="Staff & Role Login"
               >
-                <KeyRound className="w-3 h-3 text-amber-300" />
-                <span>Role Login</span>
+                <KeyRound className="w-3.5 h-3.5 text-amber-300" />
+                <span>Login</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => openRegisterLabModal()}
+                id="topbar-btn-create-lab"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition shadow-2xs cursor-pointer active:scale-95"
+                title="Register & Create New Diagnostic Laboratory"
+              >
+                <Building2 className="w-3.5 h-3.5 text-slate-950" />
+                <span>+ Create Lab</span>
               </button>
             </div>
           )}

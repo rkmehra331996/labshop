@@ -1444,8 +1444,29 @@ interface CmsContextType {
   logout: () => void;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
+  authModalTab: 'login' | 'register';
+  setAuthModalTab: (tab: 'login' | 'register') => void;
   targetLoginRole: 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist' | null;
-  openLoginModal: (role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist') => void;
+  openLoginModal: (
+    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist',
+    initialTab?: 'login' | 'register'
+  ) => void;
+  openRegisterLabModal: () => void;
+  registerNewLab: (payload: {
+    labName: string;
+    ownerName: string;
+    phone: string;
+    email: string;
+    city: string;
+    state?: string;
+    address?: string;
+    tagline?: string;
+    nablCode?: string;
+    password?: string;
+    pin?: string;
+    category?: string;
+    subscriptionPlan?: string;
+  }) => { lab: VendorLabDirectoryItem; adminUser: CmsUser };
 
   // Lab Staff Credentials (Lab Owner creates & resets Reception & Technician)
   staffAccounts: LabStaffAccount[];
@@ -1573,6 +1594,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [targetLoginRole, setTargetLoginRole] = useState<
     'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist' | null
   >(null);
@@ -2633,7 +2655,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const openLoginModal = (
-    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist'
+    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist',
+    initialTab: 'login' | 'register' = 'login'
   ) => {
     let normalizedRole: 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist' | null = null;
     if (role === 'admin' || role === 'super_admin') normalizedRole = 'admin';
@@ -2644,7 +2667,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     else if (role === 'pathologist') normalizedRole = 'pathologist';
 
     setTargetLoginRole(normalizedRole);
+    setAuthModalTab(initialTab);
     setIsAuthModalOpen(true);
+  };
+
+  const openRegisterLabModal = () => {
+    openLoginModal(undefined, 'register');
   };
 
   // Company CMS Actions
@@ -3005,6 +3033,208 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const registerNewLab = (payload: {
+    labName: string;
+    ownerName: string;
+    phone: string;
+    email: string;
+    city: string;
+    state?: string;
+    address?: string;
+    tagline?: string;
+    nablCode?: string;
+    password?: string;
+    pin?: string;
+    category?: string;
+    subscriptionPlan?: string;
+  }): { lab: VendorLabDirectoryItem; adminUser: CmsUser } => {
+    const cleanSlug = payload.labName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 12) || 'newlab';
+    const newLabId = `lab-${cleanSlug}-${Date.now().toString().slice(-4)}`;
+    const cleanPhone = payload.phone.replace(/\D/g, '').slice(-10);
+
+    const newLab: VendorLabDirectoryItem = {
+      id: newLabId,
+      name: payload.labName,
+      tagline: payload.tagline || `${payload.category || 'Diagnostic Pathology'} & Clinical Hub`,
+      city: payload.city,
+      state: payload.state || 'India',
+      address: payload.address || `${payload.city}, India`,
+      phone: cleanPhone,
+      nablCode: payload.nablCode || `NABL-${Math.floor(1000 + Math.random() * 9000)}`,
+      badge: 'New Registered Lab',
+      rating: 5.0,
+      activePackages: 3,
+      turnaroundTime: 'Same Day (4-6 Hours)',
+      emergency: true,
+      color: '#0F766E',
+      status: 'Active',
+      ownerName: payload.ownerName,
+      email: payload.email,
+      subscriptionPlan: payload.subscriptionPlan || 'Professional',
+      subscriptionAmount: payload.subscriptionPlan === 'Enterprise' ? 3999 : 1499,
+      joinedDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      domainPreview: `${cleanSlug}.labportal.in`,
+      features: ['WhatsApp PDF Reports', 'Barcode Tracking', 'Staff Role Management', 'Due Billing Desk'],
+    };
+
+    // 1. Add to vendorLabsList
+    setVendorLabsList((prev) => [newLab, ...prev]);
+
+    // 2. Build and store lab settings
+    const settings = buildDefaultSettingsForLab(newLab);
+    if (payload.address) settings.address = payload.address;
+    if (payload.email) settings.email = payload.email;
+    if (cleanPhone) settings.phone = cleanPhone;
+    setVendorLabSettingsMap((prev) => ({
+      ...prev,
+      [newLabId]: settings,
+    }));
+
+    // 3. Create default branch
+    const defaultBranchId = `branch-${newLabId}-1`;
+    const newBranch: VendorBranch = {
+      id: defaultBranchId,
+      labId: newLabId,
+      name: `${payload.labName} (Central Hub)`,
+      badge: 'Main Hub',
+      type: 'Headquarters Diagnostic Hub',
+      address: payload.address || `${payload.city}, India`,
+      phone: cleanPhone,
+      timings: '7:00 AM - 9:00 PM (All 7 Days)',
+      isEmergency: true,
+    };
+    setAllVendorBranches((prev) => [newBranch, ...prev]);
+
+    // 4. Create default staff accounts
+    const newReception: LabStaffAccount = {
+      id: `staff-rec-${newLabId}`,
+      name: `${payload.ownerName.split(' ')[0]} Desk Reception`,
+      role: 'reception',
+      username: `reception.${cleanSlug}`,
+      phone: cleanPhone,
+      password: payload.password ? `${payload.password}1` : 'reception123',
+      status: 'active',
+      labId: newLabId,
+      labName: payload.labName,
+      branchId: defaultBranchId,
+      branchName: `${payload.labName} (Central Hub)`,
+      lastPasswordReset: 'Just Now',
+      shift: 'Morning & Evening Desk',
+      notes: 'Initial receptionist account created during registration',
+    };
+    const newTech: LabStaffAccount = {
+      id: `staff-tech-${newLabId}`,
+      name: `Senior Lab Technician`,
+      role: 'technician',
+      username: `tech.${cleanSlug}`,
+      phone: cleanPhone,
+      password: payload.password ? `${payload.password}2` : 'tech123',
+      status: 'active',
+      labId: newLabId,
+      labName: payload.labName,
+      branchId: defaultBranchId,
+      branchName: `${payload.labName} (Central Hub)`,
+      lastPasswordReset: 'Just Now',
+      shift: 'Diagnostic Workstation Bench',
+      notes: 'Initial analyzer operator account created during registration',
+    };
+    setAllStaffAccounts((prev) => [newReception, newTech, ...prev]);
+
+    // 5. Seed common test catalog for this lab
+    const starterTests: TestItem[] = [
+      {
+        id: `test-${newLabId}-cbc`,
+        labId: newLabId,
+        code: 'CBC',
+        name: 'Complete Blood Count (CBC - 24 Parameters)',
+        category: 'Hematology',
+        sampleType: 'EDTA Whole Blood (2ml)',
+        unit: 'cells/cu.mm',
+        normalRange: 'Age/Gender Specific',
+        priceINR: 350,
+        tatHours: 4,
+        turnaroundTime: '4 Hours',
+        description: 'Complete automated 5-part differential blood cell counter profile with Platelet indices.',
+        isPopular: true,
+        status: 'Active',
+      },
+      {
+        id: `test-${newLabId}-fbs`,
+        labId: newLabId,
+        code: 'FBS',
+        name: 'Fasting Blood Sugar (Glucose)',
+        category: 'Biochemistry',
+        sampleType: 'Sodium Fluoride Plasma (2ml)',
+        unit: 'mg/dL',
+        normalRange: '70 - 99 mg/dL',
+        priceINR: 120,
+        tatHours: 2,
+        turnaroundTime: '2 Hours',
+        description: 'Enzymatic hexokinase glucose test for diabetes screening and monitoring.',
+        isPopular: true,
+        status: 'Active',
+      },
+      {
+        id: `test-${newLabId}-lipid`,
+        labId: newLabId,
+        code: 'LIPID',
+        name: 'Lipid Profile Comprehensive',
+        category: 'Biochemistry',
+        sampleType: 'Serum (Gold Top SST)',
+        unit: 'mg/dL',
+        normalRange: 'Desirable: <200 mg/dL',
+        priceINR: 650,
+        tatHours: 6,
+        turnaroundTime: '6 Hours',
+        description: 'Total Cholesterol, Triglycerides, HDL, LDL, VLDL, and Risk Ratios.',
+        isPopular: true,
+        status: 'Active',
+      },
+      {
+        id: `test-${newLabId}-urine`,
+        labId: newLabId,
+        code: 'URINE-RM',
+        name: 'Urine Routine & Microscopic Examination (R/M)',
+        category: 'Clinical Pathology',
+        sampleType: 'Fresh Midstream Urine (20ml)',
+        unit: 'HPF / Strip',
+        normalRange: 'Nil / Normal',
+        priceINR: 180,
+        tatHours: 3,
+        turnaroundTime: '3 Hours',
+        description: 'Physical, chemical, and automated strip dipstick microscopic examination.',
+        isPopular: false,
+        status: 'Active',
+      },
+    ];
+    setAllVendorTests((prev) => [...starterTests, ...prev]);
+
+    // 6. Set active tenant to this new lab
+    setSelectedVendorLabId(newLabId);
+    setActiveBranchId(defaultBranchId);
+
+    // 7. Generate admin user
+    const adminUser: CmsUser = {
+      id: `usr-vendor-${newLabId}`,
+      name: `${payload.ownerName} (Lab Owner)`,
+      email: payload.email || cleanPhone,
+      role: 'vendor',
+      entityName: payload.labName,
+      labId: newLabId,
+      labName: payload.labName,
+      branchId: defaultBranchId,
+      branchName: `${payload.labName} (Central Hub)`,
+      permissions: getPermissionsForRole('vendor'),
+    };
+
+    setCurrentUser(adminUser);
+    try {
+      localStorage.setItem('cms_current_user', JSON.stringify(adminUser));
+    } catch {}
+
+    return { lab: newLab, adminUser };
+  };
+
   // Reset to original demo defaults
   const resetAllToDefaults = () => {
     setCompanySettings(DEFAULT_COMPANY_SETTINGS);
@@ -3063,8 +3293,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logout,
         isAuthModalOpen,
         setIsAuthModalOpen,
+        authModalTab,
+        setAuthModalTab,
         targetLoginRole,
         openLoginModal,
+        openRegisterLabModal,
 
         staffAccounts,
         addStaffAccount,
@@ -3121,6 +3354,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         selectVendorLab,
         vendorLabsList,
         addVendorLab,
+        registerNewLab,
         updateVendorLab,
         deleteVendorLab,
         setVendorStatus,
