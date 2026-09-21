@@ -24,6 +24,9 @@ import {
   SlidersHorizontal,
   AlertTriangle,
   FlaskConical,
+  Clock,
+  Globe,
+  Crown,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { AppView, PricingPlan, CompanyFeature, CompanyFaq, CompanyStat } from '../types';
@@ -67,6 +70,9 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
 
   const pendingPaymentCount = vendorLabsList.filter(
     (v) => v.status === 'Processing due to payment confirmation'
+  ).length;
+  const draftLabsCount = vendorLabsList.filter(
+    (v) => v.status === 'Draft' || !v.isWebsiteApproved
   ).length;
   const activeSectionsCount = Object.values(portalSections).filter(Boolean).length;
 
@@ -307,7 +313,11 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                 </span>
               </div>
               <p className="text-xs text-slate-300">
-                Logged in as: <strong>{currentUser?.name || 'Company Super Admin'}</strong> ({currentUser?.email || 'admin@labname.com'})
+                Logged in as: <strong>{currentUser?.name || 'Company Super Admin'}</strong> ({currentUser?.email || `admin@${companySettings.superAdminDomain || 'indianlalaji.com'}`})
+                <span className="ml-2 inline-flex items-center gap-1 bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold border border-amber-400/30">
+                  <Globe className="w-3 h-3 text-amber-400" />
+                  {companySettings.superAdminDomain || 'indianlalaji.com'}
+                </span>
               </p>
             </div>
           </div>
@@ -435,9 +445,14 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
             >
               <Building2 className={`w-3.5 h-3.5 ${activeTab === 'vendors' ? 'text-amber-400' : 'text-slate-500'}`} />
               <span>Partner Labs & Vendors ({vendorLabsList.length})</span>
+              {draftLabsCount > 0 && (
+                <span className="bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-black" title={`${draftLabsCount} lab website(s) in Draft mode awaiting admin approval`}>
+                  {draftLabsCount} Draft
+                </span>
+              )}
               {pendingPaymentCount > 0 && (
-                <span className="bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded-full text-[10px] font-black animate-pulse" title={`${pendingPaymentCount} labs awaiting payment confirmation`}>
-                  {pendingPaymentCount}
+                <span className="bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded-full text-[10px] font-black" title={`${pendingPaymentCount} labs awaiting payment confirmation`}>
+                  {pendingPaymentCount} Pay
                 </span>
               )}
             </button>
@@ -547,6 +562,34 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
             <span>Reset Demo Defaults</span>
           </button>
         </div>
+
+        {/* Draft Mode Labs Awaiting Admin Approval Notice */}
+        {draftLabsCount > 0 && activeTab !== 'vendors' && (
+          <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-950 shadow-2xs">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 rounded-xl text-amber-800 shrink-0">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-sm flex items-center gap-2">
+                  <span>{draftLabsCount} Laboratory Website(s) in DRAFT Mode</span>
+                  <span className="text-[10px] bg-amber-200 text-amber-900 font-black px-2 py-0.5 rounded-full border border-amber-300">
+                    Awaiting Admin Approval (अप्रूवल पेंडिंग)
+                  </span>
+                </h4>
+                <p className="text-xs text-amber-800 mt-0.5">
+                  Lab websites remain in draft mode upon registration. Admin approval is required to publish them live for public access.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveTab('vendors')}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shrink-0 cursor-pointer shadow-2xs"
+            >
+              Review & Approve ({draftLabsCount}) →
+            </button>
+          </div>
+        )}
 
         {/* 1. PARTNER LABS & VENDORS MANAGEMENT TAB */}
         {activeTab === 'vendors' && (
@@ -864,6 +907,49 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                     onChange={(e) => setSettingsForm({ ...settingsForm, supportEmail: e.target.value })}
                     className="w-full p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
                   />
+                </div>
+              </div>
+
+              {/* Super Admin Domain Configuration */}
+              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-[#123B6D]" />
+                  <h4 className="font-extrabold text-xs text-[#123B6D]">Super Admin & Platform Custom Domain</h4>
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                    Active Primary Domain
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">Super Admin Host Domain</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={settingsForm.superAdminDomain || 'indianlalaji.com'}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, superAdminDomain: e.target.value.toLowerCase().trim() })}
+                        placeholder="e.g. indianlalaji.com"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-bold text-slate-800 focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Primary master domain for Super Admin controls, tenant oversight, and SaaS management.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block font-bold text-slate-700 mb-1">SaaS Platform Root Domain</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={settingsForm.platformDomain || 'indianlalaji.com'}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, platformDomain: e.target.value.toLowerCase().trim() })}
+                        placeholder="e.g. indianlalaji.com"
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-bold text-slate-800 focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Platform root URL used for customer care links, public partner showcase, and report verifications.
+                    </p>
+                  </div>
                 </div>
               </div>
 

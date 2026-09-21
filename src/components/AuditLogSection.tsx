@@ -43,7 +43,7 @@ export const AuditLogSection: React.FC = () => {
       time: '12:42 PM',
       action: 'Report Downloaded',
       actor: 'Patient (Zero-Login Portal)',
-      details: 'Accessed via report.labname.com link from verified mobile 9876543210',
+      details: 'Accessed via report.indianlalaji.com link from verified mobile 9876543210',
       ip: '103.212.14.88 (Mobile Chrome)',
       icon: Download,
       color: 'bg-teal-50 text-teal-700',

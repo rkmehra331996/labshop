@@ -81,15 +81,17 @@ export const DEFAULT_PORTAL_SECTIONS: PortalWebsiteSections = {
 
 // --- INITIAL DEFAULTS ---
 const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
-  companyName: 'LABNAME.COM',
+  companyName: 'INDIANLALAJI.COM',
   tagline: 'Modern Pathology Laboratory & Diagnostic Operating System',
   heroBadge: 'NABL ISO 15189 Ready • Made for India',
   heroTitle: 'Run Your Pathology Lab on Autopilot',
   heroSubtitle:
     'Complete Diagnostic Lab OS: Offline-ready desktop billing, 500+ pre-configured tests, automated WhatsApp PDF reports, multi-branch control, and instant patient results portal without login.',
   supportPhone: '+91 7087033009',
-  supportEmail: 'contact@labname.com',
+  supportEmail: 'admin@indianlalaji.com',
   announcementText: '🚀 Version 3.4 Live: Instant UPI QR Dynamic Billing & Auto WhatsApp Dispatch Added!',
+  superAdminDomain: 'indianlalaji.com',
+  platformDomain: 'indianlalaji.com',
 };
 
 const DEFAULT_PRICING_PLANS: PricingPlan[] = [
@@ -182,7 +184,7 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
   tagline: 'Advanced Pathology, Biochemistry & Diagnostic Testing Centre',
   description: 'Advanced Pathology, Biochemistry & Diagnostic Testing Centre. 100% NABL Accredited & Certified. Instant digital WhatsApp PDF reports & doorstep sample collection.',
   logoUrl: '',
-  websiteUrl: 'https://apexdiagnostics.labname.com',
+  websiteUrl: 'https://apexdiagnostics.indianlalaji.com',
   ogImageUrl: '',
   phone: '7087033009',
   helplinePhone: '+91 7087033009',
@@ -196,7 +198,7 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
   emergencyHours: '24x7 Emergency Services at Central Lab',
   announcementText: '🌟 Special Notice: Free Blood Glucose and Hemoglobin checkup on Saturday morning!',
   email: 'care@apexdiagnostics.in',
-  domainPreview: 'apexdiagnostics.labname.com',
+  domainPreview: 'apexdiagnostics.indianlalaji.com',
   merchantName: 'Apex Diagnostic Lab Pvt Ltd',
   upiId1: 'apexlab@icici',
   qrCode1Label: 'Counter Billing QR (Google Pay / PhonePe / Paytm / BHIM)',
@@ -723,7 +725,7 @@ export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
     tagline: dirItem.tagline || 'Advanced Pathology & Clinical Testing',
     description: `${dirItem.name}, located in ${dirItem.city || 'City'}, ${dirItem.state || 'India'}. ${dirItem.tagline || ''}. Authorized NABL accredited pathology services with automated WhatsApp report delivery.`,
     logoUrl: '',
-    websiteUrl: `https://${dirItem.domainPreview || shortId + '.labname.com'}`,
+    websiteUrl: `https://${dirItem.domainPreview || shortId + '.indianlalaji.com'}`,
     ogImageUrl: '',
     phone: cleanPhone,
     helplinePhone: dirItem.phone || '+91 ' + cleanPhone,
@@ -737,7 +739,7 @@ export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
     emergencyHours: dirItem.emergency ? '24x7 Emergency Services at Central Desk' : 'Emergency Blood Collection Available',
     announcementText: `🌟 Welcome to ${dirItem.name}! Instant online test booking and verified digital WhatsApp reports now active.`,
     email: dirItem.email || `contact@${shortId}lab.in`,
-    domainPreview: dirItem.domainPreview || `${shortId}.labname.com`,
+    domainPreview: dirItem.domainPreview || `${shortId}.indianlalaji.com`,
     merchantName: `${dirItem.name} Pvt Ltd`,
     upiId1: `${shortId}lab@icici`,
     qrCode1Label: `Counter Billing QR (${dirItem.city || 'Counter'} Desk)`,
@@ -747,6 +749,8 @@ export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
     qrCode2Url: '',
     homeCollectionCharge: 100,
     sections: { ...DEFAULT_VENDOR_SECTIONS },
+    isWebsiteApproved: Boolean(dirItem.isWebsiteApproved ?? (dirItem.status === 'Active')),
+    status: dirItem.status || 'Draft',
   };
 }
 
@@ -1550,7 +1554,21 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [companySettings, setCompanySettings] = useState<CompanySettings>(() => {
     try {
       const saved = localStorage.getItem('cms_company_settings');
-      return saved ? JSON.parse(saved) : DEFAULT_COMPANY_SETTINGS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!parsed.superAdminDomain || parsed.companyName === 'LABNAME.COM' || parsed.superAdminDomain === 'indianlala.com' || parsed.companyName === 'INDIANLALA.COM') {
+          return {
+            ...DEFAULT_COMPANY_SETTINGS,
+            ...parsed,
+            companyName: (parsed.companyName === 'LABNAME.COM' || parsed.companyName === 'INDIANLALA.COM') ? 'INDIANLALAJI.COM' : parsed.companyName,
+            superAdminDomain: 'indianlalaji.com',
+            platformDomain: 'indianlalaji.com',
+            supportEmail: (parsed.supportEmail === 'contact@labname.com' || parsed.supportEmail === 'admin@indianlala.com') ? 'admin@indianlalaji.com' : parsed.supportEmail,
+          };
+        }
+        return { ...DEFAULT_COMPANY_SETTINGS, ...parsed };
+      }
+      return DEFAULT_COMPANY_SETTINGS;
     } catch {
       return DEFAULT_COMPANY_SETTINGS;
     }
@@ -3100,11 +3118,29 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Vendor Lab Directory Management
   const addVendorLab = (vendor: Omit<VendorLabDirectoryItem, 'id'>): VendorLabDirectoryItem => {
+    const isExplicitActive = vendor.status === 'Active';
+    const initialStatus: VendorStatus = isExplicitActive ? 'Active' : 'Draft';
+    const newLabId = `lab-${Date.now()}`;
     const newLab: VendorLabDirectoryItem = {
       ...vendor,
-      id: `lab-${Date.now()}`,
+      id: newLabId,
+      status: initialStatus,
+      isWebsiteApproved: isExplicitActive,
+      badge: isExplicitActive ? (vendor.badge || 'Verified Lab') : 'Draft - Pending Admin Approval',
     };
     setVendorLabsList((prev) => [newLab, ...prev]);
+
+    // Ensure settings map entry exists for this lab and is synced with draft/approved state
+    setVendorLabSettingsMap((prev) => {
+      const defaultSettings = buildDefaultSettingsForLab(newLab);
+      defaultSettings.status = initialStatus;
+      defaultSettings.isWebsiteApproved = isExplicitActive;
+      return {
+        ...prev,
+        [newLabId]: defaultSettings,
+      };
+    });
+
     return newLab;
   };
 
@@ -3119,31 +3155,46 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const setVendorStatus = (id: string, status: VendorStatus) => {
+    const isApproved = status === 'Active';
     setVendorLabsList((prev) =>
       prev.map((lab) =>
         lab.id === id
           ? {
               ...lab,
               status,
-              ...(status === 'Active'
+              isWebsiteApproved: isApproved,
+              ...(isApproved
                 ? {
-                    isWebsiteApproved: true,
                     approvedAt: new Date().toLocaleDateString('en-IN', {
                       day: '2-digit',
                       month: 'short',
                       year: 'numeric',
                     }),
-                    approvedBy: 'Platform Admin',
+                    approvedBy: currentUser?.name || 'Platform Admin',
                     badge: lab.badge === 'Draft - Pending Admin Approval' ? 'Verified Lab' : lab.badge,
                   }
-                : {}),
-              ...(status === 'Draft' || status === 'Pending'
-                ? { isWebsiteApproved: false }
-                : {}),
+                : {
+                    badge: status === 'Draft' ? 'Draft - Pending Admin Approval' : lab.badge,
+                  }),
             }
           : lab
       )
     );
+
+    // Sync with vendorLabSettingsMap
+    setVendorLabSettingsMap((prev) => {
+      if (prev[id]) {
+        return {
+          ...prev,
+          [id]: {
+            ...prev[id],
+            status,
+            isWebsiteApproved: isApproved,
+          },
+        };
+      }
+      return prev;
+    });
   };
 
   const selectVendorLab = (labId: string) => {

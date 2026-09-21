@@ -78,7 +78,7 @@ export const DemoSection: React.FC<DemoSectionProps> = ({ onOpenDemo, onLaunchAp
           {/* Header */}
           <div className="bg-[#123B6D] px-4 py-3 text-white flex items-center justify-between text-xs border-b border-[#0e2c52]">
             <div className="flex items-center gap-2">
-              <span className="font-bold">app.labname.com</span>
+              <span className="font-bold">app.indianlalaji.com</span>
               <span className="text-slate-300">• Active Session (Ludhiana Main Lab)</span>
             </div>
             <button

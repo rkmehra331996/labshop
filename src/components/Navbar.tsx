@@ -19,7 +19,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [vendorDropdownOpen, setVendorDropdownOpen] = useState(false);
   const vendorDropdownRef = useRef<HTMLDivElement>(null);
-  const { vendorLabsList, selectVendorLab, openLoginModal, openRegisterLabModal } = useCms();
+  const { vendorLabsList, selectVendorLab, openLoginModal, openRegisterLabModal, companySettings } = useCms();
+  const displayBrand = companySettings?.companyName || 'INDIANLALAJI.COM';
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -65,11 +66,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="navbar-logo-btn"
             >
               <div className="w-9 h-9 rounded-lg bg-[#123B6D] text-white flex items-center justify-center font-black text-base tracking-wider shadow-xs group-hover:bg-[#0e2c52] transition">
-                <span className="text-amber-400">L</span>N
+                <span className="text-amber-400">I</span>L
               </div>
               <div className="flex flex-col">
-                <span className="font-black text-xl sm:text-2xl tracking-tighter text-[#123B6D] leading-none">
-                  LABNAME<span className="text-[#0F766E]">.COM</span>
+                <span className="font-black text-xl sm:text-2xl tracking-tighter text-[#123B6D] leading-none uppercase">
+                  {displayBrand.replace(/\.com$/i, '')}<span className="text-[#0F766E]">.COM</span>
                 </span>
                 <span className="text-[10px] text-[#64748B] font-medium tracking-wide mt-0.5">
                   Laboratory Management Software for India

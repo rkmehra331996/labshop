@@ -121,7 +121,26 @@ const SECTION_METAS: SectionMeta[] = [
 ];
 
 export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({ onPreviewWebsite }) => {
-  const { vendorLabSettings, updateVendorLabSettings, updateVendorSection, toggleAllVendorSections } = useCms();
+  const {
+    vendorLabSettings,
+    updateVendorLabSettings,
+    updateVendorSection,
+    toggleAllVendorSections,
+    vendorLabsList,
+    selectedVendorLabId,
+    currentUser,
+    setVendorStatus,
+  } = useCms();
+
+  const currentLabItem = vendorLabsList.find(
+    (l) => l.id === (vendorLabSettings?.labId || selectedVendorLabId)
+  ) || vendorLabsList.find(
+    (l) => l.name?.toLowerCase() === (vendorLabSettings?.labName || vendorLabSettings?.name)?.toLowerCase()
+  );
+
+  const isDraft = currentLabItem
+    ? (currentLabItem.status === 'Draft' || currentLabItem.status === 'Pending' || currentLabItem.status !== 'Active' || !currentLabItem.isWebsiteApproved)
+    : false;
 
   // Local form for Website Details
   const [formData, setFormData] = useState<VendorLabSettings>({
@@ -243,12 +262,90 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({ onPrev
               className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer"
             >
               <Eye className="w-4 h-4 text-amber-400" />
-              <span>Live Website Preview</span>
+              <span>{isDraft ? 'Preview Draft Website' : 'Live Website Preview'}</span>
               <ExternalLink className="w-3.5 h-3.5 opacity-70" />
             </button>
           )}
         </div>
       </div>
+
+      {/* Website Status: Draft Mode vs Live Mode Notice */}
+      {isDraft ? (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="p-2.5 rounded-xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+              <Clock className="w-5 h-5 text-amber-700" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-extrabold text-sm text-amber-950">
+                  Website Status: Draft Mode (ड्राफ्ट मोड - एडमिन अप्रूवल पेंडिंग)
+                </span>
+                <span className="text-[10px] font-black uppercase bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-full border border-amber-300">
+                  Awaiting Admin Approval
+                </span>
+              </div>
+              <p className="text-xs text-amber-900 mt-1 max-w-2xl leading-relaxed">
+                लैब बनाने के बाद वेबसाइट अभी <strong>ड्राफ्ट मोड</strong> में है। जब प्लेटफॉर्म एडमिन (Admin) इसे अप्रूव करेंगे, तभी यह पब्लिकली लाइव होगी। आप सेटिंग्स एडिट कर सकते हैं और प्रीव्यू देख सकते हैं।
+              </p>
+            </div>
+          </div>
+          {currentUser?.role === 'admin' ? (
+            <button
+              onClick={() => {
+                if (currentLabItem) {
+                  setVendorStatus(currentLabItem.id, 'Active');
+                  setSavedSuccess(true);
+                  setTimeout(() => setSavedSuccess(false), 3000);
+                }
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-black shadow-xs flex items-center gap-1.5 transition cursor-pointer shrink-0"
+              title="Approve website and publish live"
+            >
+              <CheckCircle2 className="w-4 h-4 text-white" />
+              <span>Approve & Make Live (एडमिन अप्रूवल)</span>
+            </button>
+          ) : (
+            <div className="text-[11px] font-bold text-amber-800 bg-amber-100/80 px-3 py-1.5 rounded-lg border border-amber-300 shrink-0">
+              ⏳ Pending Admin Approval
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <div className="font-extrabold text-sm text-emerald-950 flex items-center gap-2">
+                <span>Website Status: LIVE & Approved (वेबसाइट लाइव है)</span>
+                <span className="text-[10px] font-bold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full border border-emerald-300">
+                  Publicly Active
+                </span>
+              </div>
+              <p className="text-xs text-emerald-800 mt-0.5">
+                Your dedicated laboratory portal is published and accessible to patients online for booking and reports.
+              </p>
+            </div>
+          </div>
+          {currentUser?.role === 'admin' && (
+            <button
+              onClick={() => {
+                if (currentLabItem) {
+                  setVendorStatus(currentLabItem.id, 'Draft');
+                  setSavedSuccess(true);
+                  setTimeout(() => setSavedSuccess(false), 3000);
+                }
+              }}
+              className="text-xs font-bold text-slate-600 hover:text-amber-800 bg-white border border-slate-200 px-3 py-1.5 rounded-lg transition cursor-pointer shrink-0"
+              title="Switch website back to Draft mode"
+            >
+              Move to Draft
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Success Notification */}
       {savedSuccess && (

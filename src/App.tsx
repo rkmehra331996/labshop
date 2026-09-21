@@ -425,7 +425,7 @@ export default function App() {
     );
   }
 
-  // 5. Dedicated Experience: Laboratory Software (app.labname.com)
+  // 5. Dedicated Experience: Laboratory Software (app.indianlalaji.com)
   if (currentView === 'lab_app') {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
@@ -445,7 +445,7 @@ export default function App() {
     );
   }
 
-  // 5. Dedicated Experience: Patient Report Portal (report.labname.com)
+  // 5. Dedicated Experience: Patient Report Portal (report.indianlalaji.com)
   if (currentView === 'patient_portal') {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
@@ -472,7 +472,7 @@ export default function App() {
     );
   }
 
-  // 3. Dedicated Experience: Public Website (labname.com)
+  // 3. Dedicated Experience: Public Website (indianlalaji.com)
   // Section 37: HOMEPAGE FINAL ORDER
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans selection:bg-[#123B6D]/15 selection:text-[#123B6D]">

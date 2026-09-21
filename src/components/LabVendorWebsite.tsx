@@ -89,7 +89,9 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     );
   }, [vendorLabsList, vendorLabSettings, selectedVendorLabId]);
 
-  const isDraft = currentLabItem ? (currentLabItem.status === 'Draft' || currentLabItem.status === 'Pending') : false;
+  const isDraft = currentLabItem
+    ? (currentLabItem.status === 'Draft' || currentLabItem.status === 'Pending' || currentLabItem.status !== 'Active' || !currentLabItem.isWebsiteApproved)
+    : (vendorLabSettings?.isWebsiteApproved === false || vendorLabSettings?.status === 'Draft');
   const isPlatformAdmin = currentUser?.role === 'admin';
   const isLabStaffOrOwner = Boolean(
     currentUser &&
@@ -145,7 +147,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const labEmergency = vendorLabSettings?.emergencyHours || '24x7 Emergency Services at Central Lab';
   const labAddress = vendorLabSettings?.address || 'SCF 42-43, Sector 18-C, Central Healthcare Complex, Ludhiana';
   const labDescription = vendorLabSettings?.description || labTagline || 'Advanced Pathology, Biochemistry & Diagnostic Testing Centre. 100% NABL Accredited.';
-  const labWebsiteUrl = vendorLabSettings?.websiteUrl && !vendorLabSettings.websiteUrl.includes('labname.com') ? vendorLabSettings.websiteUrl : (typeof window !== 'undefined' ? window.location.href : '');
+  const labWebsiteUrl = vendorLabSettings?.websiteUrl && !vendorLabSettings.websiteUrl.includes('labname.com') ? vendorLabSettings.websiteUrl : (typeof window !== 'undefined' ? window.location.href : 'https://indianlalaji.com');
   const labLogoUrl = vendorLabSettings?.logoUrl || '';
   const labOgImageUrl = vendorLabSettings?.ogImageUrl || labLogoUrl || generateDefaultOgImage(labName, labShopId, labNabl);
 
@@ -1837,12 +1839,12 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <span>
                 Software by{' '}
                 <a
-                  href="https://labname.com"
+                  href="https://indianlalaji.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#123B6D] hover:underline font-black"
                 >
-                  labname.com
+                  indianlalaji.com
                 </a>
               </span>
             </div>

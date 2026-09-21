@@ -455,7 +455,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
   const handleShareWhatsApp = () => {
     if (!searchedReport) return;
     const text = encodeURIComponent(
-      `Here is my authenticated lab report (${searchedReport.reportId}) from ${searchedReport.labName}: https://report.labname.com/rpt/${searchedReport.reportId}`
+      `Here is my authenticated lab report (${searchedReport.reportId}) from ${searchedReport.labName}: https://report.indianlalaji.com/rpt/${searchedReport.reportId}`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
@@ -488,7 +488,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
               <span className="hidden sm:inline font-semibold">Back to Main Website</span>
             </button>
             <div className="flex items-center gap-1.5 font-extrabold text-sm text-[#123B6D]">
-              <span>report.labname.com</span>
+              <span>report.indianlalaji.com</span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
                 Patient Portal
               </span>
@@ -1388,12 +1388,12 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
                 {/* Footer disclaimer */}
                 <div className="text-[10px] text-slate-400 text-center border-t border-slate-100 pt-3">
-                  This is a computer-verified diagnostic document issued under NABL guidelines. Valid without physical ink signature. For authenticity check, scan the QR code above or visit report.labname.com.
+                  This is a computer-verified diagnostic document issued under NABL guidelines. Valid without physical ink signature. For authenticity check, scan the QR code above or visit report.indianlalaji.com.
                 </div>
 
-                {/* Copyright bottom bar with "Software use Labname.com" */}
+                {/* Copyright bottom bar with "Software use indianlalaji.com" */}
                 <ReportCopyrightBottomBar
-                  softwareDomain="Labname.com"
+                  softwareDomain="indianlalaji.com"
                   reportId={searchedReport.reportId}
                 />
               </div>

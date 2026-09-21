@@ -22,6 +22,7 @@ import {
   Sparkles,
   ArrowRight,
   Filter,
+  Globe,
 } from 'lucide-react';
 import { useCms } from '../../context/CmsContext';
 import { VendorLabDirectoryItem, VendorStatus, AppView } from '../../types';
@@ -66,13 +67,14 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     state: 'Punjab',
     address: '',
     nablCode: '',
-    badge: 'NABL Certified',
+    badge: 'Draft - Pending Admin Approval',
     rating: 4.9,
     activePackages: 12,
     turnaroundTime: '6-8 Hours',
     emergency: true,
     color: '#123B6D',
-    status: 'Processing due to payment confirmation',
+    status: 'Draft',
+    isWebsiteApproved: false,
     subscriptionPlan: 'Professional Lab Plan',
     subscriptionAmount: 1999,
     paymentMode: 'UPI / QR Code',
@@ -132,6 +134,9 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
   const handleOpenAddModal = () => {
     setFormState({
       ...initialFormState,
+      status: 'Draft',
+      isWebsiteApproved: false,
+      badge: 'Draft - Pending Admin Approval',
       joinedDate: new Date().toISOString().split('T')[0],
     });
     setIsAddModalOpen(true);
@@ -149,13 +154,14 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       state: vendor.state || 'Punjab',
       address: vendor.address || '',
       nablCode: vendor.nablCode || '',
-      badge: vendor.badge || 'NABL Certified',
+      badge: vendor.badge || (vendor.status === 'Draft' ? 'Draft - Pending Admin Approval' : 'Verified Lab'),
       rating: vendor.rating || 4.8,
       activePackages: vendor.activePackages || 10,
       turnaroundTime: vendor.turnaroundTime || '6-8 Hours',
       emergency: vendor.emergency ?? true,
       color: vendor.color || '#123B6D',
-      status: vendor.status || 'Active',
+      status: vendor.status || 'Draft',
+      isWebsiteApproved: vendor.isWebsiteApproved ?? (vendor.status === 'Active'),
       subscriptionPlan: vendor.subscriptionPlan || 'Professional Lab Plan',
       subscriptionAmount: vendor.subscriptionAmount || 1999,
       paymentMode: vendor.paymentMode || 'UPI / QR Code',
@@ -176,13 +182,27 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       return;
     }
 
+    const isApproved = formState.status === 'Active';
+
     if (editingVendor) {
-      updateVendorLab(editingVendor.id, formState);
+      updateVendorLab(editingVendor.id, {
+        ...formState,
+        isWebsiteApproved: isApproved,
+      });
       showToast(`Updated laboratory: ${formState.name}`);
       setEditingVendor(null);
     } else {
-      addVendorLab(formState);
-      showToast(`Added new laboratory vendor: ${formState.name}`);
+      addVendorLab({
+        ...formState,
+        status: formState.status || 'Draft',
+        isWebsiteApproved: isApproved,
+        badge: isApproved ? (formState.badge || 'Verified Lab') : 'Draft - Pending Admin Approval',
+      });
+      showToast(
+        isApproved
+          ? `Added laboratory and published LIVE: ${formState.name}`
+          : `Created lab "${formState.name}" in DRAFT mode. Admin approval required to go live.`
+      );
       setIsAddModalOpen(false);
     }
   };
@@ -549,11 +569,17 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                     </div>
 
                     {/* Status Pill */}
-                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
                       {isActive && (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                           <span>Active on Portal</span>
+                        </span>
+                      )}
+                      {vendor.status === 'Draft' && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                          <Clock className="w-3.5 h-3.5 text-amber-700" />
+                          <span>Draft (Pending Admin Approval)</span>
                         </span>
                       )}
                       {isProcessing && (
@@ -572,6 +598,19 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
                           <Ban className="w-3.5 h-3.5 text-rose-600" />
                           <span>Suspended</span>
+                        </span>
+                      )}
+
+                      {/* Website Approval Status Indicator */}
+                      {vendor.isWebsiteApproved && vendor.status === 'Active' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <Globe className="w-3 h-3 text-emerald-600" />
+                          <span>Website: LIVE</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-900 border border-amber-300">
+                          <Clock className="w-3 h-3 text-amber-600" />
+                          <span>Website: DRAFT</span>
                         </span>
                       )}
                     </div>
@@ -633,7 +672,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                         Website Subdomain
                       </span>
                       <div className="font-mono text-indigo-700 text-xs truncate">
-                        {vendor.domainPreview || `${vendor.id}.labname.com`}
+                        {vendor.domainPreview || `${vendor.id}.indianlalaji.com`}
                       </div>
                       <div className="text-slate-500 text-[11px]">
                         ★ {vendor.rating} ({vendor.reviewsCount || 80}+ reviews) • {vendor.turnaroundTime} TAT
@@ -645,20 +684,35 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                   <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                     {/* Status Changer Actions */}
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[11px] text-slate-400 font-semibold mr-1">Change Status:</span>
+                      <span className="text-[11px] text-slate-400 font-semibold mr-1">Admin Status & Website:</span>
 
-                      {/* 1-Click Activate */}
-                      {vendor.status !== 'Active' && (
+                      {/* 1-Click Approve & Go Live */}
+                      {(vendor.status !== 'Active' || !vendor.isWebsiteApproved) && (
                         <button
                           onClick={() => {
                             setVendorStatus(vendor.id, 'Active');
-                            showToast(`Activated ${vendor.name} successfully!`);
+                            showToast(`Approved and published LIVE: ${vendor.name}! Website is now active.`);
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                          title="Confirm payment and activate lab"
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          title="Admin Approval: Approve laboratory website and publish live"
                         >
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>Confirm & Activate</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                          <span>Approve & Make Live (लाइव करें)</span>
+                        </button>
+                      )}
+
+                      {/* Move to Draft Mode */}
+                      {vendor.status !== 'Draft' && (
+                        <button
+                          onClick={() => {
+                            setVendorStatus(vendor.id, 'Draft');
+                            showToast(`Moved ${vendor.name} to Draft mode (Website hidden from public)`);
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                          title="Move website back to Draft mode"
+                        >
+                          <Clock className="w-3 h-3 text-amber-700" />
+                          <span>Move to Draft</span>
                         </button>
                       )}
 
@@ -669,10 +723,10 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                             setVendorStatus(vendor.id, 'Processing due to payment confirmation');
                             showToast(`Marked ${vendor.name} as Processing due to payment confirmation`);
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-medium transition flex items-center gap-1 cursor-pointer"
                         >
-                          <Receipt className="w-3 h-3 text-amber-600" />
-                          <span>Mark Payment Due Conf.</span>
+                          <Receipt className="w-3 h-3 text-slate-500" />
+                          <span>Payment Due</span>
                         </button>
                       )}
 
@@ -916,6 +970,20 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
+                      formState.status === 'Draft' ? 'bg-amber-50 border-amber-500 text-amber-950 font-bold' : 'bg-white border-slate-200'
+                    }`}>
+                      <input
+                        type="radio"
+                        name="vendorStatus"
+                        value="Draft"
+                        checked={formState.status === 'Draft'}
+                        onChange={() => setFormState({ ...formState, status: 'Draft' })}
+                        className="text-amber-600"
+                      />
+                      <span>⏳ Draft (Website Hidden - Pending Admin Approval)</span>
+                    </label>
+
+                    <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${
                       formState.status === 'Active' ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold' : 'bg-white border-slate-200'
                     }`}>
                       <input
@@ -926,7 +994,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                         onChange={() => setFormState({ ...formState, status: 'Active' })}
                         className="text-emerald-600"
                       />
-                      <span>✅ Active (Fully Operational)</span>
+                      <span>✅ Active (Approved & Website LIVE)</span>
                     </label>
 
                     <label className={`p-2.5 rounded-xl border flex items-center gap-2 cursor-pointer transition ${

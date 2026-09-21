@@ -236,7 +236,7 @@ export const ReportPreviewSection: React.FC<ReportPreviewSectionProps> = ({
                   {report.verificationHash}
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  QR scan redirects to verified cloud ledger on report.labname.com
+                  QR scan redirects to verified cloud ledger on report.indianlalaji.com
                 </div>
               </div>
 

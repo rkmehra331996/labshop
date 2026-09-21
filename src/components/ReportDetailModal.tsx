@@ -460,9 +460,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Copyright bottom bar with "Software by labname.com" */}
+          {/* Copyright bottom bar with "Software by indianlalaji.com" */}
           <ReportCopyrightBottomBar
-            softwareDomain="labname.com"
+            softwareDomain="indianlalaji.com"
             reportId={report.reportId}
           />
         </div>

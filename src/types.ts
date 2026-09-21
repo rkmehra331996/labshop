@@ -175,6 +175,9 @@ export interface VendorLabSettings {
   isoCert: string;
   openingHours: string;
   address: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
   heroPromoText: string;
   emergencyHours: string;
   whatsappTemplate?: string;
@@ -198,6 +201,8 @@ export interface VendorLabSettings {
   merchantName?: string;
   homeCollectionCharge?: number;
   websiteDomain?: string;
+  isWebsiteApproved?: boolean;
+  status?: VendorStatus;
 }
 
 export interface VendorPackage {

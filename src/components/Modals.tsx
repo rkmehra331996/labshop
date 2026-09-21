@@ -273,7 +273,7 @@ export const QRVerifyModal: React.FC<{ isOpen: boolean; onClose: () => void; rep
             Digital Report Cryptographically Authenticated
           </h3>
           <p className="text-xs text-slate-500 mt-1">
-            Verified on report.labname.com public integrity registry
+            Verified on report.indianlalaji.com public integrity registry
           </p>
 
           {/* Verification Details */}

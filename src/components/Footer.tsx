@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageSquare, Phone, MapPin, Heart, Shield } from 'lucide-react';
 import { AppView } from '../types';
+import { useCms } from '../context/CmsContext';
 
 interface FooterProps {
   onSelectView: (view: AppView) => void;
@@ -9,6 +10,10 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo, onOpenTrial }) => {
+  const { companySettings } = useCms();
+  const displayBrand = companySettings?.companyName || 'INDIANLALAJI.COM';
+  const superAdminDomain = companySettings?.superAdminDomain || 'indianlalaji.com';
+
   const scrollTo = (id: string) => {
     onSelectView('website');
     setTimeout(() => {
@@ -25,10 +30,10 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo, onOpen
           <div className="col-span-2 space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-[#123B6D] text-white flex items-center justify-center font-bold text-sm border border-white/20">
-                <span className="text-amber-400">L</span>N
+                <span className="text-amber-400">I</span>L
               </div>
-              <span className="font-extrabold text-lg tracking-tight text-white">
-                LABNAME<span className="text-teal-400">.COM</span>
+              <span className="font-extrabold text-lg tracking-tight text-white uppercase">
+                {displayBrand.replace(/\.com$/i, '')}<span className="text-teal-400">.COM</span>
               </span>
             </div>
 
@@ -148,7 +153,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo, onOpen
         {/* Bottom Bar with Company Links and Copyright */}
         <div className="mt-12 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-[#64748B] gap-4">
           <div>
-            © LABNAME.COM. All Rights Reserved. Made for Indian Healthcare.
+            © {superAdminDomain.toUpperCase()}. All Rights Reserved. Made for Indian Healthcare.
           </div>
 
           <div className="flex flex-wrap items-center gap-6 text-[10px] font-bold text-slate-300 uppercase tracking-widest">

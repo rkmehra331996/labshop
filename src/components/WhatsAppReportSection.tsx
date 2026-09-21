@@ -23,7 +23,7 @@ export const WhatsAppReportSection: React.FC<WhatsAppReportSectionProps> = ({ on
 
   const handleSendWhatsApp = () => {
     const text = encodeURIComponent(
-      "Dear Ramesh Verma, your Lab Test Report (ID: RPT-2026-8812) from Apex Diagnostics is ready. Click to download without login: https://report.labname.com/rpt/RPT-2026-8812"
+      "Dear Ramesh Verma, your Lab Test Report (ID: RPT-2026-8812) from Apex Diagnostics is ready. Click to download without login: https://report.indianlalaji.com/rpt/RPT-2026-8812"
     );
     window.open(`https://wa.me/919876543210?text=${text}`, '_blank');
   };
