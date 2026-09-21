@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, Globe, KeyRound, LogOut, UserCheck, LayoutDashboard, Building2, Stethoscope } from 'lucide-react';
+import { Phone, Globe, KeyRound, LogOut, UserCheck, LayoutDashboard, Building2, Stethoscope, Wifi, WifiOff } from 'lucide-react';
 import { AppView, Language, UserRole } from '../types';
 import { useCms } from '../context/CmsContext';
 import { ALL_ROLES_CONFIG } from '../utils/rbac';
@@ -17,7 +17,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   language = 'en',
   onSelectLanguage = (_lang: Language) => {},
 }) => {
-  const { currentUser, logout, openLoginModal, openRegisterLabModal, companySettings } = useCms();
+  const { currentUser, logout, openLoginModal, openRegisterLabModal, companySettings, isCloudConnected, cloudSyncStatus, lastCloudSyncTime } = useCms();
   const supportPhone = companySettings.supportPhone || '+91 7087033009';
 
   const handleLaunchDepartment = (role: UserRole, view: AppView) => {
@@ -198,6 +198,36 @@ export const TopBar: React.FC<TopBarProps> = ({
               </button>
             </div>
           )}
+
+          {/* Cloud Database Live Sync Indicator */}
+          <div
+            id="topbar-cloud-sync-status"
+            className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+              isCloudConnected
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+            }`}
+            title={
+              isCloudConnected
+                ? `Cloud Firestore Live: Multi-computer sync active (Last sync: ${lastCloudSyncTime})`
+                : 'Offline: Local fallback active'
+            }
+          >
+            {isCloudConnected ? (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                </span>
+                <span>Cloud Live</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-3 h-3 text-amber-400" />
+                <span>Offline</span>
+              </>
+            )}
+          </div>
 
           {/* 3. Language Selector */}
           <div className="flex items-center gap-1.5 pl-2 sm:pl-3 border-l border-white/20">

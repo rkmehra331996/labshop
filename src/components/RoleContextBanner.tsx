@@ -12,6 +12,8 @@ import {
   LayoutDashboard,
   UserCheck,
   RefreshCw,
+  Cloud,
+  WifiOff,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { AppView } from '../types';
@@ -26,7 +28,7 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
   currentView,
   onNavigateView,
 }) => {
-  const { currentUser, logout, openLoginModal, vendorBranches, activeBranchId, setActiveBranchId } =
+  const { currentUser, logout, openLoginModal, vendorBranches, activeBranchId, setActiveBranchId, isCloudConnected, lastCloudSyncTime } =
     useCms();
 
   if (!currentUser) return null;
@@ -107,6 +109,33 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
                   <span>{currentUser.branchId || 'branch-2'}</span>
                 </span>
               </div>
+            )}
+          </div>
+
+          {/* Multi-Computer Cloud Live Status */}
+          <div
+            id="role-banner-cloud-status"
+            className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+              isCloudConnected
+                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-700/60'
+                : 'bg-amber-950/80 text-amber-300 border-amber-700/60'
+            }`}
+            title="Real-time multi-computer sync across Reception, Technician, and Pathologist workstations"
+          >
+            {isCloudConnected ? (
+              <>
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+                </span>
+                <Cloud className="w-3 h-3 text-emerald-400" />
+                <span>Multi-PC Sync: Live</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-3 h-3 text-amber-400" />
+                <span>Local Offline</span>
+              </>
             )}
           </div>
         </div>

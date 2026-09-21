@@ -26,6 +26,17 @@ import {
 import { MOCK_TESTS, FAQ_LIST, SAMPLE_REPORT, INITIAL_REPORTS, VENDOR_LABS_DIRECTORY, INITIAL_RECEPTION_ENTRIES } from '../data/mockData';
 import { getPermissionsForRole, LAB_OPTIONS } from '../utils/rbac';
 import { isTenantMatch, verifyTenantOwnership, stampTenant } from '../utils/tenantSecurity';
+import {
+  syncReceptionEntryToCloud,
+  deleteReceptionEntryFromCloud,
+  syncLabReportToCloud,
+  deleteLabReportFromCloud,
+  syncBookingToCloud,
+  subscribeToReceptionEntries,
+  subscribeToLabReports,
+  subscribeToBookings,
+  seedInitialFirestoreData,
+} from '../lib/cloudSync';
 
 export const DEFAULT_VENDOR_SECTIONS: VendorWebsiteSections = {
   announcementBar: true,
@@ -1579,6 +1590,11 @@ interface CmsContextType {
     bookings: HomeCollectionBooking[];
   };
   queryTenantIsolatedStaff: (targetLabId?: string) => LabStaffAccount[];
+  
+  // Real-Time Cloud Synchronization (Firestore)
+  isCloudConnected: boolean;
+  cloudSyncStatus: 'synced' | 'syncing' | 'offline';
+  lastCloudSyncTime: string;
 }
 
 const CmsContext = createContext<CmsContextType | null>(null);
@@ -1807,6 +1823,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return allVendorDoctors.filter((d) => isTenantMatch(d, activeTenantId));
   }, [allVendorDoctors, activeTenantId]);
 
+  // Real-Time Cloud Firestore Sync State
+  const [isCloudConnected, setIsCloudConnected] = useState<boolean>(true);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'offline'>('synced');
+  const [lastCloudSyncTime, setLastCloudSyncTime] = useState<string>('Just now');
+
   // Master Raw Stores (Isolated by labId)
   const [allReports, setAllReports] = useState<LabReport[]>(() => {
     try {
@@ -1977,6 +1998,88 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
   }, [allVendorTests]);
 
+  // Real-Time Cloud Firestore Multi-Computer Sync
+  // Subscribes Reception, Technician, and Pathologist workstations to live updates
+  useEffect(() => {
+    // 1. Seed initial mock records if cloud database is fresh
+    seedInitialFirestoreData(INITIAL_RECEPTION_ENTRIES, INITIAL_REPORTS);
+
+    // 2. Subscribe to live reception patients
+    const unsubscribeReception = subscribeToReceptionEntries(
+      (cloudEntries) => {
+        if (cloudEntries && cloudEntries.length > 0) {
+          setAllReceptionEntries((prevLocal) => {
+            const cloudMap = new Map(cloudEntries.map((item) => [item.id, item]));
+            // Merge cloud entries with any local-only entries
+            const merged = [...cloudEntries];
+            prevLocal.forEach((localItem) => {
+              if (!cloudMap.has(localItem.id)) {
+                merged.push(localItem);
+              }
+            });
+            return merged;
+          });
+          setIsCloudConnected(true);
+          setCloudSyncStatus('synced');
+          setLastCloudSyncTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+        }
+      },
+      () => {
+        setIsCloudConnected(false);
+        setCloudSyncStatus('offline');
+      }
+    );
+
+    // 3. Subscribe to live lab reports
+    const unsubscribeReports = subscribeToLabReports(
+      (cloudReports) => {
+        if (cloudReports && cloudReports.length > 0) {
+          setAllReports((prevLocal) => {
+            const cloudMap = new Map(cloudReports.map((item) => [item.reportId.toLowerCase(), item]));
+            const merged = [...cloudReports];
+            prevLocal.forEach((localItem) => {
+              if (!cloudMap.has(localItem.reportId.toLowerCase())) {
+                merged.push(localItem);
+              }
+            });
+            return merged;
+          });
+          setIsCloudConnected(true);
+          setCloudSyncStatus('synced');
+          setLastCloudSyncTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+        }
+      },
+      () => {
+        setIsCloudConnected(false);
+        setCloudSyncStatus('offline');
+      }
+    );
+
+    // 4. Subscribe to home collection bookings
+    const unsubscribeBookings = subscribeToBookings(
+      (cloudBookings) => {
+        if (cloudBookings && cloudBookings.length > 0) {
+          setAllVendorBookings((prevLocal) => {
+            const cloudMap = new Map(cloudBookings.map((item) => [item.id, item]));
+            const merged = [...cloudBookings];
+            prevLocal.forEach((localItem) => {
+              if (!cloudMap.has(localItem.id)) {
+                merged.push(localItem);
+              }
+            });
+            return merged;
+          });
+        }
+      }
+    );
+
+    return () => {
+      unsubscribeReception();
+      unsubscribeReports();
+      unsubscribeBookings();
+    };
+  }, []);
+
   // Tenant-Scoped Filtered Views (Zero cross-lab data leakage)
   const reports = useMemo(() => {
     if (activeTenantId === 'all') return allReports;
@@ -2047,9 +2150,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const effectiveBranch = report.branchId || (activeBranchId !== 'all' ? activeBranchId : 'branch-1');
     const stamped = stampTenant({ ...report, branchId: effectiveBranch }, effectiveTenant);
     setAllReports((prev) => [stamped, ...prev.filter((r) => r.reportId !== stamped.reportId)]);
+    // Cloud Firestore Sync across computers
+    syncLabReportToCloud(stamped);
   };
 
   const updateLabReport = (reportId: string, updated: Partial<LabReport>) => {
+    let syncedReport: LabReport | null = null;
     setAllReports((prev) =>
       prev.map((r) => {
         if (r.reportId.toLowerCase() === reportId.toLowerCase()) {
@@ -2057,11 +2163,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant report update for reportId: ${reportId}`);
             return r;
           }
-          return { ...r, ...updated };
+          const merged = { ...r, ...updated };
+          syncedReport = merged;
+          return merged;
         }
         return r;
       })
     );
+    if (syncedReport) {
+      syncLabReportToCloud(syncedReport);
+    }
   };
 
   const deleteLabReport = (reportId: string) => {
@@ -2077,6 +2188,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return true;
       })
     );
+    deleteLabReportFromCloud(reportId);
     setAllReceptionEntries((prev) =>
       prev.map((e) =>
         e.reportId?.toLowerCase() === reportId.toLowerCase()
@@ -2094,6 +2206,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       hour: '2-digit',
       minute: '2-digit',
     });
+    let cancelledReport: LabReport | null = null;
     setAllReports((prev) =>
       prev.map((r) => {
         if (r.reportId.toLowerCase() === reportId.toLowerCase()) {
@@ -2101,7 +2214,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant report cancellation for reportId: ${reportId}`);
             return r;
           }
-          return {
+          const merged: LabReport = {
             ...r,
             isCancelled: true,
             status: 'Cancelled',
@@ -2109,13 +2222,19 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             cancelledAt: timeStr,
             cancelledBy,
           };
+          cancelledReport = merged;
+          return merged;
         }
         return r;
       })
     );
+    if (cancelledReport) {
+      syncLabReportToCloud(cancelledReport);
+    }
   };
 
   const uncancelLabReport = (reportId: string) => {
+    let uncancelledReport: LabReport | null = null;
     setAllReports((prev) =>
       prev.map((r) => {
         if (r.reportId.toLowerCase() === reportId.toLowerCase()) {
@@ -2123,7 +2242,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant uncancel for reportId: ${reportId}`);
             return r;
           }
-          return {
+          const merged: LabReport = {
             ...r,
             isCancelled: false,
             status: r.verified ? 'Verified' : 'Normal',
@@ -2131,10 +2250,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             cancelledAt: undefined,
             cancelledBy: undefined,
           };
+          uncancelledReport = merged;
+          return merged;
         }
         return r;
       })
     );
+    if (uncancelledReport) {
+      syncLabReportToCloud(uncancelledReport);
+    }
   };
 
   const getReportById = (id: string) => {
@@ -2164,10 +2288,13 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `rcp-${Date.now()}`,
     };
     setAllReceptionEntries((prev) => [newEntry, ...prev]);
+    // Sync to Cloud Firestore for Technician & Pathologist
+    syncReceptionEntryToCloud(newEntry);
     return newEntry;
   };
 
   const updateReceptionStatus = (id: string, status: ReceptionPatientEntry['status']) => {
+    let syncedEntry: ReceptionPatientEntry | null = null;
     setAllReceptionEntries((prev) =>
       prev.map((e) => {
         if (e.id === id) {
@@ -2175,15 +2302,22 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant patient status update`);
             return e;
           }
-          return { ...e, status };
+          const updated = { ...e, status };
+          syncedEntry = updated;
+          return updated;
         }
         return e;
       })
     );
+    if (syncedEntry) {
+      syncReceptionEntryToCloud(syncedEntry);
+    }
   };
 
   const updateReceptionEntry = (id: string, updates: Partial<ReceptionPatientEntry>) => {
     let targetReportId = '';
+    let syncedEntry: ReceptionPatientEntry | null = null;
+    let syncedReport: LabReport | null = null;
     setAllReceptionEntries((prev) =>
       prev.map((e) => {
         if (e.id === id) {
@@ -2193,25 +2327,35 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           const updated = { ...e, ...updates };
           targetReportId = updated.reportId || '';
+          syncedEntry = updated;
           return updated;
         }
         return e;
       })
     );
 
+    if (syncedEntry) {
+      syncReceptionEntryToCloud(syncedEntry);
+    }
+
     if (targetReportId && (updates.dueAmount !== undefined || updates.paymentStatus !== undefined)) {
       setAllReports((prev) =>
         prev.map((r) => {
           if (r.reportId === targetReportId) {
-            return {
+            const merged = {
               ...r,
               dueAmount: updates.dueAmount !== undefined ? updates.dueAmount : r.dueAmount,
               paymentStatus: updates.paymentStatus || r.paymentStatus,
             };
+            syncedReport = merged;
+            return merged;
           }
           return r;
         })
       );
+      if (syncedReport) {
+        syncLabReportToCloud(syncedReport);
+      }
     }
   };
 
@@ -2228,18 +2372,24 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return true;
       })
     );
+    deleteReceptionEntryFromCloud(id);
   };
 
   const clearReceptionEntries = () => {
     if (activeTenantId === 'all') {
+      allReceptionEntries.forEach((e) => deleteReceptionEntryFromCloud(e.id));
       setAllReceptionEntries([]);
     } else {
+      allReceptionEntries
+        .filter((e) => isTenantMatch(e, activeTenantId))
+        .forEach((e) => deleteReceptionEntryFromCloud(e.id));
       setAllReceptionEntries((prev) => prev.filter((e) => !isTenantMatch(e, activeTenantId)));
     }
   };
 
   const sendEntryToTechnician = (id: string) => {
     const timeStr = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    let syncedEntry: ReceptionPatientEntry | null = null;
     setAllReceptionEntries((prev) =>
       prev.map((e) => {
         if (e.id === id) {
@@ -2247,55 +2397,72 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant lab handoff`);
             return e;
           }
-          return {
+          const updated: ReceptionPatientEntry = {
             ...e,
             sentToTechnician: true,
             technicianStatus: 'Sent to Lab',
             status: e.status === 'Waiting' ? 'Sample Collected' : e.status,
             sentToLabAt: `Today, ${timeStr}`,
           };
+          syncedEntry = updated;
+          return updated;
         }
         return e;
       })
     );
+    if (syncedEntry) {
+      syncReceptionEntryToCloud(syncedEntry);
+    }
   };
 
   const acceptEntryByTechnician = (id: string) => {
+    let syncedEntry: ReceptionPatientEntry | null = null;
     setAllReceptionEntries((prev) =>
       prev.map((e) => {
         if (e.id === id) {
           if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(e, activeTenantId)) {
             return e;
           }
-          return {
+          const updated: ReceptionPatientEntry = {
             ...e,
             technicianStatus: 'Accepted',
             status: 'In Lab',
           };
+          syncedEntry = updated;
+          return updated;
         }
         return e;
       })
     );
+    if (syncedEntry) {
+      syncReceptionEntryToCloud(syncedEntry);
+    }
   };
 
   const completeTechnicianReport = (id: string, reportId: string) => {
+    let syncedEntry: ReceptionPatientEntry | null = null;
     setAllReceptionEntries((prev) =>
       prev.map((e) => {
         if (e.id === id) {
           if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(e, activeTenantId)) {
             return e;
           }
-          return {
+          const updated: ReceptionPatientEntry = {
             ...e,
             technicianStatus: 'Report Generated',
             status: 'Report Ready',
             reportId: reportId,
             isReportPublished: false, // Receptionist will review payment and publish!
           };
+          syncedEntry = updated;
+          return updated;
         }
         return e;
       })
     );
+    if (syncedEntry) {
+      syncReceptionEntryToCloud(syncedEntry);
+    }
   };
 
   const publishReport = (id: string, publishedBy?: string) => {
@@ -2305,6 +2472,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     let targetReportId = '';
     let targetDueAmount = 0;
     let targetPaymentStatus = '';
+    let syncedEntry: ReceptionPatientEntry | null = null;
+    let syncedReport: LabReport | null = null;
 
     setAllReceptionEntries((prev) =>
       prev.map((e) => {
@@ -2312,22 +2481,28 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           targetReportId = e.reportId || '';
           targetDueAmount = e.dueAmount;
           targetPaymentStatus = e.paymentStatus;
-          return {
+          const updated = {
             ...e,
             isReportPublished: true,
             publishedAt: timeStr,
             publishedBy: author,
           };
+          syncedEntry = updated;
+          return updated;
         }
         return e;
       })
     );
 
+    if (syncedEntry) {
+      syncReceptionEntryToCloud(syncedEntry);
+    }
+
     if (targetReportId) {
       setAllReports((prev) =>
         prev.map((r) => {
           if (r.reportId === targetReportId) {
-            return {
+            const merged = {
               ...r,
               isPublished: true,
               publishedAt: timeStr,
@@ -2335,40 +2510,59 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               dueAmount: targetDueAmount,
               paymentStatus: targetPaymentStatus,
             };
+            syncedReport = merged;
+            return merged;
           }
           return r;
         })
       );
+      if (syncedReport) {
+        syncLabReportToCloud(syncedReport);
+      }
     }
   };
 
   const unpublishReport = (id: string) => {
     let targetReportId = '';
+    let syncedEntry: ReceptionPatientEntry | null = null;
+    let syncedReport: LabReport | null = null;
+
     setAllReceptionEntries((prev) =>
       prev.map((e) => {
         if (e.id === id) {
           targetReportId = e.reportId || '';
-          return {
+          const updated = {
             ...e,
             isReportPublished: false,
           };
+          syncedEntry = updated;
+          return updated;
         }
         return e;
       })
     );
 
+    if (syncedEntry) {
+      syncReceptionEntryToCloud(syncedEntry);
+    }
+
     if (targetReportId) {
       setAllReports((prev) =>
         prev.map((r) => {
           if (r.reportId === targetReportId) {
-            return {
+            const merged = {
               ...r,
               isPublished: false,
             };
+            syncedReport = merged;
+            return merged;
           }
           return r;
         })
       );
+      if (syncedReport) {
+        syncLabReportToCloud(syncedReport);
+      }
     }
   };
 
@@ -2956,9 +3150,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: 'Just now',
     };
     setAllVendorBookings((prev) => [newBooking, ...prev]);
+    syncBookingToCloud(newBooking);
   };
 
   const updateBookingStatus = (id: string, status: HomeCollectionBooking['status']) => {
+    let syncedBooking: HomeCollectionBooking | null = null;
     setAllVendorBookings((prev) =>
       prev.map((b) => {
         if (b.id === id) {
@@ -2966,11 +3162,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant booking status update for ${id}`);
             return b;
           }
-          return { ...b, status };
+          const updated = { ...b, status };
+          syncedBooking = updated;
+          return updated;
         }
         return b;
       })
     );
+    if (syncedBooking) {
+      syncBookingToCloud(syncedBooking);
+    }
   };
 
   const deleteBooking = (id: string) => {
@@ -3393,6 +3594,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         queryTenantIsolatedReports,
         queryTenantIsolatedBilling,
         queryTenantIsolatedStaff,
+
+        // Real-Time Multi-Computer Cloud Sync
+        isCloudConnected,
+        cloudSyncStatus,
+        lastCloudSyncTime,
       }}
     >
       {children}

@@ -26,6 +26,16 @@ import {
   QrCode,
   Copy,
   Globe,
+  Mail,
+  Send,
+  Share2,
+  Navigation,
+  Facebook,
+  Instagram,
+  Twitter,
+  Linkedin,
+  Youtube,
+  ExternalLink,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
@@ -90,8 +100,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const labName = vendorLabSettings?.labName || vendorLabSettings?.name || 'Apex Diagnostic & Clinical Pathology Laboratory';
   const labNabl = vendorLabSettings?.nablAccreditationNo || vendorLabSettings?.nablNumber || 'MC-4821';
   const labPhone = vendorLabSettings?.phone || vendorLabSettings?.helplinePhone || '7087033009';
+  const labWhatsapp = vendorLabSettings?.whatsapp || labPhone || '7087033009';
+  const labEmail = vendorLabSettings?.email || 'care@apexdiagnostics.in';
   const labTagline = vendorLabSettings?.tagline || 'Advanced Pathology, Biochemistry & Diagnostic Testing Centre';
   const labHours = vendorLabSettings?.openingHours || 'Open 7:00 AM – 9:00 PM (All 7 Days)';
+  const labEmergency = vendorLabSettings?.emergencyHours || '24x7 Emergency Services at Central Lab';
   const labAddress = vendorLabSettings?.address || 'SCF 42-43, Sector 18-C, Central Healthcare Complex, Ludhiana';
   const labDescription = vendorLabSettings?.description || labTagline || 'Advanced Pathology, Biochemistry & Diagnostic Testing Centre. 100% NABL Accredited.';
   const labWebsiteUrl = vendorLabSettings?.websiteUrl && !vendorLabSettings.websiteUrl.includes('labname.com') ? vendorLabSettings.websiteUrl : (typeof window !== 'undefined' ? window.location.href : '');
@@ -99,7 +112,8 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const labOgImageUrl = vendorLabSettings?.ogImageUrl || labLogoUrl || generateDefaultOgImage(labName, labShopId, labNabl);
 
   const cleanPhone = (labPhone || '7087033009').replace(/\D/g, '');
-  const stickyWhatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(
+  const cleanWhatsapp = (labWhatsapp || '7087033009').replace(/\D/g, '');
+  const stickyWhatsappUrl = `https://wa.me/91${cleanWhatsapp}?text=${encodeURIComponent(
     `Hello ${labName}, I would like to inquire about medical lab tests & home sample collection.`
   )}`;
   const stickyTelUrl = `tel:+91${cleanPhone}`;
@@ -144,6 +158,56 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const [selectedTestOrPackage, setSelectedTestOrPackage] = useState(
     vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
   );
+
+  // Contact Us Inquiry Form State
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactSubject, setContactSubject] = useState('Test Inquiry & Pricing');
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactSubmitted, setContactSubmitted] = useState(false);
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactRefId, setContactRefId] = useState('');
+  const [contactError, setContactError] = useState('');
+  const [copiedPhone, setCopiedPhone] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactError('');
+
+    if (!contactName.trim()) {
+      setContactError('Please enter your full name.');
+      return;
+    }
+
+    const cleanNum = contactPhone.replace(/\D/g, '');
+    if (cleanNum.length < 10) {
+      setContactError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    setContactSubmitting(true);
+    setTimeout(() => {
+      const generatedRef = `INQ-${Math.floor(100000 + Math.random() * 900000)}`;
+      setContactRefId(generatedRef);
+      setContactSubmitting(false);
+      setContactSubmitted(true);
+    }, 500);
+  };
+
+  const handleCopyText = (text: string, type: 'phone' | 'email') => {
+    try {
+      navigator.clipboard.writeText(text);
+      if (type === 'phone') {
+        setCopiedPhone(true);
+        setTimeout(() => setCopiedPhone(false), 2000);
+      } else {
+        setCopiedEmail(true);
+        setTimeout(() => setCopiedEmail(false), 2000);
+      }
+    } catch {}
+  };
 
   const categories = [
     'All',
@@ -295,21 +359,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               </select>
             </div>
 
-            {/* Book Test Online Button */}
-            <button
-              onClick={() => {
-                setSelectedTestOrPackage('');
-                setIsBookingModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-[#123B6D] hover:bg-[#0c294d] text-white font-bold text-xs transition cursor-pointer shadow-sm shrink-0"
-              id="header-book-test-online-btn"
-              title="Book Lab Test Online (2-Step Booking)"
-            >
-              <FlaskConical className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-              <span className="hidden xs:inline">Book Test</span>
-              <span className="xs:hidden">Book</span>
-            </button>
-
             {/* Payment QR Button */}
             <button
               onClick={() => setIsPaymentQrModalOpen(true)}
@@ -398,24 +447,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
             {/* Action Buttons in Drawer */}
             <div className="pt-2 border-t border-slate-100 space-y-2">
-              {/* Book Test Online */}
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setSelectedTestOrPackage('');
-                  setIsBookingModalOpen(true);
-                }}
-                className="w-full text-left py-2.5 px-3 rounded-lg bg-[#123B6D] text-white font-bold flex items-center justify-between text-sm shadow-xs cursor-pointer"
-              >
-                <span className="flex items-center gap-2">
-                  <FlaskConical className="w-4 h-4 text-amber-300" />
-                  <span>Book Test Online (2-Step)</span>
-                </span>
-                <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-black">
-                  NEW
-                </span>
-              </button>
-
               {/* Payment QR */}
               <button
                 onClick={() => {
@@ -887,6 +918,459 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         </div>
       </section>
 
+      {/* 8. Dedicated Contact Us & Lab Location Section */}
+      <section id="contact" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200 scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          {/* Section Header */}
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-[#123B6D] text-xs font-bold mb-3 border border-blue-200">
+              <Phone className="w-3.5 h-3.5 text-[#123B6D]" />
+              <span>Direct Laboratory Support & Location</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
+              Contact Us & Visit Our Diagnostic Lab
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 mt-2.5 leading-relaxed">
+              Have questions about blood test preparations, fasting guidelines, package prices, or home sample collection? 
+              Reach out to our clinical staff via phone, WhatsApp, email, or visit our central lab counter.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Column: Direct Channels & Social Media Links (7 Cols on lg) */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* 4 Core Channel Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* 1. Phone Helpline */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center font-bold mb-3.5">
+                      <Phone className="w-5 h-5 text-amber-700" />
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Lab Phone Helpline</span>
+                    <a
+                      href={`tel:+91${cleanPhone}`}
+                      className="text-base font-extrabold text-[#123B6D] hover:underline block mt-1 tracking-tight"
+                    >
+                      +91 {labPhone}
+                    </a>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                      {labHours}
+                    </p>
+                    <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
+                      <span>⚡ {labEmergency}</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+                    <a
+                      href={`tel:+91${cleanPhone}`}
+                      className="flex-1 bg-[#123B6D] hover:bg-[#0e2f57] text-white py-2 px-3 rounded-lg text-xs font-bold transition text-center flex items-center justify-center gap-1.5"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>Call Now</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyText(`+91 ${labPhone}`, 'phone')}
+                      title="Copy phone number"
+                      className="p-2 border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-600 transition cursor-pointer shrink-0"
+                    >
+                      {copiedPhone ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. WhatsApp Support */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-900 flex items-center justify-center font-bold mb-3.5">
+                      <MessageSquare className="w-5 h-5 text-emerald-700" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">WhatsApp Desk</span>
+                      <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                        Instant Reply
+                      </span>
+                    </div>
+                    <a
+                      href={stickyWhatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-base font-extrabold text-emerald-700 hover:underline block mt-1 tracking-tight"
+                    >
+                      +91 {cleanWhatsapp}
+                    </a>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                      Instant WhatsApp test booking, price inquiries & digital PDF report download support.
+                    </p>
+                    <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+                      <span>💬 Direct Chat Available</span>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-100">
+                    <a
+                      href={stickyWhatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-[#25D366] hover:bg-[#20ba59] text-white py-2 px-3 rounded-lg text-xs font-bold transition text-center flex items-center justify-center gap-1.5 shadow-xs"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Chat on WhatsApp</span>
+                    </a>
+                  </div>
+                </div>
+
+                {/* 3. Address & Location */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#123B6D] flex items-center justify-center font-bold mb-3.5">
+                      <MapPin className="w-5 h-5 text-[#123B6D]" />
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Laboratory Address</span>
+                    <p className="text-xs font-bold text-slate-800 mt-1 leading-relaxed">
+                      {labAddress}
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-1.5">
+                      Accreditation: <span className="font-semibold text-slate-700">NABL {labNabl}</span>
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-100">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${labName} ${labAddress}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 py-2 px-3 rounded-lg text-xs font-bold transition text-center flex items-center justify-center gap-1.5 border border-slate-200"
+                    >
+                      <Navigation className="w-3.5 h-3.5 text-[#123B6D]" />
+                      <span>Google Maps Directions</span>
+                    </a>
+                  </div>
+                </div>
+
+                {/* 4. Official Email Support */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
+                  <div>
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-900 flex items-center justify-center font-bold mb-3.5">
+                      <Mail className="w-5 h-5 text-indigo-700" />
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Official Email</span>
+                    <a
+                      href={`mailto:${labEmail}`}
+                      className="text-xs font-extrabold text-[#123B6D] hover:underline block mt-1 break-all"
+                    >
+                      {labEmail}
+                    </a>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                      For corporate health checkups, doctor tie-ups, B2B samples & general medical feedback.
+                    </p>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+                    <a
+                      href={`mailto:${labEmail}`}
+                      className="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-950 py-2 px-3 rounded-lg text-xs font-bold transition text-center flex items-center justify-center gap-1.5 border border-indigo-200"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      <span>Send Email</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyText(labEmail, 'email')}
+                      title="Copy email"
+                      className="p-2 border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-600 transition cursor-pointer shrink-0"
+                    >
+                      {copiedEmail ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Social Media Links Card */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                  <div>
+                    <h3 className="font-extrabold text-sm text-[#123B6D] flex items-center gap-2">
+                      <Share2 className="w-4 h-4 text-[#123B6D]" />
+                      <span>Connect With Our Laboratory on Social Media</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Follow for seasonal health alerts, preventive wellness camps & special blood test packages.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Official Handles
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+                  {/* WhatsApp */}
+                  <a
+                    href={stickyWhatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 transition text-center group cursor-pointer"
+                    title={`Chat on WhatsApp: +91 ${cleanWhatsapp}`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                      <MessageSquare className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-bold">WhatsApp</span>
+                  </a>
+
+                  {/* Facebook */}
+                  <a
+                    href="https://facebook.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 transition text-center group cursor-pointer"
+                    title="Follow on Facebook"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#1877F2] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                      <Facebook className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-bold">Facebook</span>
+                  </a>
+
+                  {/* Instagram */}
+                  <a
+                    href="https://instagram.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 transition text-center group cursor-pointer"
+                    title="Follow on Instagram"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                      <Instagram className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-bold">Instagram</span>
+                  </a>
+
+                  {/* Twitter / X */}
+                  <a
+                    href="https://twitter.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 transition text-center group cursor-pointer"
+                    title="Follow on X (Twitter)"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                      <Twitter className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-bold">Twitter / X</span>
+                  </a>
+
+                  {/* YouTube */}
+                  <a
+                    href="https://youtube.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-900 border border-red-200 transition text-center group cursor-pointer"
+                    title="Watch on YouTube"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#FF0000] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                      <Youtube className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-bold">YouTube</span>
+                  </a>
+
+                  {/* LinkedIn */}
+                  <a
+                    href="https://linkedin.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 transition text-center group cursor-pointer"
+                    title="Connect on LinkedIn"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#0A66C2] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                      <Linkedin className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-bold">LinkedIn</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Basic Contact & Inquiry Form (5 Cols on lg) */}
+            <div className="lg:col-span-5">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+                <div className="mb-6">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold uppercase tracking-wider mb-2">
+                    <span>Direct Desk Assistance</span>
+                  </div>
+                  <h3 className="font-extrabold text-xl text-[#123B6D] tracking-tight">
+                    Send Us an Inquiry
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                    Leave your details and message. Our phlebotomy coordinator will respond within 15–30 minutes.
+                  </p>
+                </div>
+
+                {contactSubmitted ? (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center space-y-4">
+                    <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-xs">
+                      <CheckCircle2 className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-base text-emerald-950">Inquiry Submitted Successfully!</h4>
+                      <p className="text-xs text-emerald-800 mt-1">
+                        Thank you, <span className="font-bold">{contactName}</span>. Your query regarding{' '}
+                        <span className="font-semibold">"{contactSubject}"</span> has been registered.
+                      </p>
+                    </div>
+
+                    <div className="bg-white p-3 rounded-lg border border-emerald-200 text-xs text-slate-700">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Inquiry Reference Token</div>
+                      <div className="font-mono font-black text-sm text-[#123B6D] mt-0.5">{contactRefId}</div>
+                      <div className="text-[11px] text-slate-500 mt-1">
+                        Our reception desk will contact you on <span className="font-bold text-slate-800">+91 {contactPhone}</span>.
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      <a
+                        href={`https://wa.me/91${cleanWhatsapp}?text=${encodeURIComponent(
+                          `Hello ${labName}, I just submitted inquiry ${contactRefId} regarding "${contactSubject}" for patient ${contactName}. Message: ${contactMessage || 'Please call back.'}`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full bg-[#25D366] hover:bg-[#20ba59] text-white py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>Send Message via WhatsApp</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setContactSubmitted(false);
+                          setContactName('');
+                          setContactPhone('');
+                          setContactEmail('');
+                          setContactMessage('');
+                        }}
+                        className="w-full py-2 text-xs font-bold text-slate-600 hover:text-slate-900 transition cursor-pointer"
+                      >
+                        Submit Another Message
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleContactSubmit} className="space-y-4">
+                    {contactError && (
+                      <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                        <span>{contactError}</span>
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Full Name <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                        <input
+                          type="text"
+                          required
+                          value={contactName}
+                          onChange={(e) => setContactName(e.target.value)}
+                          placeholder="e.g. Ramesh Kumar"
+                          className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Phone Number <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <span className="text-xs font-bold text-slate-400 absolute left-3 top-2.5">+91</span>
+                          <input
+                            type="tel"
+                            required
+                            maxLength={10}
+                            value={contactPhone}
+                            onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, ''))}
+                            placeholder="98765 43210"
+                            className="w-full pl-11 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Email Address <span className="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <div className="relative">
+                          <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                          <input
+                            type="email"
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                            placeholder="patient@example.com"
+                            className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Inquiry Topic / Reason
+                      </label>
+                      <select
+                        value={contactSubject}
+                        onChange={(e) => setContactSubject(e.target.value)}
+                        className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                      >
+                        <option value="Test Inquiry & Pricing">Test Inquiry & Price Estimate</option>
+                        <option value="Home Sample Collection Request">Home Sample Collection Request</option>
+                        <option value="Report Status & Delivery Help">Report Status & Delivery Help</option>
+                        <option value="Fasting & Test Preparation Instructions">Fasting & Test Preparation Instructions</option>
+                        <option value="Doctor Prescription Consultation">Doctor Prescription / Second Opinion</option>
+                        <option value="Corporate / Health Camp Tie-up">Corporate / Health Camp Tie-up</option>
+                        <option value="General Feedback & Other">General Feedback & Other</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Message / Test Details <span className="text-slate-400 font-normal">(Optional)</span>
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={contactMessage}
+                        onChange={(e) => setContactMessage(e.target.value)}
+                        placeholder="Mention test names (e.g. CBC, Thyroid, HbA1c), doctor recommendation, or preferred collection time..."
+                        className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={contactSubmitting}
+                      className="w-full bg-[#123B6D] hover:bg-[#0e2f57] text-white py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-75"
+                    >
+                      {contactSubmitting ? (
+                        <span>Submitting inquiry...</span>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 text-amber-400" />
+                          <span>Send Inquiry to Laboratory Reception</span>
+                        </>
+                      )}
+                    </button>
+                    <p className="text-[11px] text-center text-slate-400 mt-2">
+                      🔒 Your medical inquiries and contact details remain strictly confidential under HIPAA / DISHA guidelines.
+                    </p>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Patient Report Download Banner */}
       <section id="download-report" className="py-12 bg-slate-900 text-white scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
@@ -912,7 +1396,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       </section>
 
       {/* 10. Footer */}
-      <footer id="contact" className="bg-white border-t border-slate-200 py-10 scroll-mt-20">
+      <footer className="bg-white border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8 text-xs text-slate-600">
             <div>
@@ -935,18 +1419,95 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   <span className="font-mono text-[10px] text-slate-500 font-bold">ID: {labShopId}</span>
                 </div>
               </div>
-              <p className="text-slate-500 leading-relaxed">
+              <p className="text-slate-500 leading-relaxed mb-3">
                 {labDescription}
               </p>
-              {labWebsiteUrl && (
-                <div className="mt-2 text-[11px] truncate">
-                  <a href={labWebsiteUrl} target="_blank" rel="noopener noreferrer" className="text-[#123B6D] font-mono hover:underline">
-                    {labWebsiteUrl.replace(/^https?:\/\//, '')}
+              <div className="space-y-1.5 text-[11px] text-slate-600 border-t border-slate-100 pt-3">
+                <div className="flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-[#123B6D] shrink-0" />
+                  <a href={`tel:+91${cleanPhone}`} className="hover:text-[#123B6D] font-bold">
+                    +91 {labPhone}
                   </a>
                 </div>
-              )}
-              <div className="mt-3 text-slate-700 font-semibold">
-                WhatsApp: +91 {labPhone}
+                <div className="flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <a href={stickyWhatsappUrl} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-700 font-bold text-emerald-700">
+                    WhatsApp: +91 {cleanWhatsapp}
+                  </a>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                  <a href={`mailto:${labEmail}`} className="hover:text-indigo-800 break-all">
+                    {labEmail}
+                  </a>
+                </div>
+                <div className="flex items-start gap-1.5 pt-0.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#123B6D] shrink-0 mt-0.5" />
+                  <span>{labAddress}</span>
+                </div>
+              </div>
+
+              {/* Social Media Links inside Footer */}
+              <div className="mt-4 pt-3 border-t border-slate-100">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                  Follow Us Online
+                </span>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={stickyWhatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="WhatsApp"
+                    className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center transition"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://facebook.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Facebook"
+                    className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center transition"
+                  >
+                    <Facebook className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://instagram.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Instagram"
+                    className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 flex items-center justify-center transition"
+                  >
+                    <Instagram className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://twitter.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Twitter / X"
+                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 flex items-center justify-center transition"
+                  >
+                    <Twitter className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://youtube.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="YouTube"
+                    className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 flex items-center justify-center transition"
+                  >
+                    <Youtube className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://linkedin.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="LinkedIn"
+                    className="w-7 h-7 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 flex items-center justify-center transition"
+                  >
+                    <Linkedin className="w-3.5 h-3.5" />
+                  </a>
+                </div>
               </div>
             </div>
 
