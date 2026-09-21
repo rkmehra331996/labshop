@@ -239,9 +239,7 @@ export const LAB_OPTIONS: LabOption[] = [
     city: 'Ludhiana, Punjab',
     nablCode: 'MC-4821',
     branches: [
-      { id: 'branch-1', name: 'Apex Central Diagnostic Hub (Sector 18-C)', type: 'Central Processing Hub' },
-      { id: 'branch-2', name: 'Model Town Collection Centre (Shop 14)', type: 'Collection Centre' },
-      { id: 'branch-3', name: 'Civil Lines Diagnostic Desk (Gate 2)', type: 'Hospital Desk' },
+      { id: 'branch-1', name: 'Apex Diagnostic & Clinical Pathology Laboratory', type: 'Main Facility' },
     ],
   },
   {
@@ -250,8 +248,7 @@ export const LAB_OPTIONS: LabOption[] = [
     city: 'Mohali, Punjab',
     nablCode: 'MC-3912',
     branches: [
-      { id: 'branch-1', name: 'CityCare Phase 7 Central Hub', type: 'Main Lab' },
-      { id: 'branch-2', name: 'Sector 70 Collection Desk', type: 'Collection Desk' },
+      { id: 'branch-1', name: 'CityCare Advanced Diagnostics Main Hub', type: 'Main Facility' },
     ],
   },
   {
@@ -260,17 +257,13 @@ export const LAB_OPTIONS: LabOption[] = [
     city: 'Chandigarh',
     nablCode: 'MC-5104',
     branches: [
-      { id: 'branch-1', name: 'MetroPath Sector 34 Central Hub', type: 'Main Reference Lab' },
-      { id: 'branch-2', name: 'Panchkula Sector 11 Collection Centre', type: 'Collection Desk' },
+      { id: 'branch-1', name: 'MetroPath Scans Central Diagnostic Hub', type: 'Main Facility' },
     ],
   },
 ];
 
 export const BRANCH_OPTIONS = [
-  { id: 'all', name: '🏢 All Branches / Central Access', badge: 'HQ Global' },
-  { id: 'branch-1', name: 'Apex Central Diagnostic Hub (Sector 18-C)', badge: 'Hub' },
-  { id: 'branch-2', name: 'Model Town Collection Centre (Shop 14)', badge: 'Collection Centre' },
-  { id: 'branch-3', name: 'Civil Lines Diagnostic Desk (Gate 2)', badge: 'Hospital Desk' },
+  { id: 'branch-1', name: '🏥 Central Diagnostic Laboratory (Main Facility)', badge: 'Main Lab' },
 ];
 
 export function getPermissionsForRole(role: string): RolePermissions {

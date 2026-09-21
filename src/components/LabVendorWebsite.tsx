@@ -51,6 +51,7 @@ interface LabVendorWebsiteProps {
   onOpenSoftwareWebsite: () => void;
   onOpenVendorDashboard?: () => void;
   onOpenReceptionDashboard?: () => void;
+  onOpenAdminDashboard?: () => void;
 }
 
 export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
@@ -61,6 +62,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   onOpenSoftwareWebsite,
   onOpenVendorDashboard,
   onOpenReceptionDashboard,
+  onOpenAdminDashboard,
 }) => {
   const {
     currentUser,
@@ -70,7 +72,43 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     vendorDoctors,
     addHomeCollectionBooking,
     openLoginModal,
+    vendorLabsList,
+    setVendorStatus,
+    selectedVendorLabId,
   } = useCms();
+
+  const [approvalToast, setApprovalToast] = useState<string | null>(null);
+
+  const currentLabItem = React.useMemo(() => {
+    return (
+      vendorLabsList.find((l) => l.id === (vendorLabSettings?.labId || selectedVendorLabId)) ||
+      vendorLabsList.find(
+        (l) => l.name?.toLowerCase() === (vendorLabSettings?.labName || vendorLabSettings?.name)?.toLowerCase()
+      ) ||
+      null
+    );
+  }, [vendorLabsList, vendorLabSettings, selectedVendorLabId]);
+
+  const isDraft = currentLabItem ? (currentLabItem.status === 'Draft' || currentLabItem.status === 'Pending') : false;
+  const isPlatformAdmin = currentUser?.role === 'admin';
+  const isLabStaffOrOwner = Boolean(
+    currentUser &&
+      (currentUser.role === 'admin' ||
+        currentUser.role === 'vendor' ||
+        currentUser.role === 'branch_manager' ||
+        currentUser.role === 'reception' ||
+        currentUser.role === 'technician' ||
+        currentUser.role === 'pathologist') &&
+      (isPlatformAdmin || currentUser.labId === currentLabItem?.id || currentUser.entityName === currentLabItem?.name)
+  );
+
+  const handleApproveWebsite = () => {
+    if (currentLabItem) {
+      setVendorStatus(currentLabItem.id, 'Active');
+      setApprovalToast(`Website for "${currentLabItem.name}" has been approved and published LIVE!`);
+      setTimeout(() => setApprovalToast(null), 5000);
+    }
+  };
 
   const handleOpenManagement = () => {
     if (currentUser && (currentUser.role === 'vendor' || currentUser.role === 'admin')) {
@@ -250,8 +288,224 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     window.open(`https://wa.me/917087033009?text=${text}`, '_blank');
   };
 
+  // If website is in Draft mode and viewer is NOT Admin / Lab Staff, render Draft Gate
+  if (isDraft && !isLabStaffOrOwner && !isPlatformAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 flex flex-col font-sans">
+        {/* Simple Top Navigation */}
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-2xs">
+          <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onOpenSoftwareWebsite}
+                className="flex items-center gap-2 text-left cursor-pointer group"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[#123B6D] text-white flex items-center justify-center font-black text-sm">
+                  {labName.charAt(0) || 'L'}
+                </div>
+                <div>
+                  <span className="font-extrabold text-sm text-[#123B6D] group-hover:underline block truncate max-w-[200px] sm:max-w-none">
+                    {labName}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-semibold">
+                    {labShopId} • {vendorLabSettings?.city || 'Regional Center'}
+                  </span>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onOpenSoftwareWebsite}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+              >
+                ← Back to Portal
+              </button>
+              <button
+                onClick={() => openLoginModal('admin')}
+                className="px-3.5 py-1.5 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition cursor-pointer shadow-2xs"
+              >
+                Admin / Lab Staff Login
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Central Draft State Container */}
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
+          <div className="max-w-2xl w-full bg-white rounded-3xl border border-amber-200/80 shadow-xl overflow-hidden">
+            {/* Top Amber Status Bar */}
+            <div className="bg-amber-500 text-slate-950 px-6 py-3 flex items-center justify-between text-xs font-black tracking-wide uppercase">
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4" />
+                <span>Website Status: Draft Mode</span>
+              </span>
+              <span className="bg-slate-950 text-amber-400 px-2.5 py-0.5 rounded-full text-[10px]">
+                Pending Platform Approval
+              </span>
+            </div>
+
+            <div className="p-6 sm:p-10 space-y-6 text-center">
+              {/* Central Badge */}
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-700 flex items-center justify-center mx-auto shadow-xs">
+                <ShieldCheck className="w-8 h-8" />
+              </div>
+
+              <div>
+                <div className="inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-xs mb-3 border border-amber-300/80">
+                  📋 Laboratory Registration Under Review
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                  {labName}
+                </h1>
+                <p className="text-sm text-slate-600 mt-2 max-w-lg mx-auto leading-relaxed">
+                  This diagnostic laboratory has completed registration and its website is currently in <strong>Draft Mode</strong>.
+                  Public test booking and reports access will open once the Platform Administrator reviews and approves this laboratory.
+                </p>
+              </div>
+
+              {/* Workflow Stepper */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-left space-y-3">
+                <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+                  Verification & Launch Progress
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <div className="font-bold text-[11px]">1. Created</div>
+                      <div className="text-[10px] text-emerald-700">Workstation Registered</div>
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-amber-100/80 border border-amber-300 text-amber-950 font-bold flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-700 shrink-0 animate-spin" />
+                    <div>
+                      <div className="font-bold text-[11px]">2. Draft Review</div>
+                      <div className="text-[10px] text-amber-800">Admin Approval Pending</div>
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 font-medium flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-slate-300 shrink-0" />
+                    <div>
+                      <div className="font-bold text-[11px]">3. Live Public</div>
+                      <div className="text-[10px] text-slate-500">Website & Booking</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lab Contact & Registry Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left text-xs bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Address</span>
+                  <span className="font-semibold text-slate-800">{labAddress}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Registration / NABL</span>
+                  <span className="font-semibold text-slate-800">{labNabl}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Contact Helpline</span>
+                  <span className="font-semibold text-slate-800">+91 {labPhone}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Lab ID</span>
+                  <span className="font-mono font-bold text-indigo-700">{currentLabItem?.id || labShopId}</span>
+                </div>
+              </div>
+
+              {/* CTA Action Buttons */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  onClick={onOpenSoftwareWebsite}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-black shadow-sm transition cursor-pointer"
+                >
+                  Explore Approved Live Laboratories →
+                </button>
+                <button
+                  onClick={() => openLoginModal('admin')}
+                  className="w-full sm:w-auto px-5 py-3 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition cursor-pointer"
+                >
+                  Admin / Lab Owner Sign In
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans selection:bg-[#123B6D]/15 selection:text-[#123B6D]">
+      {/* Draft Notification Banner for Admin / Lab Staff Preview */}
+      {isDraft && (
+        <div className="sticky top-0 z-50 bg-amber-500 text-slate-950 px-4 py-2.5 shadow-md border-b border-amber-600">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-bold">
+            <div className="flex items-center gap-2.5">
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-950 text-amber-400 text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shrink-0">
+                <Clock className="w-3 h-3 text-amber-400" />
+                <span>Draft Mode</span>
+              </span>
+              <span className="text-slate-950 font-bold">
+                {isPlatformAdmin
+                  ? 'Admin Review: This lab website is currently in DRAFT mode and hidden from public visitors.'
+                  : 'Your website is saved in DRAFT mode. It will be published live once Platform Admin approves it.'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {isPlatformAdmin && (
+                <button
+                  onClick={handleApproveWebsite}
+                  className="bg-emerald-800 hover:bg-emerald-900 text-white px-3.5 py-1.5 rounded-lg text-xs font-black shadow-xs flex items-center gap-1.5 transition cursor-pointer"
+                  title="Approve this lab website and make it live to all patients"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                  <span>Approve & Publish Live</span>
+                </button>
+              )}
+              {isPlatformAdmin && onOpenAdminDashboard && (
+                <button
+                  onClick={onOpenAdminDashboard}
+                  className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  Admin Panel
+                </button>
+              )}
+              {onOpenVendorDashboard && (
+                <button
+                  onClick={onOpenVendorDashboard}
+                  className="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
+                >
+                  Lab Dashboard
+                </button>
+              )}
+              <button
+                onClick={onOpenSoftwareWebsite}
+                className="bg-white/90 hover:bg-white text-slate-900 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs"
+              >
+                Back to Portal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Approval Success Toast */}
+      {approvalToast && (
+        <div className="fixed bottom-5 right-5 z-50 bg-emerald-700 text-white px-4 py-3 rounded-2xl shadow-2xl border border-emerald-500 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
+          <CheckCircle2 className="w-5 h-5 text-emerald-200 shrink-0" />
+          <div className="text-xs font-bold">{approvalToast}</div>
+          <button
+            onClick={() => setApprovalToast(null)}
+            className="text-emerald-200 hover:text-white ml-2 text-xs font-black cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Main Lab Header */}
       <header className="sticky top-0 bg-white border-b border-slate-200 z-40 shadow-xs">
         <div className="max-w-7xl mx-auto px-3 sm:px-8 h-16 sm:h-18 flex items-center justify-between gap-2 sm:gap-4">

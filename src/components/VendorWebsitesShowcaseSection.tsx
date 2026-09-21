@@ -31,20 +31,34 @@ export const VendorWebsitesShowcaseSection: React.FC<VendorWebsitesShowcaseSecti
   onOpenTrial,
   onOpenDemo,
 }) => {
-  const { vendorLabsList, selectVendorLab, selectedVendorLabId } = useCms();
+  const { vendorLabsList, selectVendorLab, selectedVendorLabId, currentUser } = useCms();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCity, setSelectedCity] = useState<string>('All');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'nabl' | 'emergency' | 'home'>('all');
+  const [showDraftsToAdmin, setShowDraftsToAdmin] = useState(false);
 
-  // Distinct cities list
-  const cities = useMemo(() => {
-    const set = new Set(vendorLabsList.map((l) => l.city));
-    return ['All', ...Array.from(set)];
+  const isPlatformAdmin = currentUser?.role === 'admin';
+  const draftCount = useMemo(() => {
+    return vendorLabsList.filter((l) => l.status === 'Draft' || l.status === 'Pending').length;
   }, [vendorLabsList]);
+
+  // Public visitor sees only Active labs; Admin can toggle to preview Draft labs
+  const baseLabs = useMemo(() => {
+    if (isPlatformAdmin && showDraftsToAdmin) {
+      return vendorLabsList;
+    }
+    return vendorLabsList.filter((l) => l.status === 'Active');
+  }, [vendorLabsList, isPlatformAdmin, showDraftsToAdmin]);
+
+  // Distinct cities list from active labs
+  const cities = useMemo(() => {
+    const set = new Set(baseLabs.map((l) => l.city));
+    return ['All', ...Array.from(set)];
+  }, [baseLabs]);
 
   // Filtered labs
   const filteredLabs = useMemo(() => {
-    return vendorLabsList.filter((lab) => {
+    return baseLabs.filter((lab) => {
       // City check
       if (selectedCity !== 'All' && lab.city.toLowerCase() !== selectedCity.toLowerCase()) {
         return false;
@@ -139,8 +153,22 @@ export const VendorWebsitesShowcaseSection: React.FC<VendorWebsitesShowcaseSecti
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                All Labs ({vendorLabsList.length})
+                Live Labs ({baseLabs.length})
               </button>
+              {isPlatformAdmin && draftCount > 0 && (
+                <button
+                  onClick={() => setShowDraftsToAdmin((prev) => !prev)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition flex items-center gap-1 cursor-pointer ${
+                    showDraftsToAdmin
+                      ? 'bg-amber-500 text-slate-950 shadow-2xs'
+                      : 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
+                  }`}
+                  title="Toggle visibility of unapproved Draft labs for Super Admin review"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Admin: {showDraftsToAdmin ? 'Hide Drafts' : `Show Drafts (${draftCount})`}</span>
+                </button>
+              )}
               <button
                 onClick={() => setSelectedFilter('nabl')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition flex items-center gap-1 cursor-pointer ${
@@ -245,8 +273,17 @@ export const VendorWebsitesShowcaseSection: React.FC<VendorWebsitesShowcaseSecti
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      <span className="text-[10px] font-bold text-emerald-400">Live Website</span>
+                      {lab.status === 'Draft' || lab.status === 'Pending' ? (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                          <span className="text-[10px] font-bold text-amber-300">Draft Mode</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          <span className="text-[10px] font-bold text-emerald-400">Live Website</span>
+                        </>
+                      )}
                     </div>
                   </div>
 

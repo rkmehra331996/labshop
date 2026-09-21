@@ -28,13 +28,12 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
   currentView,
   onNavigateView,
 }) => {
-  const { currentUser, logout, openLoginModal, vendorBranches, activeBranchId, setActiveBranchId, isCloudConnected, lastCloudSyncTime } =
+  const { currentUser, logout, openLoginModal, isCloudConnected } =
     useCms();
 
   if (!currentUser) return null;
 
   const role = currentUser.role;
-  const permissions = currentUser.permissions;
 
   // Find role metadata
   let roleKey: keyof typeof ALL_ROLES_CONFIG = 'receptionist';
@@ -46,7 +45,6 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
   else if (role === 'pathologist') roleKey = 'pathologist';
 
   const cfg = ALL_ROLES_CONFIG[roleKey];
-  const canSwitchBranches = permissions?.canViewAllBranchesData || role === 'admin' || role === 'vendor';
 
   return (
     <aside aria-label="Role & Branch Context" className="bg-slate-900 text-slate-100 border-b border-slate-800 text-xs px-4 py-2 sticky top-0 z-40 shadow-md">
@@ -76,40 +74,16 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
             </span>
           </div>
 
-          {/* Active Branch */}
+          {/* Active Facility (Single Center) */}
           <div className="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700/60 px-2.5 py-1 rounded-full text-[11px]">
             <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="text-slate-400">Branch:</span>
-            {canSwitchBranches ? (
-              <div className="flex items-center gap-1">
-                <select
-                  value={activeBranchId}
-                  onChange={(e) => setActiveBranchId(e.target.value)}
-                  className="bg-slate-900 text-amber-300 font-bold border border-slate-700 rounded px-2 py-0.5 text-xs focus:ring-1 focus:ring-amber-400 focus:outline-none cursor-pointer"
-                  title="Switch branch context"
-                >
-                  <option value="all">🌐 All Branches (Consolidated)</option>
-                  {vendorBranches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      📍 {b.name} ({b.id})
-                    </option>
-                  ))}
-                </select>
-                <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.2 rounded font-semibold">
-                  Multi-Branch Access
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                <span className="font-bold text-amber-300">
-                  {currentUser.branchName || 'Model Town Collection Centre'}
-                </span>
-                <span className="inline-flex items-center gap-0.5 text-[10px] bg-amber-950 text-amber-300 border border-amber-800 px-1.5 py-0.2 rounded font-semibold">
-                  <Lock className="w-2.5 h-2.5" />
-                  <span>{currentUser.branchId || 'branch-2'}</span>
-                </span>
-              </div>
-            )}
+            <span className="text-slate-400">Center:</span>
+            <span className="font-bold text-amber-300">
+              {currentUser.branchName || 'Main Diagnostic Center'}
+            </span>
+            <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.2 rounded font-semibold">
+              Single Lab
+            </span>
           </div>
 
           {/* Multi-Computer Cloud Live Status */}

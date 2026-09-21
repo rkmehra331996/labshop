@@ -378,6 +378,7 @@ export interface AuditEntry {
 
 export type VendorStatus =
   | 'Active'
+  | 'Draft'
   | 'Pending'
   | 'Processing due to payment confirmation'
   | 'Suspended';
@@ -402,6 +403,9 @@ export interface VendorLabDirectoryItem {
   emergency: boolean;
   color: string;
   status: VendorStatus;
+  isWebsiteApproved?: boolean;
+  approvedAt?: string;
+  approvedBy?: string;
   ownerName?: string;
   email?: string;
   subscriptionPlan?: string;

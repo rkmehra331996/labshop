@@ -47,7 +47,7 @@ export const DEFAULT_VENDOR_SECTIONS: VendorWebsiteSections = {
   testDirectory: true,
   whyChooseUs: true,
   doctors: true,
-  branches: true,
+  branches: false,
   reportInterlink: true,
   footer: true,
 };
@@ -65,7 +65,7 @@ export const DEFAULT_PORTAL_SECTIONS: PortalWebsiteSections = {
   reportPreview: true,
   whatsapp: true,
   testLibrary: true,
-  multiBranch: true,
+  multiBranch: false,
   staffRoles: true,
   patientHistory: true,
   dataSafety: true,
@@ -763,72 +763,36 @@ const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
   {
     id: 'branch-1',
     labId: 'lab-apex',
-    name: 'Apex Central Diagnostic Hub',
-    badge: 'Central Reference Lab',
-    address: 'SCF 42-43, Sector 18-C, Central Healthcare Complex',
+    name: 'Apex Diagnostic & Clinical Pathology Laboratory',
+    badge: 'Main Diagnostic Facility',
+    address: 'SCF 42-43, Sector 18-C, Central Healthcare Complex, Ludhiana',
     phone: '+91 7087033009',
     timings: 'Open 24x7 (Round the Clock Testing)',
     isEmergency: true,
   },
-  {
-    id: 'branch-2',
-    labId: 'lab-apex',
-    name: 'Model Town Collection Centre',
-    badge: 'Collection Desk',
-    address: 'Shop 14, Main Market, Opp. Metro Pillar 42',
-    phone: '+91 7087033009',
-    timings: 'Mon–Sun: 7:00 AM – 9:00 PM',
-  },
-  {
-    id: 'branch-3',
-    labId: 'lab-apex',
-    name: 'Civil Lines Diagnostic Desk',
-    badge: 'Hospital Branch',
-    address: 'Near Gate 2, District Civil Hospital Road',
-    phone: '+91 7087033009',
-    timings: 'Mon–Sun: 7:00 AM – 8:00 PM',
-  },
-  // CityCare Branches (lab-citycare)
+  // CityCare Branch (lab-citycare)
   {
     id: 'branch-cc-1',
     labId: 'lab-citycare',
-    name: 'CityCare Phase 7 Diagnostic Hub',
-    badge: 'Main Lab & Scanning Center',
+    name: 'CityCare Advanced Diagnostics & Scan Centre',
+    badge: 'Main Facility',
     address: 'SCO 14, Phase 7, Near Fortis Chowk, Mohali',
     phone: '+91 9815012345',
     timings: 'Mon–Sat: 7:00 AM – 9:00 PM',
     isEmergency: true,
   },
-  {
-    id: 'branch-cc-2',
-    labId: 'lab-citycare',
-    name: 'Phase 3B2 Collection Desk',
-    badge: 'Collection Centre',
-    address: 'Shop 8, Market 3B2, Mohali',
-    phone: '+91 9815012345',
-    timings: 'Mon–Sun: 7:30 AM – 8:00 PM',
-  },
-  // MetroPath Branches (lab-metropath)
+  // MetroPath Branch (lab-metropath)
   {
     id: 'branch-mp-1',
     labId: 'lab-metropath',
-    name: 'MetroPath Sector 34-A Super Specialty Hub',
-    badge: 'Reference & Molecular Lab',
+    name: 'MetroPath Scans & Molecular Pathology Hub',
+    badge: 'Main Reference Lab',
     address: 'SCO 128-129, Sector 34-A, Healthcare District, Chandigarh',
     phone: '+91 9417098765',
     timings: 'Open 24x7',
     isEmergency: true,
   },
-  {
-    id: 'branch-mp-2',
-    labId: 'lab-metropath',
-    name: 'Sector 22 Health Express Counter',
-    badge: 'Express Sample Point',
-    address: 'Booth 55, Sector 22-D, Chandigarh',
-    phone: '+91 9417098765',
-    timings: 'Mon–Sun: 7:00 AM – 8:30 PM',
-  },
-  // Sanjivani Branches (lab-sanjivani)
+  // Sanjivani Branch (lab-sanjivani)
   {
     id: 'branch-sanj-1',
     labId: 'lab-sanjivani',
@@ -839,16 +803,7 @@ const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
     timings: 'Mon–Sat: 7:00 AM – 8:30 PM',
     isEmergency: true,
   },
-  {
-    id: 'branch-sanj-2',
-    labId: 'lab-sanjivani',
-    name: 'GT Road Sample Collection Booth',
-    badge: 'Express Desk',
-    address: 'Opp. Interstate Bus Terminal, GT Road, Amritsar',
-    phone: '+91 9888123456',
-    timings: 'Mon–Sun: 7:00 AM – 7:30 PM',
-  },
-  // LifeLine Branches (lab-lifeline-due)
+  // LifeLine Branch (lab-lifeline-due)
   {
     id: 'branch-life-1',
     labId: 'lab-lifeline-due',
@@ -859,16 +814,7 @@ const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
     timings: 'Mon–Sat: 7:30 AM – 8:00 PM',
     isEmergency: true,
   },
-  {
-    id: 'branch-life-2',
-    labId: 'lab-lifeline-due',
-    name: 'Model Town Jalandhar Express Desk',
-    badge: 'Collection Point',
-    address: '14 Link Road, Model Town, Jalandhar',
-    phone: '+91 9872011223',
-    timings: 'Mon–Sun: 7:00 AM – 7:00 PM',
-  },
-  // HealTech Branches (lab-healtech-pending)
+  // HealTech Branch (lab-healtech-pending)
   {
     id: 'branch-ht-1',
     labId: 'lab-healtech-pending',
@@ -879,36 +825,18 @@ const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
     timings: 'Mon–Sat: 8:00 AM – 8:00 PM',
     isEmergency: true,
   },
-  {
-    id: 'branch-ht-2',
-    labId: 'lab-healtech-pending',
-    name: 'Baradari Garden Sample Desk',
-    badge: 'Collection Centre',
-    address: 'Near Circuit House, Baradari, Patiala',
-    phone: '+91 9876512345',
-    timings: 'Mon–Sun: 7:30 AM – 7:00 PM',
-  },
-  // Pulse Branches (lab-pulse)
+  // Pulse Branch (lab-pulse)
   {
     id: 'branch-pls-1',
     labId: 'lab-pulse',
     name: 'Pulse Sector 5 Diagnostics & MRI Hub',
-    badge: 'Super Specialty & 24x7 Stat Lab',
+    badge: 'Main Stat Lab',
     address: 'SCO 88, Sector 5, MDC, Panchkula',
     phone: '+91 9815099881',
     timings: 'Open 24x7',
     isEmergency: true,
   },
-  {
-    id: 'branch-pls-2',
-    labId: 'lab-pulse',
-    name: 'Sector 20 Panchkula Collection Desk',
-    badge: 'Collection Point',
-    address: 'Booth 12, Main Market, Sector 20, Panchkula',
-    phone: '+91 9815099881',
-    timings: 'Mon–Sun: 7:00 AM – 8:30 PM',
-  },
-  // CarePoint Branches (lab-carepoint)
+  // CarePoint Branch (lab-carepoint)
   {
     id: 'branch-cp-1',
     labId: 'lab-carepoint',
@@ -918,15 +846,6 @@ const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
     phone: '+91 9816044332',
     timings: 'Mon–Sat: 8:00 AM – 7:30 PM',
     isEmergency: true,
-  },
-  {
-    id: 'branch-cp-2',
-    labId: 'lab-carepoint',
-    name: 'Sanjauli Express Collection Booth',
-    badge: 'Express Counter',
-    address: 'Main Bazaar, Near Tunnel, Sanjauli, Shimla',
-    phone: '+91 9816044332',
-    timings: 'Mon–Sun: 7:30 AM – 6:30 PM',
   },
 ];
 
@@ -1105,11 +1024,11 @@ export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
     status: 'active',
     labId: 'lab-apex',
     labName: 'Apex Diagnostic & Clinical Pathology Laboratory',
-    branchId: 'branch-2',
-    branchName: 'Model Town Collection Centre',
+    branchId: 'branch-1',
+    branchName: 'Apex Diagnostic & Clinical Pathology Laboratory',
     lastPasswordReset: '02 Sep 2026, 09:00 AM',
-    shift: 'General Branch Shift (7:00 AM - 3:00 PM)',
-    notes: 'Branch operations supervisor, cash reconciliation & sample logistics runner',
+    shift: 'General Facility Shift (7:00 AM - 3:00 PM)',
+    notes: 'Operations supervisor, cash reconciliation & sample logistics',
   },
   {
     id: 'staff-pathologist-1',
@@ -1121,8 +1040,8 @@ export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
     status: 'active',
     labId: 'lab-apex',
     labName: 'Apex Diagnostic & Clinical Pathology Laboratory',
-    branchId: 'all',
-    branchName: 'All Branches (Central Sign-off Authority)',
+    branchId: 'branch-1',
+    branchName: 'Apex Diagnostic & Clinical Pathology Laboratory',
     lastPasswordReset: '03 Sep 2026, 12:00 PM',
     shift: 'Clinical Sign-off Hours (10:00 AM - 7:00 PM)',
     notes: 'Consultant Pathologist & Clinical Director, NABL signatory',
@@ -2694,18 +2613,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ? 'All Registered Labs (Global)'
         : selectedLabObj?.name || vendorLabSettings.labName;
 
-    // Resolve branch details
-    const chosenBranchId =
-      branchId ||
-      (role === 'admin' || role === 'vendor' || role === 'pathologist' ? 'all' : 'branch-1');
-    const branchObj = vendorBranches.find((b) => b.id === chosenBranchId);
-    const branchName =
-      chosenBranchId === 'all'
-        ? 'All Branches'
-        : branchObj?.name ||
-          (chosenBranchId === 'branch-2'
-            ? 'Model Town Collection Centre'
-            : 'Apex Central Diagnostic Hub');
+    // Resolve branch details (Single Branch Lab mode)
+    const chosenBranchId = 'branch-1';
+    const branchObj = vendorBranches.find((b) => b.id === chosenBranchId) || vendorBranches[0];
+    const branchName = branchObj?.name || 'Main Diagnostic Facility';
 
     const permissions = getPermissionsForRole(role);
 
@@ -2729,8 +2640,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         entityName: 'Diagnostic SaaS Portal Central System',
         labId: 'all',
         labName: 'All Laboratories (Global Portal)',
-        branchId: 'all',
-        branchName: 'All Branches (Unrestricted)',
+        branchId: 'branch-1',
+        branchName: 'Main Diagnostic Facility',
         permissions,
       };
       targetView = 'admin_dashboard';
@@ -2738,17 +2649,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const staff = findStaffForTenant('branch_manager');
       user = {
         id: staff?.id || `usr-manager-${chosenLabId}`,
-        name: staff ? `${staff.name} (Branch Manager)` : 'Vikram Malhotra (Branch Manager)',
+        name: staff ? `${staff.name} (Operations Manager)` : 'Vikram Malhotra (Operations Manager)',
         email: email || staff?.username || `manager@${chosenLabId}.com`,
         role: 'branch_manager',
-        entityName: `${labName} (${branchName})`,
+        entityName: `${labName} (Operations Desk)`,
         labId: chosenLabId,
         labName,
-        branchId: chosenBranchId === 'all' ? 'branch-2' : chosenBranchId,
+        branchId: 'branch-1',
         branchName,
         permissions,
       };
-      targetView = 'branch_manager_dashboard';
+      targetView = 'vendor_dashboard';
     } else if (role === 'reception') {
       const staff = findStaffForTenant('reception');
       user = {
@@ -2756,10 +2667,10 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         name: staff ? `${staff.name} (Front Desk)` : 'Pooja Verma (Front Desk)',
         email: email || staff?.username || `reception@${chosenLabId}.com`,
         role: 'reception',
-        entityName: `${labName} (${branchName})`,
+        entityName: `${labName} (Billing & Counter)`,
         labId: chosenLabId,
         labName,
-        branchId: chosenBranchId === 'all' ? 'branch-1' : chosenBranchId,
+        branchId: 'branch-1',
         branchName,
         permissions,
       };
@@ -2774,7 +2685,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         entityName: `${labName} (Diagnostic Workstation)`,
         labId: chosenLabId,
         labName,
-        branchId: chosenBranchId,
+        branchId: 'branch-1',
         branchName,
         permissions,
       };
@@ -2789,7 +2700,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         entityName: `${labName} (Clinical Sign-off Desk)`,
         labId: chosenLabId,
         labName,
-        branchId: chosenBranchId,
+        branchId: 'branch-1',
         branchName,
         permissions,
       };
@@ -2813,7 +2724,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         entityName: labName,
         labId: chosenLabId,
         labName,
-        branchId: chosenBranchId,
+        branchId: 'branch-1',
         branchName,
         permissions,
       };
@@ -2821,9 +2732,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     setCurrentUser(user);
-    if (user.branchId && user.branchId !== 'all') {
-      setActiveBranchId(user.branchId);
-    }
+    setActiveBranchId('branch-1');
     setIsAuthModalOpen(false);
 
     try {
@@ -3211,7 +3120,29 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const setVendorStatus = (id: string, status: VendorStatus) => {
     setVendorLabsList((prev) =>
-      prev.map((lab) => (lab.id === id ? { ...lab, status } : lab))
+      prev.map((lab) =>
+        lab.id === id
+          ? {
+              ...lab,
+              status,
+              ...(status === 'Active'
+                ? {
+                    isWebsiteApproved: true,
+                    approvedAt: new Date().toLocaleDateString('en-IN', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    }),
+                    approvedBy: 'Platform Admin',
+                    badge: lab.badge === 'Draft - Pending Admin Approval' ? 'Verified Lab' : lab.badge,
+                  }
+                : {}),
+              ...(status === 'Draft' || status === 'Pending'
+                ? { isWebsiteApproved: false }
+                : {}),
+            }
+          : lab
+      )
     );
   };
 
@@ -3260,13 +3191,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       address: payload.address || `${payload.city}, India`,
       phone: cleanPhone,
       nablCode: payload.nablCode || `NABL-${Math.floor(1000 + Math.random() * 9000)}`,
-      badge: 'New Registered Lab',
+      badge: 'Draft - Pending Admin Approval',
       rating: 5.0,
       activePackages: 3,
       turnaroundTime: 'Same Day (4-6 Hours)',
       emergency: true,
       color: '#0F766E',
-      status: 'Active',
+      status: 'Draft',
+      isWebsiteApproved: false,
       ownerName: payload.ownerName,
       email: payload.email,
       subscriptionPlan: payload.subscriptionPlan || 'Professional',

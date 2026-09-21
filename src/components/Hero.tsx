@@ -198,9 +198,9 @@ export const Hero: React.FC<HeroProps> = ({
               🏢
             </div>
             <div>
-              <h3 className="font-bold text-[#123B6D] text-sm mb-1">Multi-Branch Sync</h3>
+              <h3 className="font-bold text-[#123B6D] text-sm mb-1">Multi-PC Live Sync</h3>
               <p className="text-xs text-[#64748B] leading-relaxed">
-                Centralized management for laboratory groups and collection centers.
+                Real-time synchronization across Reception, Analyzer workstation, and Doctor desk.
               </p>
             </div>
           </div>

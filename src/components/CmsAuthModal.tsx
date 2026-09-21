@@ -49,6 +49,8 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
     currentUser,
     logout,
     vendorLabsList,
+    vendorLabSettings,
+    selectedVendorLabId,
     vendorBranches,
     authModalTab,
     setAuthModalTab,
@@ -59,8 +61,8 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
 
   // Login Form States (NO auto-fill, user enters manually)
   const [selectedRole, setSelectedRole] = useState<AuthRole>(isVendorContext ? 'vendor' : 'super_admin');
-  const [selectedLabId, setSelectedLabId] = useState<string>('all');
-  const [selectedBranchId, setSelectedBranchId] = useState<string>('all');
+  const [selectedLabId, setSelectedLabId] = useState<string>(() => selectedVendorLabId || 'lab-apex');
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('branch-1');
   const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
   const [pinCode, setPinCode] = useState('');
@@ -103,9 +105,9 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
 
       setSelectedRole(mapped);
       setLoginError('');
-      const defaultLab = vendorLabsList && vendorLabsList.length > 0 ? vendorLabsList[0].id : 'lab-apex';
+      const defaultLab = selectedVendorLabId || (vendorLabsList && vendorLabsList.length > 0 ? vendorLabsList[0].id : 'lab-apex');
       setSelectedLabId(defaultLab);
-      setSelectedBranchId('all');
+      setSelectedBranchId('branch-1');
     } else if (targetLoginRole) {
       let mapped: AuthRole = 'vendor';
       if (targetLoginRole === 'admin') mapped = 'super_admin';
@@ -115,14 +117,13 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
 
       setSelectedRole(mapped);
       setLoginError('');
-      // Set default lab & branch scope without pre-filling credentials
       if (mapped === 'super_admin') {
         setSelectedLabId('all');
-        setSelectedBranchId('all');
+        setSelectedBranchId('branch-1');
       } else {
-        const defaultLab = vendorLabsList && vendorLabsList.length > 0 ? vendorLabsList[0].id : 'lab-apex';
+        const defaultLab = selectedVendorLabId || (vendorLabsList && vendorLabsList.length > 0 ? vendorLabsList[0].id : 'lab-apex');
         setSelectedLabId(defaultLab);
-        setSelectedBranchId('all');
+        setSelectedBranchId('branch-1');
       }
     }
   }, [targetLoginRole, isVendorContext, isOpen]);
@@ -170,7 +171,7 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
       defaultView: 'vendor_dashboard',
       badgeColor: 'bg-amber-500 text-slate-950',
       icon: <Building className="w-4 h-4 text-amber-700" />,
-      allowedSummary: ['Multi-Branch Control', 'Test Master & Pricing', 'Staff Credentials', 'P&L & Accounting'],
+      allowedSummary: ['Single-Center Lab Control', 'Test Master & Pricing', 'Staff Credentials', 'P&L & Accounting'],
     },
     reception: {
       roleType: 'reception',
@@ -214,26 +215,6 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
   const rolesToDisplay: AuthRole[] = isVendorContext
     ? ['vendor', 'reception', 'technician']
     : (Object.keys(roleConfigs) as AuthRole[]);
-
-  // Lab options for dropdown
-  const labSelectOptions = isVendorContext
-    ? (vendorLabsList && vendorLabsList.length > 0
-        ? vendorLabsList.map((l) => ({ id: l.id, name: `${l.name} (${l.city})` }))
-        : LAB_OPTIONS.map((l) => ({ id: l.id, name: `${l.name} (${l.id})` })))
-    : [
-        { id: 'all', name: '🌐 All Registered Labs (Super Admin Global Scope)' },
-        ...(vendorLabsList && vendorLabsList.length > 0
-          ? vendorLabsList.map((l) => ({ id: l.id, name: `${l.name} (${l.city})` }))
-          : LAB_OPTIONS.map((l) => ({ id: l.id, name: `${l.name} (${l.id})` }))),
-      ];
-
-  // Branch options for dropdown
-  const branchSelectOptions = [
-    { id: 'all', name: '🏢 Central Hub / All Branches' },
-    ...(vendorBranches && vendorBranches.length > 0
-      ? vendorBranches.map((b) => ({ id: b.id, name: `${b.name} (${b.badge || 'Branch'})` }))
-      : BRANCH_OPTIONS.map((b) => ({ id: b.id, name: `${b.name} (${b.badge || 'Branch'})` }))),
-  ];
 
   const currentRoleCfg = roleConfigs[selectedRole];
   const userPermissions = getPermissionsForRole(currentRoleCfg.roleType);
@@ -350,7 +331,7 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
       });
 
       setIsSubmitting(false);
-      setRegisterSuccess(`Laboratory "${lab.name}" created successfully! Opening your dashboard...`);
+      setRegisterSuccess(`Laboratory "${lab.name}" created in DRAFT mode! Your website is pending Admin Approval before going live. Opening your dashboard...`);
 
       setTimeout(() => {
         onClose();
@@ -542,48 +523,20 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
 
               {/* Manual Login Form */}
               <form onSubmit={handleManualLogin} className="space-y-4">
-                {/* Lab & Branch Scope (Shown when relevant) */}
+                {/* Diagnostic Center Context (Read-only single facility, no dropdown) */}
                 {selectedRole !== 'super_admin' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
-                        <Building className="w-3.5 h-3.5 text-[#123B6D]" />
-                        <span>Select Laboratory Diagnostic Center</span>
-                      </label>
-                      <select
-                        value={selectedLabId}
-                        onChange={(e) => setSelectedLabId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-medium"
-                      >
-                        {labSelectOptions
-                          .filter((opt) => opt.id !== 'all')
-                          .map((opt) => (
-                            <option key={opt.id} value={opt.id}>
-                              {opt.name}
-                            </option>
-                          ))}
-                      </select>
+                  <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                    <div className="w-7 h-7 rounded-lg bg-blue-100/80 text-[#123B6D] flex items-center justify-center shrink-0">
+                      <Building className="w-4 h-4" />
                     </div>
-
-                    {(selectedRole === 'reception' || selectedRole === 'technician') && (
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
-                          <Network className="w-3.5 h-3.5 text-[#123B6D]" />
-                          <span>Select Branch / Desk</span>
-                        </label>
-                        <select
-                          value={selectedBranchId}
-                          onChange={(e) => setSelectedBranchId(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-medium"
-                        >
-                          {branchSelectOptions.map((opt) => (
-                            <option key={opt.id} value={opt.id}>
-                              {opt.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
+                    <div className="min-w-0">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block leading-tight">
+                        Diagnostic Center
+                      </span>
+                      <span className="font-bold text-slate-800 text-xs truncate block mt-0.5">
+                        {vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory'}
+                      </span>
+                    </div>
                   </div>
                 )}
 

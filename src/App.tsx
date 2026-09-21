@@ -39,6 +39,8 @@ import { DashboardAuthGuard } from './components/DashboardAuthGuard';
 import { CmsAuthModal } from './components/CmsAuthModal';
 import { BranchManagerDashboard } from './components/BranchManagerDashboard';
 import { PathologistDashboard } from './components/PathologistDashboard';
+import { RoleContextBanner } from './components/RoleContextBanner';
+import { Building } from 'lucide-react';
 import { isUserAuthorizedForView } from './utils/rbac';
 import { useCms } from './context/CmsContext';
 
@@ -130,6 +132,7 @@ export default function App() {
           onOpenSoftwareWebsite={() => setCurrentView('website')}
           onOpenVendorDashboard={() => setCurrentView('vendor_dashboard')}
           onOpenReceptionDashboard={() => setCurrentView('reception_dashboard')}
+          onOpenAdminDashboard={() => setCurrentView('admin_dashboard')}
         />
         <CmsAuthModal
           isOpen={isAuthModalOpen}
@@ -328,39 +331,43 @@ export default function App() {
     );
   }
 
-  // 4c. Dedicated Experience: Branch Operations & Cash Manager Dashboard
+  // 4c. Dedicated Experience: Single Facility Operations (Consolidated into Lab Admin & Reception)
   if (currentView === 'branch_manager_dashboard') {
-    if (!isAuthorizedForView('branch_manager_dashboard')) {
-      return (
-        <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-          <DashboardAuthGuard
-            view="branch_manager_dashboard"
-            onNavigateView={(view) => {
-              setCurrentView(view);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-          <CmsAuthModal
-            isOpen={isAuthModalOpen}
-            onClose={() => setIsAuthModalOpen(false)}
-            onNavigateView={(v) => {
-              setCurrentView(v);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-        </div>
-      );
-    }
-
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <BranchManagerDashboard
-          onNavigateView={(view) => {
-            setCurrentView(view);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          onOpenReportPortal={handleViewPatientPortal}
-        />
+        <RoleContextBanner currentView={currentView} onNavigateView={(v) => setCurrentView(v)} />
+        <div className="max-w-2xl mx-auto my-auto py-16 px-6 text-center">
+          <div className="w-16 h-16 bg-blue-50 text-[#123B6D] rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-xs border border-blue-100">
+            <Building className="w-8 h-8" />
+          </div>
+          <span className="text-[11px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+            Single Branch Diagnostic Mode
+          </span>
+          <h2 className="text-2xl font-black text-slate-900 mt-4 mb-2">Centralized Laboratory Operations</h2>
+          <p className="text-slate-600 text-sm max-w-md mx-auto mb-8 leading-relaxed">
+            This laboratory operates as a single centralized facility. All patient billing, token queue, test verification, and cash tracking are consolidated in the main panels below.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => {
+                setCurrentView('vendor_dashboard');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-5 py-2.5 bg-[#123B6D] text-white font-bold rounded-xl text-xs hover:bg-[#0e2c52] transition cursor-pointer shadow-sm"
+            >
+              🏢 Lab Owner / Admin Panel →
+            </button>
+            <button
+              onClick={() => {
+                setCurrentView('reception_dashboard');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-5 py-2.5 bg-teal-600 text-white font-bold rounded-xl text-xs hover:bg-teal-700 transition cursor-pointer shadow-sm"
+            >
+              🖥️ Reception & Billing Panel →
+            </button>
+          </div>
+        </div>
         <CmsAuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}

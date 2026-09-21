@@ -90,12 +90,12 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo, onOpen
             <ul className="space-y-2">
               <li>
                 <button onClick={() => scrollTo('pricing-section')} className="hover:text-white transition">
-                  Single Branch
+                  Diagnostic Center
                 </button>
               </li>
               <li>
-                <button onClick={() => scrollTo('multi-branch-section')} className="hover:text-white transition">
-                  Multi Branch
+                <button onClick={() => scrollTo('solution-section')} className="hover:text-white transition">
+                  Pathology Labs
                 </button>
               </li>
               <li>

@@ -90,13 +90,14 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
   // Stats calculation
   const stats = useMemo(() => {
     const total = vendorLabsList.length;
+    const draft = vendorLabsList.filter((v) => v.status === 'Draft').length;
     const active = vendorLabsList.filter((v) => v.status === 'Active').length;
     const pending = vendorLabsList.filter((v) => v.status === 'Pending').length;
     const processingPayment = vendorLabsList.filter(
       (v) => v.status === 'Processing due to payment confirmation'
     ).length;
     const suspended = vendorLabsList.filter((v) => v.status === 'Suspended').length;
-    return { total, active, pending, processingPayment, suspended };
+    return { total, draft, active, pending, processingPayment, suspended };
   }, [vendorLabsList]);
 
   // Unique cities for filter
@@ -227,6 +228,36 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
         </button>
       </div>
 
+      {/* Draft Labs Pending Approval Alert Banner (when newly created labs are in Draft mode) */}
+      {stats.draft > 0 && (
+        <div className="bg-amber-50 border-2 border-amber-400 p-4 sm:p-5 rounded-2xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-xs font-black">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-amber-950 flex items-center gap-2">
+                <span>{stats.draft} New Laboratory Website(s) in Draft Mode</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-200 text-amber-900 uppercase font-black tracking-wider">
+                  Pending Admin Approval
+                </span>
+              </h4>
+              <p className="text-xs text-amber-900/80 mt-0.5">
+                New laboratories start in Draft mode so their website remains unpublished until you approve it. Review their setup and click <strong>Approve & Publish Live</strong> to make the website public to patients.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setStatusFilter('Draft')}
+            className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 self-start sm:self-auto"
+          >
+            <span>Review {stats.draft} Draft Lab(s)</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Payment Confirmation Alert Banner (if any lab is in payment confirmation status) */}
       {stats.processingPayment > 0 && (
         <div className="bg-amber-50 border-2 border-amber-300 p-4 sm:p-5 rounded-2xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
@@ -258,7 +289,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       )}
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         {/* Total */}
         <div
           onClick={() => setStatusFilter('All')}
@@ -275,6 +306,27 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl font-black text-slate-900">{stats.total}</span>
             <span className="text-[11px] text-slate-500 font-medium">onboarded</span>
+          </div>
+        </div>
+
+        {/* Draft Mode (Pending Approval) */}
+        <div
+          onClick={() => setStatusFilter('Draft')}
+          className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between ${
+            statusFilter === 'Draft'
+              ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-500/20 shadow-xs'
+              : 'bg-white border-slate-200 hover:border-amber-400'
+          }`}
+        >
+          <div className="flex items-center justify-between text-amber-800 text-xs font-semibold">
+            <span>Draft Mode</span>
+            <Clock className="w-4 h-4 text-amber-600" />
+          </div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-amber-700">{stats.draft}</span>
+            <span className="text-[10px] text-amber-800 font-bold bg-amber-200 px-1.5 py-0.2 rounded-full">
+              need approval
+            </span>
           </div>
         </div>
 
@@ -381,7 +433,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
 
         {/* Status Filters */}
         <div className="flex items-center gap-1 flex-wrap w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-          {(['All', 'Active', 'Processing due to payment confirmation', 'Pending', 'Suspended'] as const).map(
+          {(['All', 'Draft', 'Active', 'Processing due to payment confirmation', 'Pending', 'Suspended'] as const).map(
             (status) => (
               <button
                 key={status}
@@ -394,6 +446,8 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
               >
                 {status === 'Processing due to payment confirmation'
                   ? 'Payment Confirmation'
+                  : status === 'Draft'
+                  ? `Draft (${stats.draft})`
                   : status}
               </button>
             )
