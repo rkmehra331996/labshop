@@ -1446,9 +1446,9 @@ interface CmsContextType {
   setIsAuthModalOpen: (open: boolean) => void;
   authModalTab: 'login' | 'register';
   setAuthModalTab: (tab: 'login' | 'register') => void;
-  targetLoginRole: 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist' | null;
+  targetLoginRole: 'admin' | 'technician' | 'reception' | 'vendor' | null;
   openLoginModal: (
-    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist',
+    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor',
     initialTab?: 'login' | 'register'
   ) => void;
   openRegisterLabModal: () => void;
@@ -1596,7 +1596,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [targetLoginRole, setTargetLoginRole] = useState<
-    'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist' | null
+    'admin' | 'technician' | 'reception' | 'vendor' | null
   >(null);
   const [activeBranchId, setActiveBranchId] = useState<string>(() => {
     try {
@@ -2655,16 +2655,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const openLoginModal = (
-    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist',
+    role?: UserRole | 'admin' | 'technician' | 'reception' | 'vendor',
     initialTab: 'login' | 'register' = 'login'
   ) => {
-    let normalizedRole: 'admin' | 'technician' | 'reception' | 'vendor' | 'branch_manager' | 'pathologist' | null = null;
+    let normalizedRole: 'admin' | 'technician' | 'reception' | 'vendor' | null = null;
     if (role === 'admin' || role === 'super_admin') normalizedRole = 'admin';
-    else if (role === 'vendor' || role === 'lab_admin') normalizedRole = 'vendor';
-    else if (role === 'branch_manager') normalizedRole = 'branch_manager';
+    else if (role === 'vendor' || role === 'lab_admin' || role === 'branch_manager' || role === 'pathologist') normalizedRole = 'vendor';
     else if (role === 'reception' || role === 'receptionist') normalizedRole = 'reception';
     else if (role === 'technician') normalizedRole = 'technician';
-    else if (role === 'pathologist') normalizedRole = 'pathologist';
 
     setTargetLoginRole(normalizedRole);
     setAuthModalTab(initialTab);

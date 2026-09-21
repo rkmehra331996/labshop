@@ -140,17 +140,6 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => onNavigateView('branch_manager_dashboard')}
-                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
-                  currentView === 'branch_manager_dashboard'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:text-white bg-slate-800'
-                }`}
-              >
-                Branch Manager
-              </button>
-              <button
-                type="button"
                 onClick={() => onNavigateView('reception_dashboard')}
                 className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
                   currentView === 'reception_dashboard'
@@ -170,17 +159,6 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
                 }`}
               >
                 Technician
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigateView('pathologist_dashboard')}
-                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
-                  currentView === 'pathologist_dashboard'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-300 hover:text-white bg-slate-800'
-                }`}
-              >
-                Pathologist
               </button>
             </div>
           )}

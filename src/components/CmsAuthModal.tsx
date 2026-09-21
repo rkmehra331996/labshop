@@ -16,7 +16,6 @@ import {
   Hash,
   Crown,
   AlertCircle,
-  Stethoscope,
   Network,
   Check,
   Sparkles,
@@ -33,11 +32,17 @@ interface CmsAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigateView: (view: AppView) => void;
+  isVendorContext?: boolean;
 }
 
-export type AuthRole = 'super_admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist';
+export type AuthRole = 'super_admin' | 'vendor' | 'reception' | 'technician';
 
-export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onNavigateView }) => {
+export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
+  isOpen,
+  onClose,
+  onNavigateView,
+  isVendorContext = false,
+}) => {
   const {
     login,
     targetLoginRole,
@@ -53,7 +58,7 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
 
   // Login Form States (NO auto-fill, user enters manually)
-  const [selectedRole, setSelectedRole] = useState<AuthRole>('super_admin');
+  const [selectedRole, setSelectedRole] = useState<AuthRole>(isVendorContext ? 'vendor' : 'super_admin');
   const [selectedLabId, setSelectedLabId] = useState<string>('all');
   const [selectedBranchId, setSelectedBranchId] = useState<string>('all');
   const [emailOrPhone, setEmailOrPhone] = useState('');
@@ -82,20 +87,31 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
 
   // Sync tab with context when modal opens or target role changes
   useEffect(() => {
-    if (authModalTab) {
+    if (isVendorContext) {
+      setActiveTab('login');
+    } else if (authModalTab) {
       setActiveTab(authModalTab);
     }
-  }, [authModalTab, isOpen]);
+  }, [authModalTab, isOpen, isVendorContext]);
 
   useEffect(() => {
-    if (targetLoginRole) {
+    if (isVendorContext) {
+      let mapped: AuthRole = 'vendor';
+      if (targetLoginRole === 'reception') mapped = 'reception';
+      else if (targetLoginRole === 'technician') mapped = 'technician';
+      else mapped = 'vendor';
+
+      setSelectedRole(mapped);
+      setLoginError('');
+      const defaultLab = vendorLabsList && vendorLabsList.length > 0 ? vendorLabsList[0].id : 'lab-apex';
+      setSelectedLabId(defaultLab);
+      setSelectedBranchId('all');
+    } else if (targetLoginRole) {
       let mapped: AuthRole = 'vendor';
       if (targetLoginRole === 'admin') mapped = 'super_admin';
       else if (targetLoginRole === 'vendor') mapped = 'vendor';
-      else if (targetLoginRole === 'branch_manager') mapped = 'branch_manager';
       else if (targetLoginRole === 'reception') mapped = 'reception';
       else if (targetLoginRole === 'technician') mapped = 'technician';
-      else if (targetLoginRole === 'pathologist') mapped = 'pathologist';
 
       setSelectedRole(mapped);
       setLoginError('');
@@ -109,7 +125,7 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
         setSelectedBranchId('all');
       }
     }
-  }, [targetLoginRole]);
+  }, [targetLoginRole, isVendorContext, isOpen]);
 
   if (!isOpen) return null;
 
@@ -117,7 +133,7 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
   const roleConfigs: Record<
     AuthRole,
     {
-      roleType: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist';
+      roleType: 'admin' | 'vendor' | 'reception' | 'technician';
       title: string;
       subtitle: string;
       identifierLabel: string;
@@ -182,35 +198,10 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
       icon: <FlaskConical className="w-4 h-4 text-purple-600" />,
       allowedSummary: ['Sample Processing Queue', 'Analyzer Value Entry', 'Specimen Verification', 'QC Flags'],
     },
-    branch_manager: {
-      roleType: 'branch_manager',
-      title: 'Branch Manager',
-      subtitle: 'Local Branch Supervisor • Cash reconciliation, staff roster & cold-chain transit',
-      identifierLabel: 'Manager Username / Email',
-      identifierPlaceholder: 'e.g. manager.modeltown or email',
-      identifierType: 'text',
-      hasPin: false,
-      defaultView: 'branch_manager_dashboard',
-      badgeColor: 'bg-blue-600 text-white',
-      icon: <Building2 className="w-4 h-4 text-blue-600" />,
-      allowedSummary: ['Branch Cash Reconcile', 'Local Patient Queue', 'Sample Dispatch Box', 'Staff Roster'],
-    },
-    pathologist: {
-      roleType: 'pathologist',
-      title: 'Consultant Pathologist (MD)',
-      subtitle: 'Medical Sign-off Desk • Critical panic alerts, diagnosis & digital NABL stamp',
-      identifierLabel: 'Doctor Signatory ID / Email',
-      identifierPlaceholder: 'e.g. doctor@lab.com or signatory ID',
-      identifierType: 'text',
-      hasPin: false,
-      defaultView: 'pathologist_dashboard',
-      badgeColor: 'bg-emerald-600 text-white',
-      icon: <Stethoscope className="w-4 h-4 text-emerald-600" />,
-      allowedSummary: ['Clinical Report Approval', 'Critical Alert Triggers', 'Digital Signature Stamp', 'Panic Values'],
-    },
   };
 
   const handleRoleChange = (role: AuthRole) => {
+    if (isVendorContext && role === 'super_admin') return;
     setSelectedRole(role);
     setLoginError('');
     if (role === 'super_admin') {
@@ -219,13 +210,22 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
     }
   };
 
+  // Roles to display in selection grid (Super Admin excluded in vendor context)
+  const rolesToDisplay: AuthRole[] = isVendorContext
+    ? ['vendor', 'reception', 'technician']
+    : (Object.keys(roleConfigs) as AuthRole[]);
+
   // Lab options for dropdown
-  const labSelectOptions = [
-    { id: 'all', name: '🌐 All Registered Labs (Super Admin Global Scope)' },
-    ...(vendorLabsList && vendorLabsList.length > 0
-      ? vendorLabsList.map((l) => ({ id: l.id, name: `${l.name} (${l.city})` }))
-      : LAB_OPTIONS.map((l) => ({ id: l.id, name: `${l.name} (${l.id})` }))),
-  ];
+  const labSelectOptions = isVendorContext
+    ? (vendorLabsList && vendorLabsList.length > 0
+        ? vendorLabsList.map((l) => ({ id: l.id, name: `${l.name} (${l.city})` }))
+        : LAB_OPTIONS.map((l) => ({ id: l.id, name: `${l.name} (${l.id})` })))
+    : [
+        { id: 'all', name: '🌐 All Registered Labs (Super Admin Global Scope)' },
+        ...(vendorLabsList && vendorLabsList.length > 0
+          ? vendorLabsList.map((l) => ({ id: l.id, name: `${l.name} (${l.city})` }))
+          : LAB_OPTIONS.map((l) => ({ id: l.id, name: `${l.name} (${l.id})` }))),
+      ];
 
   // Branch options for dropdown
   const branchSelectOptions = [
@@ -242,6 +242,11 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
   const handleManualLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
+
+    if (isVendorContext && selectedRole === 'super_admin') {
+      setLoginError('Super Admin login is restricted to the SaaS central platform.');
+      return;
+    }
 
     if (!emailOrPhone.trim()) {
       setLoginError(`Please enter your ${currentRoleCfg.identifierLabel}.`);
@@ -361,17 +366,25 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
         <div className="bg-[#123B6D] text-white px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-sm shadow-md shrink-0">
-              {activeTab === 'login' ? <KeyRound className="w-5 h-5 text-slate-950" /> : <Building2 className="w-5 h-5 text-slate-950" />}
+              {isVendorContext || activeTab === 'login' ? <KeyRound className="w-5 h-5 text-slate-950" /> : <Building2 className="w-5 h-5 text-slate-950" />}
             </div>
             <div>
               <h3 className="font-black text-base tracking-tight leading-none text-white flex items-center gap-2">
-                <span>{activeTab === 'login' ? 'Pathology Portal Authentication' : 'Create & Register New Laboratory'}</span>
+                <span>
+                  {isVendorContext
+                    ? 'Laboratory Staff & Management Login'
+                    : activeTab === 'login'
+                    ? 'Pathology Portal Authentication'
+                    : 'Create & Register New Laboratory'}
+                </span>
                 <span className="text-[10px] font-bold bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full uppercase">
-                  {activeTab === 'login' ? 'Role Access' : 'New Lab Onboarding'}
+                  {isVendorContext ? 'Lab Workstation' : activeTab === 'login' ? 'Role Access' : 'New Lab Onboarding'}
                 </span>
               </h3>
               <p className="text-xs text-slate-300 mt-1">
-                {activeTab === 'login'
+                {isVendorContext
+                  ? 'Manual credential verification for Lab Owner, Reception Desk & Testing Technicians'
+                  : activeTab === 'login'
                   ? 'Manual credential verification for Super Admin, Lab Owners, Receptionists & Technicians'
                   : 'Instant multi-branch setup, test catalog initialization & staff credential provisioning'}
               </p>
@@ -386,42 +399,44 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
           </button>
         </div>
 
-        {/* Tab Selector: Login vs Register */}
-        <div className="flex border-b border-slate-200 bg-slate-50 px-6 pt-2.5 gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('login');
-              setAuthModalTab('login');
-            }}
-            className={`pb-3 px-4 font-bold text-xs flex items-center gap-2 border-b-2 transition cursor-pointer ${
-              activeTab === 'login'
-                ? 'border-[#123B6D] text-[#123B6D]'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span>Staff & Admin Login</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('register');
-              setAuthModalTab('register');
-            }}
-            className={`pb-3 px-4 font-bold text-xs flex items-center gap-2 border-b-2 transition cursor-pointer ${
-              activeTab === 'register'
-                ? 'border-[#123B6D] text-[#123B6D]'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Create / Register New Lab</span>
-            <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
-              Free Setup
-            </span>
-          </button>
-        </div>
+        {/* Tab Selector: Login vs Register (Hidden on vendor website) */}
+        {!isVendorContext && (
+          <div className="flex border-b border-slate-200 bg-slate-50 px-6 pt-2.5 gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('login');
+                setAuthModalTab('login');
+              }}
+              className={`pb-3 px-4 font-bold text-xs flex items-center gap-2 border-b-2 transition cursor-pointer ${
+                activeTab === 'login'
+                  ? 'border-[#123B6D] text-[#123B6D]'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Staff & Admin Login</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('register');
+                setAuthModalTab('register');
+              }}
+              className={`pb-3 px-4 font-bold text-xs flex items-center gap-2 border-b-2 transition cursor-pointer ${
+                activeTab === 'register'
+                  ? 'border-[#123B6D] text-[#123B6D]'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Create / Register New Lab</span>
+              <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">
+                Free Setup
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* Current Active Session Bar */}
         {currentUser && (
@@ -476,8 +491,8 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
                 <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-2">
                   Select Login Role to Authenticate
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                  {(Object.keys(roleConfigs) as AuthRole[]).map((roleKey) => {
+                <div className={`grid gap-2.5 ${isVendorContext ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'}`}>
+                  {rolesToDisplay.map((roleKey) => {
                     const cfg = roleConfigs[roleKey];
                     const isSelected = selectedRole === roleKey;
                     return (
@@ -550,7 +565,7 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
                       </select>
                     </div>
 
-                    {(selectedRole === 'reception' || selectedRole === 'technician' || selectedRole === 'branch_manager') && (
+                    {(selectedRole === 'reception' || selectedRole === 'technician') && (
                       <div>
                         <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
                           <Network className="w-3.5 h-3.5 text-[#123B6D]" />
@@ -651,26 +666,28 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({ isOpen, onClose, onN
                   <ArrowRight className="w-4 h-4 text-amber-400" />
                 </button>
 
-                {/* Footer Switch to Register */}
-                <div className="pt-2 text-center text-xs text-slate-600">
-                  <span>Want to establish a new diagnostic laboratory? </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('register');
-                      setAuthModalTab('register');
-                    }}
-                    className="text-[#123B6D] font-bold hover:underline cursor-pointer"
-                  >
-                    Register & Create Lab →
-                  </button>
-                </div>
+                {/* Footer Switch to Register (Hidden in Vendor Website context) */}
+                {!isVendorContext && (
+                  <div className="pt-2 text-center text-xs text-slate-600">
+                    <span>Want to establish a new diagnostic laboratory? </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('register');
+                        setAuthModalTab('register');
+                      }}
+                      className="text-[#123B6D] font-bold hover:underline cursor-pointer"
+                    >
+                      Register & Create Lab →
+                    </button>
+                  </div>
+                )}
               </form>
             </div>
           )}
 
-          {/* ================= TAB 2: CREATE / REGISTER NEW LAB ================= */}
-          {activeTab === 'register' && (
+          {/* ================= TAB 2: CREATE / REGISTER NEW LAB (Disabled in vendor context) ================= */}
+          {!isVendorContext && activeTab === 'register' && (
             <form onSubmit={handleRegisterLab} className="space-y-5">
               {/* Introduction Banner */}
               <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-xs flex items-start gap-3">

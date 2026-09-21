@@ -119,17 +119,6 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <span>Lab HQ</span>
                   </button>
                   <button
-                    onClick={() => onSelectView('branch_manager_dashboard')}
-                    className={`hidden sm:inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
-                      currentView === 'branch_manager_dashboard'
-                        ? 'bg-blue-400 text-slate-950 ring-2 ring-white/50'
-                        : 'bg-blue-400/80 hover:bg-blue-400 text-slate-950'
-                    }`}
-                    title="Branch Operations Desk"
-                  >
-                    <span>Branch</span>
-                  </button>
-                  <button
                     onClick={() => onSelectView('reception_dashboard')}
                     className={`px-2 py-0.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
                       currentView === 'reception_dashboard'
@@ -151,41 +140,10 @@ export const TopBar: React.FC<TopBarProps> = ({
                   >
                     <span>Tech</span>
                   </button>
-                  <button
-                    onClick={() => onSelectView('pathologist_dashboard')}
-                    className={`hidden md:inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold transition cursor-pointer ${
-                      currentView === 'pathologist_dashboard'
-                        ? 'bg-emerald-400 text-slate-950 ring-2 ring-white/50'
-                        : 'bg-emerald-400/80 hover:bg-emerald-400 text-slate-950'
-                    }`}
-                    title="Pathologist Verification Desk"
-                  >
-                    <span>Patho</span>
-                  </button>
                 </div>
               )}
 
               {/* Dedicated role button for non-admin staff */}
-              {currentUser.role === 'branch_manager' && (
-                <button
-                  onClick={() => onSelectView('branch_manager_dashboard')}
-                  className="px-2 py-0.5 bg-blue-400 hover:bg-blue-300 text-slate-950 font-bold rounded-full text-[11px] flex items-center gap-1 transition cursor-pointer"
-                >
-                  <Building2 className="w-3 h-3" />
-                  <span>Branch Desk</span>
-                </button>
-              )}
-
-              {currentUser.role === 'pathologist' && (
-                <button
-                  onClick={() => onSelectView('pathologist_dashboard')}
-                  className="px-2 py-0.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold rounded-full text-[11px] flex items-center gap-1 transition cursor-pointer"
-                >
-                  <Stethoscope className="w-3 h-3" />
-                  <span>Clinical Desk</span>
-                </button>
-              )}
-
               {currentUser.role === 'reception' && (
                 <button
                   onClick={() => onSelectView('reception_dashboard')}

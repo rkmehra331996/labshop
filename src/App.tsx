@@ -133,6 +133,7 @@ export default function App() {
         />
         <CmsAuthModal
           isOpen={isAuthModalOpen}
+          isVendorContext={true}
           onClose={() => setIsAuthModalOpen(false)}
           onNavigateView={(v) => {
             setCurrentView(v);
