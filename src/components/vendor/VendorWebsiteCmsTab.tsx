@@ -27,6 +27,7 @@ import {
 import { useCms, DEFAULT_VENDOR_SECTIONS } from '../../context/CmsContext';
 import { VendorWebsiteSections, VendorLabSettings } from '../../types';
 import { generateDefaultOgImage } from '../../utils/seo';
+import { getTenantWebsiteUrl, SUPER_ADMIN_DOMAIN } from '../../constants/domains';
 
 interface VendorWebsiteCmsTabProps {
   onPreviewWebsite?: () => void;
@@ -154,6 +155,11 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({ onPrev
   }, [vendorLabSettings]);
 
   const [copiedMeta, setCopiedMeta] = useState(false);
+  const [copiedSubdomain, setCopiedSubdomain] = useState(false);
+
+  const tenantSubdomainUrl = getTenantWebsiteUrl(
+    currentLabItem?.domainPreview || `${currentLabItem?.id || 'apexdiagnostics'}.${SUPER_ADMIN_DOMAIN}`
+  );
 
   // File Upload Handlers for Logo & OG Image
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -527,13 +533,77 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({ onPrev
               </p>
             </div>
 
-            {/* Shop Website URL */}
-            <div className="md:col-span-2">
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                Shop Website URL (Canonical URL & og:url)
-              </label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
+            {/* Dedicated Website URL Card (Har Lab Ka Apna URL) */}
+            <div className="md:col-span-2 bg-gradient-to-r from-indigo-50/80 via-white to-blue-50/80 p-4 rounded-xl border border-indigo-200/90 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                    <Globe className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-indigo-950">
+                      Your Dedicated Laboratory Website (Har Lab Ka Apna URL)
+                    </h4>
+                    <p className="text-[11px] text-slate-600">
+                      Patients can directly visit this URL to view test menus, book home collection, and download reports.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
+                  Unique Subdomain
+                </span>
+              </div>
+
+              {/* Primary Dedicated URL */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white p-2.5 rounded-xl border border-indigo-200">
+                <div className="flex-1 flex items-center gap-2 font-mono text-xs text-indigo-900 font-bold px-2 truncate">
+                  <span className="text-slate-400 font-normal">URL:</span>
+                  <span className="text-indigo-600 truncate">{tenantSubdomainUrl}</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        navigator.clipboard.writeText(tenantSubdomainUrl);
+                      } catch {}
+                      setCopiedSubdomain(true);
+                      setTimeout(() => setCopiedSubdomain(false), 2500);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer border border-indigo-200"
+                  >
+                    {copiedSubdomain ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-700">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Copy URL</span>
+                      </>
+                    )}
+                  </button>
+
+                  {onPreviewWebsite && (
+                    <button
+                      type="button"
+                      onClick={onPreviewWebsite}
+                      className="px-3 py-1.5 rounded-lg bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Preview Live</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Optional Custom Domain */}
+              <div className="pt-2 border-t border-indigo-100">
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  Custom Domain or Subdomain Alias (Optional)
+                </label>
+                <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <LinkIcon className="w-3.5 h-3.5" />
                   </div>
@@ -541,26 +611,14 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({ onPrev
                     type="url"
                     value={formData.websiteUrl || ''}
                     onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
-                    className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#123B6D] font-mono text-xs"
-                    placeholder="https://apexdiagnostics.in"
+                    className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#123B6D] font-mono text-xs bg-white"
+                    placeholder={`https://${currentLabItem?.domainPreview || 'apexdiagnostics.indianlalaji.com'}`}
                   />
                 </div>
-                {formData.websiteUrl && (
-                  <a
-                    href={formData.websiteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-2 border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-lg text-slate-600 flex items-center gap-1.5 transition text-xs font-semibold"
-                    title="Open Website in new tab"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Open</span>
-                  </a>
-                )}
+                <p className="text-[10px] text-slate-500 mt-1">
+                  If you have your own branded domain (e.g., <span className="font-mono font-semibold text-slate-700">https://apexdiagnostics.in</span>), enter it here. Otherwise, your dedicated <span className="font-mono font-bold text-indigo-700">{tenantSubdomainUrl}</span> is active 24x7.
+                </p>
               </div>
-              <p className="text-[10px] text-slate-500 mt-1">
-                Current tenant's exact URL, used for <span className="font-mono font-semibold text-[#123B6D]">og:url</span> and canonical links.
-              </p>
             </div>
 
             {/* Tagline */}

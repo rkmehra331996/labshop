@@ -43,6 +43,7 @@ import { RoleContextBanner } from './components/RoleContextBanner';
 import { Building } from 'lucide-react';
 import { isUserAuthorizedForView } from './utils/rbac';
 import { useCms } from './context/CmsContext';
+import { getTenantSubdomain } from './constants/domains';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<AppView>('website');
@@ -52,13 +53,41 @@ export default function App() {
   const [selectedReportId, setSelectedReportId] = useState('');
   const [selectedPatientMobile, setSelectedPatientMobile] = useState('');
 
-  const { currentUser, isAuthModalOpen, setIsAuthModalOpen, portalSections } = useCms();
+  const {
+    currentUser,
+    isAuthModalOpen,
+    setIsAuthModalOpen,
+    portalSections,
+    selectVendorLab,
+    selectedVendorLabId,
+    vendorLabsList,
+  } = useCms();
 
-  // Sync view from URL parameters on initial mount
+  // Sync view and lab tenant from URL parameters or subdomain on initial mount
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       const viewParam = params.get('view') as AppView | null;
+      const labParam = params.get('lab') || params.get('subdomain');
+
+      // Check if hostname is e.g. <subdomain>.indianlalaji.com
+      const hostname = window.location.hostname;
+      let hostSubdomain: string | null = null;
+      if (hostname.includes('.') && !hostname.startsWith('www.') && !hostname.startsWith('localhost')) {
+        const parts = hostname.split('.');
+        if (parts.length >= 3) {
+          hostSubdomain = parts[0];
+        }
+      }
+
+      const targetLab = labParam || hostSubdomain;
+      if (targetLab) {
+        selectVendorLab(targetLab);
+        if (!viewParam) {
+          setCurrentView('vendor_website');
+        }
+      }
+
       if (
         viewParam &&
         [
@@ -79,21 +108,33 @@ export default function App() {
     } catch {}
   }, []);
 
-  // Update URL search parameters when view changes (unless on public websites)
+  // Update URL search parameters when view or selected lab changes
   useEffect(() => {
     try {
       const url = new URL(window.location.href);
-      if (currentView === 'website' || currentView === 'vendor_website') {
-        if (url.searchParams.has('view')) {
-          url.searchParams.delete('view');
-          window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      if (currentView === 'website') {
+        url.searchParams.delete('view');
+        url.searchParams.delete('lab');
+        url.searchParams.delete('subdomain');
+        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      } else if (currentView === 'vendor_website') {
+        url.searchParams.set('view', 'vendor_website');
+        if (selectedVendorLabId) {
+          const currentLab = vendorLabsList.find((l) => l.id === selectedVendorLabId);
+          const slug = getTenantSubdomain(currentLab?.domainPreview || selectedVendorLabId);
+          url.searchParams.set('lab', slug);
         }
+        window.history.replaceState({}, '', url.pathname + url.search);
       } else {
         url.searchParams.set('view', currentView);
+        // keep lab param if in vendor-specific views
+        if (!['vendor_dashboard', 'reception_dashboard', 'technician_dashboard', 'pathologist_dashboard'].includes(currentView)) {
+          url.searchParams.delete('lab');
+        }
         window.history.replaceState({}, '', url.pathname + url.search);
       }
     } catch {}
-  }, [currentView]);
+  }, [currentView, selectedVendorLabId, vendorLabsList]);
 
   // Authorization check for protected dashboard workspaces using RBAC
   const isAuthorizedForView = (view: AppView): boolean => {

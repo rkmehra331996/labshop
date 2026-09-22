@@ -36,12 +36,14 @@ import {
   Linkedin,
   Youtube,
   ExternalLink,
+  Lock,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
 import { Language } from '../types';
 import { OnlineTestBookingModal } from './vendor/OnlineTestBookingModal';
 import { HeroBookingForm } from './vendor/HeroBookingForm';
+import { getTenantWebsiteUrl, getTenantSubdomain, getTenantBrowserUrl, SUPER_ADMIN_DOMAIN } from '../constants/domains';
 
 interface LabVendorWebsiteProps {
   language?: Language;
@@ -75,9 +77,12 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     vendorLabsList,
     setVendorStatus,
     selectedVendorLabId,
+    selectVendorLab,
   } = useCms();
 
   const [approvalToast, setApprovalToast] = useState<string | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [showLabSwitcher, setShowLabSwitcher] = useState(false);
 
   const currentLabItem = React.useMemo(() => {
     return (
@@ -85,9 +90,14 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       vendorLabsList.find(
         (l) => l.name?.toLowerCase() === (vendorLabSettings?.labName || vendorLabSettings?.name)?.toLowerCase()
       ) ||
+      vendorLabsList[0] ||
       null
     );
   }, [vendorLabsList, vendorLabSettings, selectedVendorLabId]);
+
+  const dedicatedDomain = currentLabItem?.domainPreview || `${currentLabItem?.id || 'apexdiagnostics'}.${SUPER_ADMIN_DOMAIN}`;
+  const canonicalUrl = getTenantWebsiteUrl(dedicatedDomain);
+  const browserShareUrl = getTenantBrowserUrl(dedicatedDomain);
 
   const isDraft = currentLabItem
     ? (currentLabItem.status === 'Draft' || currentLabItem.status === 'Pending' || currentLabItem.status !== 'Active' || !currentLabItem.isWebsiteApproved)
@@ -104,10 +114,27 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       (isPlatformAdmin || currentUser.labId === currentLabItem?.id || currentUser.entityName === currentLabItem?.name)
   );
 
+  const handleCopyUrl = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      navigator.clipboard.writeText(canonicalUrl);
+    } catch {}
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2500);
+  };
+
+  const handleShareWhatsApp = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const text = encodeURIComponent(
+      `Book online lab tests & view reports at ${currentLabItem?.name || 'our laboratory'}:\n${canonicalUrl}`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
   const handleApproveWebsite = () => {
     if (currentLabItem) {
       setVendorStatus(currentLabItem.id, 'Active');
-      setApprovalToast(`Website for "${currentLabItem.name}" has been approved and published LIVE!`);
+      setApprovalToast(`Website for "${currentLabItem.name}" has been approved and published LIVE on ${canonicalUrl}!`);
       setTimeout(() => setApprovalToast(null), 5000);
     }
   };
@@ -147,7 +174,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const labEmergency = vendorLabSettings?.emergencyHours || '24x7 Emergency Services at Central Lab';
   const labAddress = vendorLabSettings?.address || 'SCF 42-43, Sector 18-C, Central Healthcare Complex, Ludhiana';
   const labDescription = vendorLabSettings?.description || labTagline || 'Advanced Pathology, Biochemistry & Diagnostic Testing Centre. 100% NABL Accredited.';
-  const labWebsiteUrl = vendorLabSettings?.websiteUrl && !vendorLabSettings.websiteUrl.includes('labname.com') ? vendorLabSettings.websiteUrl : (typeof window !== 'undefined' ? window.location.href : 'https://indianlalaji.com');
+  const labWebsiteUrl = vendorLabSettings?.websiteUrl && !vendorLabSettings.websiteUrl.includes('labname.com') ? vendorLabSettings.websiteUrl : canonicalUrl;
   const labLogoUrl = vendorLabSettings?.logoUrl || '';
   const labOgImageUrl = vendorLabSettings?.ogImageUrl || labLogoUrl || generateDefaultOgImage(labName, labShopId, labNabl);
 
@@ -294,6 +321,62 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   if (isDraft && !isLabStaffOrOwner && !isPlatformAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 flex flex-col font-sans">
+        {/* Har Lab Ka Apna Dedicated URL - Interactive Browser Address Bar */}
+        <div className="bg-[#0B1528] text-slate-200 border-b border-slate-800 text-xs py-2 px-3 sm:px-6 shadow-inner z-50">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 w-full md:w-auto flex-1 min-w-0">
+              <div className="hidden sm:flex items-center gap-1.5 mr-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block"></span>
+              </div>
+              <div className="flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-700/80 flex-1 max-w-2xl text-xs font-mono">
+                <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="text-emerald-400 font-semibold select-none">https://</span>
+                <span className="text-white font-bold tracking-wide truncate">{dedicatedDomain}</span>
+                <span className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-sans font-bold uppercase tracking-wider ml-auto shrink-0 border border-amber-500/30">
+                  Draft Mode
+                </span>
+              </div>
+              <button
+                onClick={handleCopyUrl}
+                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
+              >
+                {copiedUrl ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400 font-bold">Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="hidden sm:inline">Copy URL</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end shrink-0">
+              <select
+                value={currentLabItem?.id || ''}
+                onChange={(e) => selectVendorLab(e.target.value)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer max-w-[200px] truncate"
+              >
+                {vendorLabsList.map((lab) => (
+                  <option key={lab.id} value={lab.id}>
+                    {lab.name} ({lab.domainPreview || `${lab.id}.${SUPER_ADMIN_DOMAIN}`})
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={onOpenSoftwareWebsite}
+                className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition cursor-pointer"
+              >
+                IndianLalaji Portal
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Simple Top Navigation */}
         <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-2xs">
           <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
@@ -440,6 +523,93 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans selection:bg-[#123B6D]/15 selection:text-[#123B6D]">
+      {/* Har Lab Ka Apna Dedicated URL - Interactive Browser Address Bar */}
+      <div className="bg-[#0B1528] text-slate-200 border-b border-slate-800 text-xs py-2 px-3 sm:px-6 shadow-inner z-50">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
+          {/* Left: SSL & URL simulation */}
+          <div className="flex items-center gap-2 w-full md:w-auto flex-1 min-w-0">
+            <div className="hidden sm:flex items-center gap-1.5 mr-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block"></span>
+            </div>
+
+            {/* The URL Bar */}
+            <div className="flex items-center gap-2 bg-slate-900/90 hover:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-700/80 flex-1 max-w-2xl text-xs font-mono transition">
+              <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="text-emerald-400 font-semibold select-none">https://</span>
+              <span className="text-white font-bold tracking-wide truncate">{dedicatedDomain}</span>
+              <span className="hidden lg:inline text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-sans font-bold uppercase tracking-wider ml-auto shrink-0 border border-emerald-500/30">
+                Har Lab Ka Apna URL
+              </span>
+            </div>
+
+            {/* Copy button */}
+            <button
+              type="button"
+              onClick={handleCopyUrl}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
+              title="Copy this lab's dedicated website URL"
+            >
+              {copiedUrl ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400 font-bold">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="hidden sm:inline">Copy URL</span>
+                </>
+              )}
+            </button>
+
+            {/* Share WhatsApp */}
+            <button
+              type="button"
+              onClick={handleShareWhatsApp}
+              className="px-2.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
+              title="Share this lab website on WhatsApp"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">WhatsApp</span>
+            </button>
+          </div>
+
+          {/* Right: Lab Switcher & Portal Navigation */}
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end shrink-0">
+            {/* Switch Lab Dropdown */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider hidden sm:inline">
+                Switch Lab:
+              </span>
+              <select
+                value={currentLabItem?.id || ''}
+                onChange={(e) => {
+                  selectVendorLab(e.target.value);
+                }}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer max-w-[190px] sm:max-w-[240px] truncate"
+                title="Switch to another registered lab to see its dedicated URL"
+              >
+                {vendorLabsList.map((lab) => (
+                  <option key={lab.id} value={lab.id}>
+                    {lab.name} ({lab.domainPreview || `${lab.id}.${SUPER_ADMIN_DOMAIN}`})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={onOpenSoftwareWebsite}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+            >
+              <span>IndianLalaji Portal</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Draft Notification Banner for Admin / Lab Staff Preview */}
       {isDraft && (
         <div className="sticky top-0 z-50 bg-amber-500 text-slate-950 px-4 py-2.5 shadow-md border-b border-amber-600">

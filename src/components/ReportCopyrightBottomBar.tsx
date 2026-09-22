@@ -8,7 +8,7 @@ interface ReportCopyrightBottomBarProps {
 }
 
 export const ReportCopyrightBottomBar: React.FC<ReportCopyrightBottomBarProps> = ({
-  softwareDomain = 'labname.com',
+  softwareDomain = 'indianlalaji.com',
   reportId,
 }) => {
   const currentYear = new Date().getFullYear();
@@ -24,12 +24,12 @@ export const ReportCopyrightBottomBar: React.FC<ReportCopyrightBottomBarProps> =
           <span className="text-[11px] text-[#123B6D]">
             Software by{' '}
             <a
-              href="https://labname.com"
+              href="https://indianlalaji.com"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#123B6D] hover:underline font-bold"
             >
-              labname.com
+              {softwareDomain || 'indianlalaji.com'}
             </a>
           </span>
         </div>
@@ -46,7 +46,7 @@ export const ReportCopyrightBottomBar: React.FC<ReportCopyrightBottomBarProps> =
       </div>
 
       <div className="flex items-center gap-2 text-slate-500 text-[10px] flex-wrap justify-center sm:justify-end">
-        <span>Copyright © {currentYear} <a href="https://labname.com" target="_blank" rel="noopener noreferrer" className="hover:underline">labname.com</a>. All Rights Reserved.</span>
+        <span>Copyright © {currentYear} <a href="https://indianlalaji.com" target="_blank" rel="noopener noreferrer" className="hover:underline">{softwareDomain || 'indianlalaji.com'}</a>. All Rights Reserved.</span>
         {reportId && (
           <>
             <span className="text-slate-300 hidden sm:inline">•</span>

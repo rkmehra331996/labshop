@@ -23,6 +23,8 @@ import {
   ArrowRight,
   Filter,
   Globe,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useCms } from '../../context/CmsContext';
 import { VendorLabDirectoryItem, VendorStatus, AppView } from '../../types';
@@ -55,6 +57,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<VendorLabDirectoryItem | null>(null);
   const [deleteConfirmVendor, setDeleteConfirmVendor] = useState<VendorLabDirectoryItem | null>(null);
+  const [copiedLabId, setCopiedLabId] = useState<string | null>(null);
 
   // Form state for add / edit
   const initialFormState: Omit<VendorLabDirectoryItem, 'id'> = {
@@ -183,25 +186,30 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     }
 
     const isApproved = formState.status === 'Active';
+    const autoSlug = formState.name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || 'newlab';
+    const rawDomain = formState.domainPreview?.trim() || `${autoSlug}.indianlalaji.com`;
+    const finalDomain = rawDomain.includes('.') ? rawDomain : `${rawDomain}.indianlalaji.com`;
 
     if (editingVendor) {
       updateVendorLab(editingVendor.id, {
         ...formState,
+        domainPreview: finalDomain,
         isWebsiteApproved: isApproved,
       });
-      showToast(`Updated laboratory: ${formState.name}`);
+      showToast(`Updated laboratory: ${formState.name} (${finalDomain})`);
       setEditingVendor(null);
     } else {
       addVendorLab({
         ...formState,
+        domainPreview: finalDomain,
         status: formState.status || 'Draft',
         isWebsiteApproved: isApproved,
         badge: isApproved ? (formState.badge || 'Verified Lab') : 'Draft - Pending Admin Approval',
       });
       showToast(
         isApproved
-          ? `Added laboratory and published LIVE: ${formState.name}`
-          : `Created lab "${formState.name}" in DRAFT mode. Admin approval required to go live.`
+          ? `Added laboratory and published LIVE: ${formState.name} (${finalDomain})`
+          : `Created lab "${formState.name}" in DRAFT mode (${finalDomain}). Admin approval required to go live.`
       );
       setIsAddModalOpen(false);
     }
@@ -667,12 +675,47 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                     </div>
 
                     {/* Portal Domain & Rating */}
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">
-                        Website Subdomain
-                      </span>
-                      <div className="font-mono text-indigo-700 text-xs truncate">
-                        {vendor.domainPreview || `${vendor.id}.indianlalaji.com`}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                          <Globe className="w-3 h-3 text-indigo-600" />
+                          <span>Dedicated Lab URL</span>
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          Har Lab Ka Apna URL
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="font-mono text-indigo-800 text-xs font-bold truncate bg-indigo-50/80 px-2 py-1 rounded-lg border border-indigo-200/80 flex-1 flex items-center gap-1">
+                          <span className="text-[10px] text-indigo-500 font-normal">https://</span>
+                          <span className="truncate">{vendor.domainPreview || `${vendor.id}.indianlalaji.com`}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const url = `https://${vendor.domainPreview || `${vendor.id}.indianlalaji.com`}`;
+                            try {
+                              navigator.clipboard.writeText(url);
+                            } catch {}
+                            setCopiedLabId(vendor.id);
+                            setTimeout(() => setCopiedLabId(null), 2000);
+                            showToast(`Copied ${vendor.name} URL: ${url}`);
+                          }}
+                          className="px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-[11px] font-bold shrink-0 transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                          title="Copy direct website URL"
+                        >
+                          {copiedLabId === vendor.id ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              <span className="text-emerald-700 font-bold">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 text-indigo-600" />
+                              <span>Copy</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                       <div className="text-slate-500 text-[11px]">
                         ★ {vendor.rating} ({vendor.reviewsCount || 80}+ reviews) • {vendor.turnaroundTime} TAT
@@ -857,10 +900,57 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                     type="text"
                     required
                     value={formState.name}
-                    onChange={(e) => setFormState({ ...formState, name: e.target.value })}
+                    onChange={(e) => {
+                      const newName = e.target.value;
+                      const autoSlug = newName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
+                      setFormState({
+                        ...formState,
+                        name: newName,
+                        domainPreview:
+                          !editingVendor && (!formState.domainPreview || formState.domainPreview.includes('.indianlalaji.com'))
+                            ? (autoSlug ? `${autoSlug}.indianlalaji.com` : '')
+                            : formState.domainPreview,
+                      });
+                    }}
                     placeholder="e.g. Apex Diagnostics & Imaging Center"
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
                   />
+                </div>
+
+                {/* Dedicated Website Subdomain (Har Lab Ka Apna URL) */}
+                <div className="sm:col-span-2 bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-200">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block font-black text-indigo-950 text-xs flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Dedicated Website Subdomain (Har Lab Ka Apna URL)</span>
+                    </label>
+                    <span className="text-[10px] text-indigo-700 font-bold bg-white px-2 py-0.5 rounded border border-indigo-200">
+                      Unique Tenant URL
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500 font-mono font-bold shrink-0">https://</span>
+                    <input
+                      type="text"
+                      value={formState.domainPreview?.replace(/\.indianlalaji\.com$/, '') || ''}
+                      onChange={(e) => {
+                        const clean = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                        setFormState({
+                          ...formState,
+                          domainPreview: clean ? `${clean}.indianlalaji.com` : '',
+                        });
+                      }}
+                      placeholder="e.g. apexdiagnostics"
+                      className="flex-1 px-3 py-1.5 bg-white border border-indigo-300 rounded-lg text-xs font-mono font-bold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    />
+                    <span className="text-xs text-slate-500 font-mono font-bold shrink-0">.indianlalaji.com</span>
+                  </div>
+                  <p className="text-[11px] text-indigo-800 mt-1.5 flex items-center gap-1">
+                    <span>Full Live URL:</span>
+                    <strong className="font-mono">
+                      https://{formState.domainPreview || `${formState.name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || 'newlab'}.indianlalaji.com`}
+                    </strong>
+                  </p>
                 </div>
 
                 {/* Owner / Incharge Name */}

@@ -3197,8 +3197,39 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const selectVendorLab = (labId: string) => {
-    const lab = vendorLabsList.find((l) => l.id === labId) || VENDOR_LABS_DIRECTORY.find((l) => l.id === labId);
+  const selectVendorLab = (labIdOrSubdomain: string) => {
+    if (!labIdOrSubdomain) return;
+    const query = labIdOrSubdomain.toLowerCase().trim().replace(/^https?:\/\//, '');
+    const cleanSub = query.split('.')[0].replace(/^lab-/, '');
+
+    const lab =
+      vendorLabsList.find((l) => {
+        const labIdClean = l.id.toLowerCase();
+        const labSubClean = (l.domainPreview || '').toLowerCase().split('.')[0];
+        const labNameSlug = l.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return (
+          labIdClean === query ||
+          labIdClean === `lab-${query}` ||
+          labIdClean.replace(/^lab-/, '') === cleanSub ||
+          labSubClean === cleanSub ||
+          (l.domainPreview && l.domainPreview.toLowerCase() === query) ||
+          labNameSlug.includes(cleanSub)
+        );
+      }) ||
+      VENDOR_LABS_DIRECTORY.find((l) => {
+        const labIdClean = l.id.toLowerCase();
+        const labSubClean = (l.domainPreview || '').toLowerCase().split('.')[0];
+        const labNameSlug = l.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return (
+          labIdClean === query ||
+          labIdClean === `lab-${query}` ||
+          labIdClean.replace(/^lab-/, '') === cleanSub ||
+          labSubClean === cleanSub ||
+          (l.domainPreview && l.domainPreview.toLowerCase() === query) ||
+          labNameSlug.includes(cleanSub)
+        );
+      });
+
     if (lab) {
       setSelectedVendorLabId(lab.id);
       // Ensure settings map entry exists for this lab
@@ -3255,7 +3286,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       subscriptionPlan: payload.subscriptionPlan || 'Professional',
       subscriptionAmount: payload.subscriptionPlan === 'Enterprise' ? 3999 : 1499,
       joinedDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-      domainPreview: `${cleanSlug}.labportal.in`,
+      domainPreview: `${cleanSlug}.indianlalaji.com`,
       features: ['WhatsApp PDF Reports', 'Barcode Tracking', 'Staff Role Management', 'Due Billing Desk'],
     };
 

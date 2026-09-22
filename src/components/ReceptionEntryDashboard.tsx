@@ -2402,7 +2402,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
         />
       )}
 
-      {/* Footer with Lab Copyright, labname.com link and Customer Care Helpline */}
+      {/* Footer with Lab Copyright, indianlalaji.com link and Customer Care Helpline */}
       <DashboardFooter />
     </div>
   );

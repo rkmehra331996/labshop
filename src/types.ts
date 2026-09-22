@@ -105,6 +105,8 @@ export interface CompanySettings {
   supportPhone: string;
   supportEmail: string;
   announcementText: string;
+  superAdminDomain?: string;
+  platformDomain?: string;
   sections?: Partial<PortalWebsiteSections>;
 }
 
