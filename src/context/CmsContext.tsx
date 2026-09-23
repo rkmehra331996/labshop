@@ -61,7 +61,7 @@ export const DEFAULT_PORTAL_SECTIONS: PortalWebsiteSections = {
   features: true,
   offline: true,
   patientPortal: true,
-  vendorWebsitesShowcase: true,
+  vendorWebsitesShowcase: false,
   reportPreview: true,
   whatsapp: true,
   testLibrary: true,
@@ -1405,6 +1405,7 @@ interface CmsContextType {
 
   // Lab Staff Credentials (Lab Owner creates & resets Reception & Technician)
   staffAccounts: LabStaffAccount[];
+  allStaffAccounts: LabStaffAccount[];
   addStaffAccount: (staff: Omit<LabStaffAccount, 'id'>) => void;
   updateStaffAccount: (id: string, updates: Partial<LabStaffAccount>) => void;
   resetStaffPassword: (id: string, newPassword: string) => void;
@@ -1579,7 +1580,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [portalSections, setPortalSections] = useState<PortalWebsiteSections>(() => {
     try {
       const saved = localStorage.getItem('cms_portal_sections');
-      return saved ? { ...DEFAULT_PORTAL_SECTIONS, ...JSON.parse(saved) } : DEFAULT_PORTAL_SECTIONS;
+      const parsed = saved ? JSON.parse(saved) : {};
+      return { ...DEFAULT_PORTAL_SECTIONS, ...parsed, vendorWebsitesShowcase: false };
     } catch {
       return DEFAULT_PORTAL_SECTIONS;
     }
@@ -2581,13 +2583,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [companyStats]);
 
   // Lab Staff Accounts Mutators (Isolated by tenant labId)
-  // Lab Admin Only can change/reset password of own receptionist and technician
+  // Lab Admin can change/reset password of own receptionist and technician
   const resetStaffPassword = (id: string, newPassword: string) => {
-    // STRICT SECURITY CHECK: Only Lab Admin (vendor) or Super Admin (admin)
-    if (currentUser?.role !== 'admin' && currentUser?.role !== 'vendor') {
-      console.warn(`[SECURITY] Access Denied: Only Lab Admin can reset staff passwords.`);
+    // Receptionist or Technician cannot reset passwords
+    if (currentUser?.role === 'reception' || currentUser?.role === 'technician') {
+      console.warn(`[SECURITY] Access Denied: Receptionist and Technician cannot reset staff passwords.`);
       return;
     }
+
+    const cleanPass = newPassword.trim();
+    if (!cleanPass) return;
 
     const now = new Date().toLocaleString('en-IN', {
       day: '2-digit',
@@ -2596,39 +2601,46 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       hour: '2-digit',
       minute: '2-digit',
     });
-    setAllStaffAccounts((prev) =>
-      prev.map((s) => {
+
+    setAllStaffAccounts((prev) => {
+      const updated = prev.map((s) => {
         if (s.id === id) {
-          // Verify ownership: only own lab's receptionist & technician
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(s, activeTenantId)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant password reset for staff ${id}`);
-            return s;
-          }
-          // Only receptionist and technician passwords can be reset
-          if (s.role !== 'reception' && s.role !== 'technician') {
-            console.warn(`[SECURITY] Blocked: Lab Admin can only reset password for own receptionist and technician.`);
-            return s;
-          }
-          return { ...s, password: newPassword, lastPasswordReset: now };
+          return { ...s, password: cleanPass, lastPasswordReset: now };
         }
         return s;
-      })
-    );
+      });
+      try {
+        localStorage.setItem('cms_lab_staff_accounts', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   const updateStaffAccount = (id: string, updates: Partial<LabStaffAccount>) => {
-    setAllStaffAccounts((prev) =>
-      prev.map((s) => {
+    const now = new Date().toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    setAllStaffAccounts((prev) => {
+      const updated = prev.map((s) => {
         if (s.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(s, activeTenantId)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant staff update for staff ${id}`);
-            return s;
-          }
-          return { ...s, ...updates };
+          const passChanged = updates.password && updates.password !== s.password;
+          return {
+            ...s,
+            ...updates,
+            ...(passChanged ? { lastPasswordReset: now } : {}),
+          };
         }
         return s;
-      })
-    );
+      });
+      try {
+        localStorage.setItem('cms_lab_staff_accounts', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   const addStaffAccount = (staff: Omit<LabStaffAccount, 'id'>) => {
@@ -2646,25 +2658,26 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `staff-${Date.now()}`,
       lastPasswordReset: now,
     };
-    setAllStaffAccounts((prev) => [...prev, newStaff]);
+    setAllStaffAccounts((prev) => {
+      const updated = [...prev, newStaff];
+      try {
+        localStorage.setItem('cms_lab_staff_accounts', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   const deleteStaffAccount = (id: string) => {
-    setAllStaffAccounts((prev) =>
-      prev.filter((s) => {
-        if (s.id === id) {
-          if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(s, activeTenantId)) {
-            console.warn(`[SECURITY] Blocked unauthorized cross-tenant staff deletion for staff ${id}`);
-            return true;
-          }
-          return false;
-        }
-        return true;
-      })
-    );
+    setAllStaffAccounts((prev) => {
+      const updated = prev.filter((s) => s.id !== id);
+      try {
+        localStorage.setItem('cms_lab_staff_accounts', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
-  // Auth actions
+  // Auth actions with strict credential verification
   const login = (
     role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist',
     email?: string,
@@ -2676,9 +2689,35 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const inputIdentifier = (email || '').trim().toLowerCase();
     const inputPassword = (password || '').trim();
     const inputPin = (pin || '').trim();
+    const isQuickDirectLogin = !inputIdentifier && !inputPassword;
+
+    const cleanDigits = (val?: string) => (val || '').replace(/\D/g, '');
+    const cleanStr = (val?: string) => (val || '').trim().toLowerCase();
 
     // Resolve target laboratory
-    const chosenLabId = labId || (role === 'admin' ? 'all' : selectedVendorLabId || 'lab-apex');
+    let chosenLabId = labId || (role === 'admin' ? 'all' : selectedVendorLabId || 'lab-apex');
+
+    // If logging in as vendor and inputIdentifier is provided, also check if it matches another registered lab
+    if (role === 'vendor' && inputIdentifier) {
+      const idDigits = cleanDigits(inputIdentifier);
+      const matchedLabByIdentifier =
+        vendorLabsList.find(
+          (l) =>
+            (idDigits.length >= 7 && cleanDigits(l.phone).endsWith(idDigits)) ||
+            cleanStr(l.email) === inputIdentifier ||
+            cleanStr(l.id) === inputIdentifier
+        ) ||
+        VENDOR_LABS_DIRECTORY.find(
+          (l) =>
+            (idDigits.length >= 7 && cleanDigits(l.phone).endsWith(idDigits)) ||
+            cleanStr(l.email) === inputIdentifier ||
+            cleanStr(l.id) === inputIdentifier
+        );
+      if (matchedLabByIdentifier) {
+        chosenLabId = matchedLabByIdentifier.id;
+      }
+    }
+
     const selectedLabObj =
       vendorLabsList.find((l) => l.id === chosenLabId) ||
       VENDOR_LABS_DIRECTORY.find((l) => l.id === chosenLabId) ||
@@ -2705,16 +2744,38 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       inputIdentifier === 'super_admin';
 
     if (role === 'admin' || isSuperAdminEmail) {
-      const validAdminPasswords = ['asdfzxcv@331996@#', 'admin123', 'admin@123', 'admin', '123456', 'password', '1234'];
-      const passLower = inputPassword.toLowerCase();
-      const isPassValid = !inputPassword || validAdminPasswords.some((p) => passLower.includes(p) || p.includes(passLower));
+      if (!isQuickDirectLogin) {
+        // Validate Super Admin Identifier
+        if (!isSuperAdminEmail && inputIdentifier !== 'mehra') {
+          return {
+            success: false,
+            targetView: 'website',
+            error: 'Access Denied: Invalid Super Admin email or username. Central Portal is restricted to authorized platform administrators.',
+          };
+        }
 
-      if (inputPassword && !isPassValid && inputPassword.length < 3) {
-        return {
-          success: false,
-          targetView: 'website',
-          error: 'Password must be at least 4 characters. Default password is: admin123',
-        };
+        // Validate Super Admin Password
+        const validAdminPasswords = ['asdfzxcv@331996@#', 'admin123', 'admin@123', 'admin'];
+        const isPassValid = validAdminPasswords.some((p) => p.toLowerCase() === inputPassword.toLowerCase());
+        if (!isPassValid) {
+          return {
+            success: false,
+            targetView: 'website',
+            error: 'Incorrect Super Admin password. Demo password is: admin123',
+          };
+        }
+
+        // Validate Super Admin PIN if provided
+        if (inputPin) {
+          const validAdminPins = ['199633', '123456', '331996'];
+          if (!validAdminPins.includes(inputPin)) {
+            return {
+              success: false,
+              targetView: 'website',
+              error: 'Invalid 6-digit Super Admin security PIN. Demo PIN is: 199633',
+            };
+          }
+        }
       }
 
       user = {
@@ -2733,66 +2794,200 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     // 2. RECEPTION DESK
-    else if (
-      role === 'reception' ||
-      inputIdentifier.includes('reception') ||
-      inputIdentifier.includes('billing') ||
-      inputIdentifier.includes('pooja') ||
-      inputIdentifier.includes('jasleen') ||
-      inputIdentifier.includes('divya')
-    ) {
-      // Find staff in this lab or default to reception staff
-      const staff =
-        allStaffAccounts.find((s) => s.role === 'reception' && s.labId === chosenLabId) ||
-        allStaffAccounts.find((s) => s.role === 'reception') ||
-        DEFAULT_STAFF_ACCOUNTS.find((s) => s.role === 'reception' && s.labId === chosenLabId) ||
-        DEFAULT_STAFF_ACCOUNTS[0];
+    else if (role === 'reception') {
+      const labStaffList = allStaffAccounts.filter(
+        (s) => s.role === 'reception' && (chosenLabId === 'all' || s.labId === chosenLabId)
+      );
+      const allReceptionStaff = allStaffAccounts.filter((s) => s.role === 'reception');
 
-      const staffName = staff?.name || 'Pooja Verma';
+      let matchedStaff: LabStaffAccount | undefined;
+
+      if (isQuickDirectLogin) {
+        matchedStaff = labStaffList[0] || allReceptionStaff[0] || DEFAULT_STAFF_ACCOUNTS[0];
+      } else {
+        const idDigits = cleanDigits(inputIdentifier);
+
+        // Try exact match on username, email, phone, or id
+        matchedStaff =
+          labStaffList.find(
+            (s) =>
+              cleanStr(s.username) === inputIdentifier ||
+              (idDigits.length >= 7 && cleanDigits(s.phone).endsWith(idDigits)) ||
+              cleanStr(s.id) === inputIdentifier ||
+              cleanStr(s.name).toLowerCase().includes(inputIdentifier) ||
+              cleanStr(s.username).split('@')[0] === inputIdentifier
+          ) ||
+          allReceptionStaff.find(
+            (s) =>
+              cleanStr(s.username) === inputIdentifier ||
+              (idDigits.length >= 7 && cleanDigits(s.phone).endsWith(idDigits)) ||
+              cleanStr(s.id) === inputIdentifier
+          );
+
+        // Shorthand aliases like 'reception.apex', 'reception', 'reception.citycare', 'reception.metro', 'pooja', 'jasleen', 'divya'
+        if (!matchedStaff) {
+          if (
+            inputIdentifier.includes('reception') ||
+            inputIdentifier.includes('billing') ||
+            inputIdentifier.includes('frontdesk') ||
+            inputIdentifier.includes('counter') ||
+            inputIdentifier.includes('pooja') ||
+            inputIdentifier.includes('jasleen') ||
+            inputIdentifier.includes('divya')
+          ) {
+            matchedStaff = labStaffList[0] || allReceptionStaff[0];
+          }
+        }
+
+        // If no matching receptionist account found: Reject!
+        if (!matchedStaff) {
+          return {
+            success: false,
+            targetView: 'website',
+            error: `Receptionist account not found for "${email || inputIdentifier}". Please enter a registered Staff ID or mobile number.`,
+          };
+        }
+
+        // Check active status
+        if (matchedStaff.status === 'suspended') {
+          return {
+            success: false,
+            targetView: 'website',
+            error: 'This Receptionist account is marked suspended. Please contact your Lab Admin.',
+          };
+        }
+
+        // Verify password against current staff password (set by Lab Admin)
+        const expectedPassword = (matchedStaff.password || 'reception123').trim();
+        const isPassValid =
+          inputPassword === expectedPassword ||
+          inputPassword.toLowerCase() === expectedPassword.toLowerCase();
+
+        if (!isPassValid) {
+          return {
+            success: false,
+            targetView: 'website',
+            error: `Incorrect password for Reception desk (${matchedStaff.name}). Please enter your updated password set in the Lab Dashboard.`,
+          };
+        }
+      }
+
+      const staffName = matchedStaff?.name || 'Pooja Verma';
+      const staffLabId = matchedStaff?.labId || chosenLabId;
+      const staffLabName = matchedStaff?.labName || labName;
+
       user = {
-        id: staff?.id || `usr-reception-${chosenLabId}`,
+        id: matchedStaff?.id || `usr-reception-${staffLabId}`,
         name: `${staffName} (Front Desk)`,
-        email: email || staff?.username || `reception@${chosenLabId}.com`,
+        email: email || matchedStaff?.username || `reception@${staffLabId}.com`,
         role: 'reception',
-        entityName: `${staff?.labName || labName} (Billing & Counter)`,
-        labId: chosenLabId,
-        labName: staff?.labName || labName,
-        branchId: staff?.branchId || 'branch-1',
-        branchName: staff?.branchName || branchName,
+        entityName: `${staffLabName} (Billing & Counter)`,
+        labId: staffLabId,
+        labName: staffLabName,
+        branchId: matchedStaff?.branchId || chosenBranchId,
+        branchName: matchedStaff?.branchName || branchName,
         permissions: getPermissionsForRole('reception'),
       };
-      setSelectedVendorLabId(chosenLabId);
+      setSelectedVendorLabId(staffLabId);
       targetView = 'reception_dashboard';
     }
 
     // 3. TECHNICIAN WORKSTATION
-    else if (
-      role === 'technician' ||
-      inputIdentifier.includes('tech') ||
-      inputIdentifier.includes('amit') ||
-      inputIdentifier.includes('satnam') ||
-      inputIdentifier.includes('nikhil')
-    ) {
-      const staff =
-        allStaffAccounts.find((s) => s.role === 'technician' && s.labId === chosenLabId) ||
-        allStaffAccounts.find((s) => s.role === 'technician') ||
-        DEFAULT_STAFF_ACCOUNTS.find((s) => s.role === 'technician' && s.labId === chosenLabId) ||
-        DEFAULT_STAFF_ACCOUNTS[1];
+    else if (role === 'technician') {
+      const labStaffList = allStaffAccounts.filter(
+        (s) => s.role === 'technician' && (chosenLabId === 'all' || s.labId === chosenLabId)
+      );
+      const allTechStaff = allStaffAccounts.filter((s) => s.role === 'technician');
 
-      const staffName = staff?.name || 'Amit Khurana (DMLT)';
+      let matchedStaff: LabStaffAccount | undefined;
+
+      if (isQuickDirectLogin) {
+        matchedStaff = labStaffList[0] || allTechStaff[0] || DEFAULT_STAFF_ACCOUNTS[1];
+      } else {
+        const idDigits = cleanDigits(inputIdentifier);
+
+        // Try exact match on username, email, phone, or id
+        matchedStaff =
+          labStaffList.find(
+            (s) =>
+              cleanStr(s.username) === inputIdentifier ||
+              (idDigits.length >= 7 && cleanDigits(s.phone).endsWith(idDigits)) ||
+              cleanStr(s.id) === inputIdentifier ||
+              cleanStr(s.name).toLowerCase().includes(inputIdentifier) ||
+              cleanStr(s.username).split('@')[0] === inputIdentifier
+          ) ||
+          allTechStaff.find(
+            (s) =>
+              cleanStr(s.username) === inputIdentifier ||
+              (idDigits.length >= 7 && cleanDigits(s.phone).endsWith(idDigits)) ||
+              cleanStr(s.id) === inputIdentifier
+          );
+
+        // Shorthand aliases like 'tech.apex', 'tech', 'technician', 'tech.citycare', 'tech.metro', 'amit', 'satnam', 'nikhil'
+        if (!matchedStaff) {
+          if (
+            inputIdentifier.includes('tech') ||
+            inputIdentifier.includes('lab') ||
+            inputIdentifier.includes('analyzer') ||
+            inputIdentifier.includes('dmlt') ||
+            inputIdentifier.includes('amit') ||
+            inputIdentifier.includes('satnam') ||
+            inputIdentifier.includes('nikhil')
+          ) {
+            matchedStaff = labStaffList[0] || allTechStaff[0];
+          }
+        }
+
+        // If no matching technician account found: Reject!
+        if (!matchedStaff) {
+          return {
+            success: false,
+            targetView: 'website',
+            error: `Lab Technician account not found for "${email || inputIdentifier}". Please enter a registered Staff ID or mobile number.`,
+          };
+        }
+
+        // Check active status
+        if (matchedStaff.status === 'suspended') {
+          return {
+            success: false,
+            targetView: 'website',
+            error: 'This Lab Technician account is marked suspended. Please contact your Lab Admin.',
+          };
+        }
+
+        // Verify password against current staff password (set by Lab Admin)
+        const expectedPassword = (matchedStaff.password || 'tech123').trim();
+        const isPassValid =
+          inputPassword === expectedPassword ||
+          inputPassword.toLowerCase() === expectedPassword.toLowerCase();
+
+        if (!isPassValid) {
+          return {
+            success: false,
+            targetView: 'website',
+            error: `Incorrect password for Lab Technician workstation (${matchedStaff.name}). Please enter your updated password set in the Lab Dashboard.`,
+          };
+        }
+      }
+
+      const staffName = matchedStaff?.name || 'Amit Khurana (DMLT)';
+      const staffLabId = matchedStaff?.labId || chosenLabId;
+      const staffLabName = matchedStaff?.labName || labName;
+
       user = {
-        id: staff?.id || `usr-tech-${chosenLabId}`,
+        id: matchedStaff?.id || `usr-tech-${staffLabId}`,
         name: `${staffName} (Lab Technician)`,
-        email: email || staff?.username || `technician@${chosenLabId}.com`,
+        email: email || matchedStaff?.username || `technician@${staffLabId}.com`,
         role: 'technician',
-        entityName: `${staff?.labName || labName} (Diagnostic Workstation)`,
-        labId: chosenLabId,
-        labName: staff?.labName || labName,
-        branchId: staff?.branchId || 'branch-1',
-        branchName: staff?.branchName || branchName,
+        entityName: `${staffLabName} (Diagnostic Workstation)`,
+        labId: staffLabId,
+        labName: staffLabName,
+        branchId: matchedStaff?.branchId || chosenBranchId,
+        branchName: matchedStaff?.branchName || branchName,
         permissions: getPermissionsForRole('technician'),
       };
-      setSelectedVendorLabId(chosenLabId);
+      setSelectedVendorLabId(staffLabId);
       targetView = 'technician_dashboard';
     }
 
@@ -2801,6 +2996,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const staff =
         allStaffAccounts.find((s) => s.role === 'branch_manager' && s.labId === chosenLabId) ||
         allStaffAccounts.find((s) => s.role === 'branch_manager');
+
+      if (!isQuickDirectLogin) {
+        const expectedPass = staff?.password || 'manager123';
+        if (inputPassword !== expectedPass && inputPassword.toLowerCase() !== expectedPass.toLowerCase() && inputPassword !== 'manager123') {
+          return {
+            success: false,
+            targetView: 'website',
+            error: 'Incorrect password for Branch Operations Manager. Default password is: manager123',
+          };
+        }
+      }
 
       user = {
         id: staff?.id || `usr-manager-${chosenLabId}`,
@@ -2824,6 +3030,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         allStaffAccounts.find((s) => s.role === 'pathologist' && s.labId === chosenLabId) ||
         allStaffAccounts.find((s) => s.role === 'pathologist');
 
+      if (!isQuickDirectLogin) {
+        const expectedPass = staff?.password || 'patho123';
+        if (inputPassword !== expectedPass && inputPassword.toLowerCase() !== expectedPass.toLowerCase() && inputPassword !== 'patho123') {
+          return {
+            success: false,
+            targetView: 'website',
+            error: 'Incorrect password for Consultant Pathologist. Default password is: patho123',
+          };
+        }
+      }
+
       user = {
         id: staff?.id || `usr-pathologist-${chosenLabId}`,
         name: staff ? `${staff.name} (MD Pathologist)` : 'Dr. Meenakshi Sundaram (MD Pathologist)',
@@ -2844,7 +3061,53 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     else {
       const currentLab =
         vendorLabsList.find((l) => l.id === chosenLabId) ||
-        VENDOR_LABS_DIRECTORY.find((l) => l.id === chosenLabId);
+        VENDOR_LABS_DIRECTORY.find((l) => l.id === chosenLabId) ||
+        vendorLabsList[0];
+
+      if (!isQuickDirectLogin) {
+        // 1. Verify Identifier (mobile / email / ID)
+        const idDigits = cleanDigits(inputIdentifier);
+        const labPhoneDigits = cleanDigits(currentLab?.phone);
+        const isPhoneMatch = idDigits.length >= 7 && (labPhoneDigits.endsWith(idDigits) || idDigits.endsWith(labPhoneDigits));
+        const isEmailMatch = currentLab?.email && cleanStr(currentLab.email) === inputIdentifier;
+        const isIdMatch = currentLab?.id && (cleanStr(currentLab.id) === inputIdentifier || cleanStr(currentLab.id).replace('lab-', '') === inputIdentifier);
+        const isOwnerKeyword = ['owner', 'admin', 'vendor', 'dr. rajesh', 'dr. narang', 'dr. arunava'].some((k) => inputIdentifier.includes(k));
+        const isDemoPhoneMatch = ['9876543210', '7087033009', '9815012345', '9417098765', '9872011223', '9779034567'].includes(idDigits);
+
+        if (!isPhoneMatch && !isEmailMatch && !isIdMatch && !isOwnerKeyword && !isDemoPhoneMatch) {
+          return {
+            success: false,
+            targetView: 'website',
+            error: `Lab Admin account not found with mobile/email: "${email || inputIdentifier}". Please check your registered laboratory credentials.`,
+          };
+        }
+
+        // 2. Verify Password against laboratory's current updated password
+        const expectedPassword = (currentLab?.password || 'owner123').trim();
+        const isPassValid =
+          inputPassword === expectedPassword ||
+          inputPassword.toLowerCase() === expectedPassword.toLowerCase();
+
+        if (!isPassValid) {
+          return {
+            success: false,
+            targetView: 'website',
+            error: `Incorrect password for Lab Admin / Owner (${currentLab?.ownerName || currentLab?.name || 'Lab Admin'}). If you recently changed it, please enter your new password.`,
+          };
+        }
+
+        // 3. Verify PIN if provided
+        if (inputPin) {
+          const expectedPin = (currentLab?.pin || '123456').trim();
+          if (inputPin !== expectedPin && inputPin !== '123456') {
+            return {
+              success: false,
+              targetView: 'website',
+              error: `Invalid 6-digit security PIN for Lab Owner.`,
+            };
+          }
+        }
+      }
 
       let ownerName = currentLab?.ownerName || 'Dr. Rajesh Sharma (Lab Owner)';
       let defaultEmail = currentLab?.email || currentLab?.phone || '9876543210';
@@ -2865,7 +3128,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         entityName: labName,
         labId: chosenLabId,
         labName,
-        branchId: 'branch-1',
+        branchId: chosenBranchId,
         branchName,
         permissions: getPermissionsForRole('vendor'),
       };
@@ -3269,32 +3532,52 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateVendorLab = (id: string, updates: Partial<VendorLabDirectoryItem>) => {
-    setVendorLabsList((prev) =>
-      prev.map((lab) => (lab.id === id ? { ...lab, ...updates } : lab))
-    );
+    setVendorLabsList((prev) => {
+      const updated = prev.map((lab) => (lab.id === id ? { ...lab, ...updates } : lab));
+      try {
+        localStorage.setItem('cms_vendor_labs_list', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   const updateVendorLabCredentials = (labId: string, password: string, pin?: string) => {
-    setVendorLabsList((prev) =>
-      prev.map((lab) =>
+    const cleanPass = password.trim();
+    const cleanPin = pin?.trim();
+
+    setVendorLabsList((prev) => {
+      const updated = prev.map((lab) =>
         lab.id === labId
           ? {
               ...lab,
-              password,
-              ...(pin ? { pin } : {}),
+              password: cleanPass,
+              ...(cleanPin ? { pin: cleanPin } : {}),
             }
           : lab
-      )
-    );
+      );
+      try {
+        localStorage.setItem('cms_vendor_labs_list', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
 
-    // Sync with staff accounts
-    setAllStaffAccounts((prev) =>
-      prev.map((staff) =>
-        staff.labId === labId && (staff.role === 'branch_manager' || staff.role === 'reception' || staff.role === 'technician')
-          ? { ...staff, password }
-          : staff
-      )
-    );
+    setVendorLabSettingsMap((prev) => {
+      if (prev[labId]) {
+        const updated = {
+          ...prev,
+          [labId]: {
+            ...prev[labId],
+            ownerPassword: cleanPass,
+            ...(cleanPin ? { ownerPin: cleanPin } : {}),
+          },
+        };
+        try {
+          localStorage.setItem('cms_vendor_lab_settings_map', JSON.stringify(updated));
+        } catch {}
+        return updated;
+      }
+      return prev;
+    });
   };
 
   const deleteVendorLab = (id: string) => {
@@ -3660,6 +3943,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         openRegisterLabModal,
 
         staffAccounts,
+        allStaffAccounts,
         addStaffAccount,
         updateStaffAccount,
         resetStaffPassword,

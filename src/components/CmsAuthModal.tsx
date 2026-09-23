@@ -57,6 +57,7 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
     authModalTab,
     setAuthModalTab,
     registerNewLab,
+    allStaffAccounts,
   } = useCms();
 
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
@@ -726,8 +727,22 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
                 {(() => {
                   let demoId = '';
                   let demoPass = '';
-                  let demoPin = '';
+                  let demoPin: string | undefined = undefined;
                   let demoName = '';
+
+                  const currentLabObj =
+                    vendorLabsList.find((l) => l.id === selectedLabId) ||
+                    vendorLabsList[0];
+
+                  const matchedReception =
+                    allStaffAccounts.find(
+                      (s) => s.role === 'reception' && (s.labId === selectedLabId || selectedLabId === 'all')
+                    ) || allStaffAccounts.find((s) => s.role === 'reception');
+
+                  const matchedTech =
+                    allStaffAccounts.find(
+                      (s) => s.role === 'technician' && (s.labId === selectedLabId || selectedLabId === 'all')
+                    ) || allStaffAccounts.find((s) => s.role === 'technician');
 
                   if (selectedRole === 'super_admin') {
                     demoId = 'rkmehra331996@gmail.com';
@@ -735,50 +750,30 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
                     demoPin = '199633';
                     demoName = 'R. K. Mehra (Global Portal Super Admin)';
                   } else if (selectedRole === 'vendor') {
-                    if (selectedLabId === 'lab-citycare') {
-                      demoId = '9815012345';
-                      demoPass = 'owner123';
-                      demoPin = '123456';
-                      demoName = 'Dr. S. K. Narang (CityCare Owner)';
-                    } else if (selectedLabId === 'lab-metropath') {
-                      demoId = '9417098765';
-                      demoPass = 'owner123';
-                      demoPin = '123456';
-                      demoName = 'Dr. Arunava Ghosh (MetroPath Owner)';
-                    } else {
-                      demoId = '9876543210';
-                      demoPass = 'owner123';
-                      demoPin = '123456';
-                      demoName = 'Dr. Rajesh Sharma (Apex Owner)';
-                    }
+                    demoId = currentLabObj?.phone || '9876543210';
+                    demoPass = currentLabObj?.password || 'owner123';
+                    demoPin = currentLabObj?.pin || '123456';
+                    demoName = `${currentLabObj?.ownerName || 'Dr. Rajesh Sharma'} (${currentLabObj?.name || 'Lab Admin'})`;
                   } else if (selectedRole === 'reception') {
-                    if (selectedLabId === 'lab-citycare') {
-                      demoId = 'reception.citycare';
-                      demoPass = 'reception123';
-                      demoName = 'Jasleen Kaur (CityCare Billing Desk)';
-                    } else if (selectedLabId === 'lab-metropath') {
-                      demoId = 'reception.metro';
-                      demoPass = 'reception123';
-                      demoName = 'Divya Mehra (MetroPath Billing Desk)';
-                    } else {
-                      demoId = 'reception.apex';
-                      demoPass = 'reception123';
-                      demoName = 'Pooja Verma (Apex Billing Desk)';
-                    }
+                    demoId =
+                      matchedReception?.username ||
+                      (selectedLabId === 'lab-citycare'
+                        ? 'reception.citycare'
+                        : selectedLabId === 'lab-metropath'
+                        ? 'reception.metro'
+                        : 'reception.apex');
+                    demoPass = matchedReception?.password || 'reception123';
+                    demoName = `${matchedReception?.name || 'Pooja Verma'} (${currentLabObj?.name || 'Reception Desk'})`;
                   } else if (selectedRole === 'technician') {
-                    if (selectedLabId === 'lab-citycare') {
-                      demoId = 'tech.citycare';
-                      demoPass = 'tech123';
-                      demoName = 'Satnam Singh (CityCare Testing Desk)';
-                    } else if (selectedLabId === 'lab-metropath') {
-                      demoId = 'tech.metro';
-                      demoPass = 'tech123';
-                      demoName = 'Nikhil Bhatt (MetroPath Testing Desk)';
-                    } else {
-                      demoId = 'tech.apex';
-                      demoPass = 'tech123';
-                      demoName = 'Amit Khurana (Apex Testing Desk)';
-                    }
+                    demoId =
+                      matchedTech?.username ||
+                      (selectedLabId === 'lab-citycare'
+                        ? 'tech.citycare'
+                        : selectedLabId === 'lab-metropath'
+                        ? 'tech.metro'
+                        : 'tech.apex');
+                    demoPass = matchedTech?.password || 'tech123';
+                    demoName = `${matchedTech?.name || 'Amit Khurana'} (${currentLabObj?.name || 'Testing Desk'})`;
                   }
 
                   const handleAutoFill = () => {

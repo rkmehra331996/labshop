@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Menu, X, ArrowRight, ChevronDown, Building2, ExternalLink, Sparkles, KeyRound } from 'lucide-react';
+import React, { useState } from 'react';
+import { Menu, X, ArrowRight, Building2, KeyRound } from 'lucide-react';
 import { AppView } from '../types';
 import { useCms } from '../context/CmsContext';
 
@@ -15,24 +15,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentView,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [vendorDropdownOpen, setVendorDropdownOpen] = useState(false);
-  const vendorDropdownRef = useRef<HTMLDivElement>(null);
-  const { vendorLabsList, selectVendorLab, openLoginModal, openRegisterLabModal, companySettings } = useCms();
+  const { openLoginModal, openRegisterLabModal, companySettings } = useCms();
   const displayBrand = companySettings?.companyName || 'INDIANLALAJI.COM';
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (vendorDropdownRef.current && !vendorDropdownRef.current.contains(e.target as Node)) {
-        setVendorDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const scrollToSection = (id: string) => {
     setMobileMenuOpen(false);
-    setVendorDropdownOpen(false);
     if (id === 'hero-section' || id === 'home') {
       if (currentView !== 'website') {
         onSelectView('website');
@@ -77,7 +64,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* Desktop Menu - Exact requested 6 menu items: Home, Features, Solutions, Showcase, Pricing, Contact Us */}
+          {/* Desktop Menu: Home, Features, Solutions, Pricing, Contact Us */}
           <div className="hidden lg:flex items-center gap-6 xl:gap-7 text-sm font-semibold text-slate-700 whitespace-nowrap">
             {/* 1. Home */}
             <button
@@ -106,124 +93,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               Solutions
             </button>
 
-            {/* 4. Showcase (Partner Lab Websites) */}
-            <div
-              className="relative whitespace-nowrap"
-              ref={vendorDropdownRef}
-              onMouseEnter={() => setVendorDropdownOpen(true)}
-              onMouseLeave={() => setVendorDropdownOpen(false)}
-            >
-              <button
-                onClick={() => scrollToSection('vendor-showcase-section')}
-                className={`hover:text-[#123B6D] transition flex items-center gap-1.5 py-1 cursor-pointer whitespace-nowrap ${
-                  vendorDropdownOpen ? 'text-[#123B6D]' : 'text-slate-700'
-                }`}
-                id="nav-link-showcase"
-                aria-expanded={vendorDropdownOpen}
-                title="View Partner Lab Websites in Showcase Cards"
-              >
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                <span>Showcase</span>
-                <span className="text-[10px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.5 rounded-full border border-amber-200">
-                  {vendorLabsList.length} Labs
-                </span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                    vendorDropdownOpen ? 'rotate-180 text-[#123B6D]' : 'text-slate-400'
-                  }`}
-                />
-              </button>
-
-              {/* Dropdown Menu listing all vendor websites */}
-              {vendorDropdownOpen && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-[430px] z-50">
-                  <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-3">
-                    <div className="px-2 py-1.5 border-b border-slate-100 flex items-center justify-between mb-2">
-                      <div>
-                        <span className="text-xs font-bold text-[#123B6D] uppercase tracking-wider block">
-                          Partner Lab Showcase
-                        </span>
-                        <span className="text-[11px] text-slate-500">
-                          Live client websites with online booking & reports
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* View All Showcase Cards Button */}
-                    <button
-                      onClick={() => scrollToSection('vendor-showcase-section')}
-                      className="w-full mb-2.5 p-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-2xs transition cursor-pointer"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>View All Showcase Cards</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-
-                    <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
-                      {vendorLabsList.map((lab) => (
-                        <button
-                          key={lab.id}
-                          onClick={() => {
-                            selectVendorLab(lab.id);
-                            onSelectView('vendor_website');
-                            setVendorDropdownOpen(false);
-                          }}
-                          className="w-full text-left p-2.5 rounded-lg hover:bg-amber-50/70 border border-transparent hover:border-amber-200 transition group flex items-start gap-3 cursor-pointer"
-                        >
-                          <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0 font-bold text-[11px] shadow-2xs mt-0.5"
-                            style={{ backgroundColor: lab.color || '#123B6D' }}
-                          >
-                            {lab.city.slice(0, 3).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-bold text-xs text-slate-900 group-hover:text-[#123B6D] truncate">
-                                {lab.name}
-                              </span>
-                              <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/70 shrink-0">
-                                {lab.city}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 truncate mt-0.5">{lab.tagline}</p>
-                            <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
-                              <span className="text-emerald-700 font-semibold">✓ {lab.nablCode}</span>
-                              <span>•</span>
-                              <span>{lab.activePackages} Packages</span>
-                              {lab.emergency && (
-                                <>
-                                  <span>•</span>
-                                  <span className="text-rose-600 font-bold">24x7</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#123B6D] shrink-0 mt-1" />
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] px-2 text-slate-600">
-                      <span className="flex items-center gap-1">
-                        <Sparkles className="w-3 h-3 text-amber-500" />
-                        Live Lab Portals
-                      </span>
-                      <button
-                        onClick={() => {
-                          setVendorDropdownOpen(false);
-                          openRegisterLabModal();
-                        }}
-                        className="text-[#0F766E] font-bold hover:underline cursor-pointer"
-                      >
-                        Get Your Lab Website →
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 5. Pricing */}
+            {/* 4. Pricing */}
             <button
               onClick={() => scrollToSection('pricing-section')}
               className="hover:text-[#123B6D] transition cursor-pointer text-slate-700 hover:font-bold whitespace-nowrap inline-block"
@@ -232,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               Pricing
             </button>
 
-            {/* 6. Contact Us */}
+            {/* 5. Contact Us */}
             <button
               onClick={() => scrollToSection('contact-section')}
               className="hover:text-[#123B6D] transition cursor-pointer text-slate-700 hover:font-bold whitespace-nowrap inline-block"
@@ -323,23 +193,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Solutions</span>
             </button>
 
-            {/* 4. Showcase (Partner Lab Websites) */}
-            <div className="py-1">
-              <button
-                onClick={() => scrollToSection('vendor-showcase-section')}
-                className="w-full text-left py-2 px-3 rounded-lg bg-amber-50 text-amber-900 font-bold border border-amber-200/80 flex items-center justify-between"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Showcase</span>
-                </span>
-                <span className="text-[10px] bg-amber-200 text-amber-950 px-2 py-0.5 rounded-full font-black">
-                  {vendorLabsList.length} Partner Labs
-                </span>
-              </button>
-            </div>
-
-            {/* 5. Pricing */}
+            {/* 4. Pricing */}
             <button
               onClick={() => scrollToSection('pricing-section')}
               className="text-left py-2 px-3 rounded-lg hover:bg-slate-50 text-slate-700 font-semibold"
@@ -347,7 +201,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Pricing</span>
             </button>
 
-            {/* 6. Contact Us */}
+            {/* 5. Contact Us */}
             <button
               onClick={() => scrollToSection('contact-section')}
               className="text-left py-2 px-3 rounded-lg hover:bg-slate-50 text-slate-700 font-semibold flex items-center justify-between"

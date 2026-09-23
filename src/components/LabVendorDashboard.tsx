@@ -96,6 +96,9 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
     updateStaffAccount,
     resetStaffPassword,
     deleteStaffAccount,
+    vendorLabsList,
+    updateVendorLabCredentials,
+    activeTenantId,
   } = useCms();
 
   const [activeTab, setActiveTab] = useState<
@@ -131,6 +134,51 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
   const [copiedStaffId, setCopiedStaffId] = useState<string | null>(null);
 
+  // Lab Owner Credentials Management State
+  const [isOwnerPasswordModal, setIsOwnerPasswordModal] = useState(false);
+  const [ownerNewPassword, setOwnerNewPassword] = useState('');
+  const [ownerConfirmPassword, setOwnerConfirmPassword] = useState('');
+  const [ownerNewPin, setOwnerNewPin] = useState('');
+  const [ownerPasswordError, setOwnerPasswordError] = useState('');
+  const [showOwnerPassword, setShowOwnerPassword] = useState(false);
+  const [showOwnerPin, setShowOwnerPin] = useState(false);
+
+  const currentLab =
+    vendorLabsList.find((l) => l.id === activeTenantId) ||
+    vendorLabsList.find((l) => l.id === vendorLabSettings.labId) ||
+    vendorLabsList[0];
+
+  const handleOpenOwnerPasswordModal = () => {
+    setOwnerNewPassword(currentLab?.password || 'owner123');
+    setOwnerConfirmPassword(currentLab?.password || 'owner123');
+    setOwnerNewPin(currentLab?.pin || '123456');
+    setOwnerPasswordError('');
+    setIsOwnerPasswordModal(true);
+  };
+
+  const handleSaveOwnerPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ownerNewPassword.trim()) {
+      setOwnerPasswordError('Please enter a new password');
+      return;
+    }
+    if (ownerNewPassword.length < 4) {
+      setOwnerPasswordError('Password must be at least 4 characters long');
+      return;
+    }
+    if (ownerNewPassword !== ownerConfirmPassword) {
+      setOwnerPasswordError('New password and confirm password do not match');
+      return;
+    }
+    const cleanPass = ownerNewPassword.trim();
+    const cleanPin = ownerNewPin.trim() || '123456';
+
+    updateVendorLabCredentials(currentLab?.id || 'lab-apex', cleanPass, cleanPin);
+    setIsOwnerPasswordModal(false);
+    setToastMessage(`Lab Owner credentials updated! New login password: "${cleanPass}" | PIN: "${cleanPin}"`);
+    setTimeout(() => setToastMessage(''), 4500);
+  };
+
   const toggleShowPassword = (staffId: string) => {
     setShowPasswordMap((prev) => ({ ...prev, [staffId]: !prev[staffId] }));
   };
@@ -157,23 +205,24 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const handleSaveResetPassword = (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetStaffForReset) return;
-    if (!newPasswordInput.trim()) {
+    const cleanPass = newPasswordInput.trim();
+    if (!cleanPass) {
       setPasswordError('Please enter a new password');
       return;
     }
-    if (newPasswordInput.length < 5) {
-      setPasswordError('Password must be at least 5 characters long');
+    if (cleanPass.length < 4) {
+      setPasswordError('Password must be at least 4 characters long');
       return;
     }
-    if (newPasswordInput !== confirmPasswordInput) {
+    if (cleanPass !== confirmPasswordInput.trim()) {
       setPasswordError('New password and confirm password do not match');
       return;
     }
 
-    resetStaffPassword(targetStaffForReset.id, newPasswordInput.trim());
+    resetStaffPassword(targetStaffForReset.id, cleanPass);
     setIsResetPasswordModal(false);
-    setToastMessage(`Password for ${targetStaffForReset.name} (${targetStaffForReset.role === 'reception' ? 'Receptionist' : 'Lab Technician'}) has been updated successfully!`);
-    setTimeout(() => setToastMessage(''), 3500);
+    setToastMessage(`Password for ${targetStaffForReset.name} (${targetStaffForReset.role === 'reception' ? 'Receptionist' : 'Lab Technician'}) updated to "${cleanPass}"!`);
+    setTimeout(() => setToastMessage(''), 4500);
   };
 
   const handleOpenAddStaff = (preferredRole: 'reception' | 'technician' = 'reception') => {
@@ -1209,16 +1258,53 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                   </div>
                 </div>
 
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center shrink-0 font-black text-xs shadow-xs">
-                    🛡️
+                <div className="bg-indigo-50/80 border border-indigo-200/80 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-[#123B6D] text-white flex items-center justify-center shrink-0 font-black text-sm shadow-xs">
+                      👑
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 text-xs">Lab Owner Credentials (लैब ओनर क्रेडेंशियल्स)</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">
+                          Primary Admin
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-600 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono">
+                        <span>Mobile/Login: <strong className="text-slate-900 font-bold">{currentLab?.phone || '9876543210'}</strong></span>
+                        <span className="flex items-center gap-1">
+                          Pass: <strong className="text-slate-900 font-bold">{showOwnerPassword ? currentLab?.password || 'owner123' : '••••••••'}</strong>
+                          <button
+                            type="button"
+                            onClick={() => setShowOwnerPassword((p) => !p)}
+                            className="text-slate-400 hover:text-slate-700 cursor-pointer ml-0.5"
+                            title={showOwnerPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showOwnerPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </button>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          PIN: <strong className="text-slate-900 font-bold">{showOwnerPin ? currentLab?.pin || '123456' : '••••••'}</strong>
+                          <button
+                            type="button"
+                            onClick={() => setShowOwnerPin((p) => !p)}
+                            className="text-slate-400 hover:text-slate-700 cursor-pointer ml-0.5"
+                            title={showOwnerPin ? 'Hide PIN' : 'Show PIN'}
+                          >
+                            {showOwnerPin ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          </button>
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs">
-                    <div className="font-bold text-slate-900">Lab Owner Reset Policy</div>
-                    <p className="text-slate-600 text-[11px] mt-0.5 leading-relaxed">
-                      Your own Lab Owner credentials (Registered Phone + Password + 6-digit PIN) are secured and can only be reset by the <strong>Portal Super Admin</strong> (<code className="text-rose-600 font-bold">rkmehra331996@gmail.com</code>).
-                    </p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleOpenOwnerPasswordModal}
+                    className="shrink-0 px-3.5 py-1.5 bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold rounded-lg transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Change Owner Password</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -2238,6 +2324,143 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>Update Password Now</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5b. LAB OWNER CHANGE PASSWORD & PIN MODAL */}
+      {isOwnerPasswordModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-[#123B6D] to-[#1e5aa0] text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center font-bold text-lg">
+                  👑
+                </div>
+                <div>
+                  <h3 className="font-bold text-base">Change Lab Owner Credentials</h3>
+                  <p className="text-white/80 text-xs">{currentLab?.name || 'Laboratory'} • Primary Owner Admin</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsOwnerPasswordModal(false)}
+                className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition cursor-pointer text-white/80 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveOwnerPassword} className="p-5 space-y-4 text-xs">
+              <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-950 text-[11px] leading-relaxed flex items-start gap-2.5">
+                <KeyRound className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong>Important Security Notice:</strong> Updating your password will instantly become the required password for Lab Admin login. Old demo passwords will no longer work.
+                </div>
+              </div>
+
+              {ownerPasswordError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 font-bold text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{ownerPasswordError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Registered Mobile / Login ID
+                </label>
+                <input
+                  type="text"
+                  disabled
+                  value={currentLab?.phone || '9876543210'}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 bg-slate-100 font-mono font-bold text-slate-700 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  New Owner Password <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter new password (min 4 characters)"
+                    value={ownerNewPassword}
+                    onChange={(e) => {
+                      setOwnerNewPassword(e.target.value);
+                      setOwnerPasswordError('');
+                    }}
+                    className="w-full p-2.5 pr-20 rounded-xl border border-slate-300 font-mono font-bold text-slate-900 focus:ring-2 focus:ring-[#123B6D]/20 focus:outline-none"
+                  />
+                  <div className="absolute right-1.5 top-1.5 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const generated = 'Apex@2026#';
+                        setOwnerNewPassword(generated);
+                        setOwnerConfirmPassword(generated);
+                        setOwnerPasswordError('');
+                      }}
+                      className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 cursor-pointer"
+                    >
+                      Suggest
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Confirm New Password <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Re-enter new password to confirm"
+                  value={ownerConfirmPassword}
+                  onChange={(e) => {
+                    setOwnerConfirmPassword(e.target.value);
+                    setOwnerPasswordError('');
+                  }}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-bold text-slate-900 focus:ring-2 focus:ring-[#123B6D]/20 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  6-Digit Security PIN <span className="text-slate-400 font-normal">(Used for Quick Verification)</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="e.g. 123456"
+                  value={ownerNewPin}
+                  onChange={(e) => {
+                    setOwnerNewPin(e.target.value.replace(/\D/g, ''));
+                  }}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono font-bold text-slate-900 tracking-wider focus:ring-2 focus:ring-[#123B6D]/20 focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsOwnerPasswordModal(false)}
+                  className="px-3.5 py-2 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2 rounded-xl font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save & Apply New Credentials</span>
                 </button>
               </div>
             </form>

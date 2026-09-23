@@ -10,7 +10,6 @@ import { LabWorkflow } from './components/LabWorkflow';
 import { FeaturesSection } from './components/FeaturesSection';
 import { OfflineSection } from './components/OfflineSection';
 import { PatientPortalSection } from './components/PatientPortalSection';
-import { VendorWebsitesShowcaseSection } from './components/VendorWebsitesShowcaseSection';
 import { ReportPreviewSection } from './components/ReportPreviewSection';
 import { WhatsAppReportSection } from './components/WhatsAppReportSection';
 import { TestLibrarySection } from './components/TestLibrarySection';
@@ -584,14 +583,6 @@ export default function App() {
         {portalSections.patientPortal && (
           <PatientPortalSection
             onOpenPortal={() => handleViewPatientPortal('RPT-2026-8812', '9876543210')}
-          />
-        )}
-
-        {/* Vendor Websites Showcase */}
-        {portalSections.vendorWebsitesShowcase && (
-          <VendorWebsitesShowcaseSection
-            onSelectView={setCurrentView}
-            onOpenDemo={handleOpenDemo}
           />
         )}
 
