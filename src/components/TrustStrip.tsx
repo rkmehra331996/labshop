@@ -10,7 +10,7 @@ export const TrustStrip: React.FC = () => {
       color: 'text-[#123B6D] bg-blue-50',
     },
     {
-      title: 'Multi Branch',
+      title: 'Diagnostic Centers',
       desc: 'Consolidated Head Office view across all your lab centers',
       icon: GitBranch,
       color: 'text-[#0F766E] bg-teal-50',

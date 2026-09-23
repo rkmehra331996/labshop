@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Globe,
   Save,
-  RotateCcw,
   Plus,
   Trash2,
   ExternalLink,
@@ -27,7 +26,7 @@ import {
 import { useCms, DEFAULT_VENDOR_SECTIONS } from '../../context/CmsContext';
 import { VendorWebsiteSections, VendorLabSettings } from '../../types';
 import { generateDefaultOgImage } from '../../utils/seo';
-import { getTenantWebsiteUrl, SUPER_ADMIN_DOMAIN } from '../../constants/domains';
+import { getTenantWebsiteUrl, getTenantDirectUrl, SUPER_ADMIN_DOMAIN } from '../../constants/domains';
 
 interface VendorWebsiteCmsTabProps {
   onPreviewWebsite?: () => void;
@@ -156,9 +155,13 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({ onPrev
 
   const [copiedMeta, setCopiedMeta] = useState(false);
   const [copiedSubdomain, setCopiedSubdomain] = useState(false);
+  const [copiedDirectUrl, setCopiedDirectUrl] = useState(false);
 
   const tenantSubdomainUrl = getTenantWebsiteUrl(
     currentLabItem?.domainPreview || `${currentLabItem?.id || 'apexdiagnostics'}.${SUPER_ADMIN_DOMAIN}`
+  );
+  const tenantDirectUrl = getTenantDirectUrl(
+    currentLabItem?.domainPreview || currentLabItem?.id || 'apexdiagnostics'
   );
 
   // File Upload Handlers for Logo & OG Image
@@ -229,12 +232,6 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({ onPrev
     const updated = announcements.filter((_, i) => i !== index);
     setAnnouncements(updated);
     updateVendorLabSettings({ announcementText: updated[0] || '' });
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2000);
-  };
-
-  const handleResetToDefaults = () => {
-    toggleAllVendorSections(true);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
   };
@@ -389,13 +386,6 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({ onPrev
               className="bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer"
             >
               Turn All OFF
-            </button>
-            <button
-              onClick={handleResetToDefaults}
-              className="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>Reset Defaults</span>
             </button>
           </div>
         </div>
@@ -554,48 +544,109 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({ onPrev
                 </span>
               </div>
 
-              {/* Primary Dedicated URL */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white p-2.5 rounded-xl border border-indigo-200">
-                <div className="flex-1 flex items-center gap-2 font-mono text-xs text-indigo-900 font-bold px-2 truncate">
-                  <span className="text-slate-400 font-normal">URL:</span>
-                  <span className="text-indigo-600 truncate">{tenantSubdomainUrl}</span>
+              {/* 1. Direct Live Working URL (Works anywhere immediately) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>Direct Live Working URL (तुरंत खुलने वाला लिंक):</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded">
+                    100% Active in Any Browser
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      try {
-                        navigator.clipboard.writeText(tenantSubdomainUrl);
-                      } catch {}
-                      setCopiedSubdomain(true);
-                      setTimeout(() => setCopiedSubdomain(false), 2500);
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer border border-indigo-200"
-                  >
-                    {copiedSubdomain ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-700">Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>Copy URL</span>
-                      </>
-                    )}
-                  </button>
-
-                  {onPreviewWebsite && (
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-300">
+                  <div className="flex-1 flex items-center gap-2 font-mono text-xs text-emerald-950 font-bold px-2 truncate">
+                    <span className="text-emerald-700 truncate">{tenantDirectUrl}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
-                      onClick={onPreviewWebsite}
-                      className="px-3 py-1.5 rounded-lg bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                      onClick={() => {
+                        try {
+                          navigator.clipboard.writeText(tenantDirectUrl);
+                        } catch {}
+                        setCopiedDirectUrl(true);
+                        setTimeout(() => setCopiedDirectUrl(false), 2500);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                      title="Copy direct live link to share on WhatsApp or browser"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Preview Live</span>
+                      {copiedDirectUrl ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-white" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy Working Link</span>
+                        </>
+                      )}
                     </button>
-                  )}
+
+                    {onPreviewWebsite && (
+                      <button
+                        type="button"
+                        onClick={onPreviewWebsite}
+                        className="px-3 py-1.5 rounded-lg bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Preview Website</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
+                <p className="text-[10px] text-slate-500">
+                  💡 <strong>सुझाव:</strong> यह लिंक बिना किसी DNS सेटिंग के किसी भी फोन, कंप्यूटर या वॉट्सऐप पर तुरंत खुलता है।
+                </p>
+              </div>
+
+              {/* 2. Custom Branded Subdomain */}
+              <div className="space-y-1.5 pt-2 border-t border-indigo-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-indigo-900 flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Branded Custom Subdomain (ब्रांडेड सबडोमेन):</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded">
+                    Requires Wildcard DNS
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white p-2.5 rounded-xl border border-indigo-200">
+                  <div className="flex-1 flex items-center gap-2 font-mono text-xs text-indigo-900 font-bold px-2 truncate">
+                    <span className="text-slate-400 font-normal">URL:</span>
+                    <span className="text-indigo-600 truncate">{tenantSubdomainUrl}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          navigator.clipboard.writeText(tenantSubdomainUrl);
+                        } catch {}
+                        setCopiedSubdomain(true);
+                        setTimeout(() => setCopiedSubdomain(false), 2500);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer border border-indigo-200"
+                    >
+                      {copiedSubdomain ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-700">Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Copy Subdomain</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  ℹ️ सबडोमेन (उदा. <code>https://sanjivanipath.indianlalaji.com</code>) तभी खुलता है जब डोमेन DNS में <code>*.indianlalaji.com</code> वाइल्डकार्ड CNAME सेट हो। तब तक ऊपर दिया गया Direct Working URL उपयोग करें।
+                </p>
               </div>
 
               {/* Optional Custom Domain */}

@@ -22,6 +22,18 @@ export function getTenantSubdomain(subdomainOrDomain?: string): string {
 }
 
 /**
+ * Returns the 100% working live direct link for any browser without requiring wildcard DNS setup
+ * e.g. https://<domain>/?lab=sanjivanipath or https://indianlalaji.com/?lab=sanjivanipath
+ */
+export function getTenantDirectUrl(subdomainOrDomain?: string): string {
+  const cleanSub = getTenantSubdomain(subdomainOrDomain);
+  if (typeof window !== 'undefined' && window.location.origin) {
+    return `${window.location.origin}/?lab=${cleanSub}`;
+  }
+  return `https://${SUPER_ADMIN_DOMAIN}/?lab=${cleanSub}`;
+}
+
+/**
  * Returns formatted canonical website/app URL for a tenant or platform service
  * e.g., https://apexdiagnostics.indianlalaji.com or custom domain https://apexdiagnostics.in
  */

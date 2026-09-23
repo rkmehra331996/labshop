@@ -385,23 +385,13 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
           {/* Desktop Navigation Links: (home, health package, test's, pathologists, contact us) */}
           <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs lg:text-sm font-semibold text-slate-700 whitespace-nowrap">
-            {/* Return to Software / Main Portal Home */}
-            <button
-              onClick={onOpenSoftwareWebsite}
-              className="text-[#0F766E] hover:text-[#123B6D] transition font-bold py-1 flex items-center gap-1.5 cursor-pointer bg-teal-50 hover:bg-teal-100/80 px-2.5 rounded-lg border border-teal-200/80 text-xs shadow-2xs"
-              title="Return to Main indianlalaji.com Home Portal"
-              id="vendor-nav-main-home"
-            >
-              <span>🏠 Main Portal</span>
-            </button>
-
-            {/* 1. Lab Home */}
+            {/* 1. Simple Home (Vendor Website) */}
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="hover:text-[#123B6D] transition cursor-pointer text-slate-700 hover:font-bold whitespace-nowrap py-1"
+              className="hover:text-[#123B6D] transition cursor-pointer text-[#123B6D] font-bold whitespace-nowrap py-1"
               id="vendor-nav-home"
             >
-              Lab Home
+              Home
             </button>
 
             {/* 2. Health Package */}
@@ -501,32 +491,15 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1.5 shadow-xl animate-in fade-in duration-200">
-            {/* Return to Software / Main Home Portal */}
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenSoftwareWebsite();
-              }}
-              className="w-full text-left py-2 px-3 rounded-lg bg-teal-50 text-[#0F766E] font-bold flex items-center justify-between text-sm border border-teal-200"
-            >
-              <span className="flex items-center gap-1.5">
-                <span>🏠</span>
-                <span>Main Portal Home</span>
-              </span>
-              <span className="text-[10px] bg-teal-200 text-teal-900 px-2 py-0.5 rounded font-bold">
-                Home
-              </span>
-            </button>
-
-            {/* 1. Lab Home */}
+            {/* 1. Simple Home (Vendor Website) */}
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="w-full text-left py-2 px-3 rounded-lg hover:bg-slate-50 font-bold text-[#123B6D] flex items-center justify-between text-sm"
+              className="w-full text-left py-2 px-3 rounded-lg bg-blue-50/70 font-bold text-[#123B6D] flex items-center justify-between text-sm"
             >
-              <span>Lab Home</span>
+              <span>Home</span>
             </button>
 
             {/* 2. Health Package */}

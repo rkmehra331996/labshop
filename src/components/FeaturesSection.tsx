@@ -42,8 +42,8 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onExploreFeatu
     { title: 'Online + Offline Mode', desc: 'Continue front-desk operations even when local ISP is down', icon: WifiOff },
     { title: 'Automatic Cloud Sync', desc: 'Zero-conflict background synchronization once online', icon: RefreshCw },
     { title: 'Backup & Restore', desc: 'Continuous snapshot backups with one-click Excel data export', icon: HardDriveDownload },
-    { title: 'Single Branch', desc: 'Optimized high-speed interface for standalone diagnostic centers', icon: Building },
-    { title: 'Multi Branch', desc: 'Centralized HO oversight for regional chains & collection points', icon: GitBranch },
+    { title: 'Standalone Labs', desc: 'Optimized high-speed interface for standalone diagnostic centers', icon: Building },
+    { title: 'Lab Network & Centers', desc: 'Centralized HO oversight for regional chains & collection points', icon: GitBranch },
     { title: 'Staff & Roles', desc: 'Granular permissions for owners, technicians, pathologists & clerks', icon: UserCog },
   ];
 

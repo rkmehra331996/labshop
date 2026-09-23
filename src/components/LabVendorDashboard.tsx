@@ -8,7 +8,6 @@ import {
   Check,
   Eye,
   LogOut,
-  RefreshCw,
   Search,
   Users,
   Building2,
@@ -846,26 +845,6 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
               title="Open Reception Entry Dashboard"
             >
               <span>🖥️ Reception Counter ➔</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setDeleteConfirm({
-                  isOpen: true,
-                  title: 'Reset Demo Database',
-                  message: 'Are you sure you want to reset all lab packages, tests, branches, and bookings to default demo values?',
-                  confirmText: 'Yes, Reset to Defaults',
-                  onConfirm: () => {
-                    resetAllToDefaults();
-                    showToast('Reset to demo defaults.');
-                    setDeleteConfirm(null);
-                  },
-                });
-              }}
-              className="text-slate-500 hover:text-slate-800 text-xs px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition flex items-center gap-1 cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
-              <span>Reset Defaults</span>
             </button>
           </div>
         </div>

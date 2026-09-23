@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useCms } from '../../context/CmsContext';
 import { VendorLabDirectoryItem, VendorStatus, AppView } from '../../types';
+import { getTenantDirectUrl, getTenantSubdomain } from '../../constants/domains';
 
 interface VendorManagementTabProps {
   onNavigateView: (view: AppView) => void;
@@ -736,41 +737,51 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                           <Globe className="w-3 h-3 text-indigo-600" />
                           <span>Dedicated Lab URL</span>
                         </span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                          Har Lab Ka Apna URL
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          Live Active URL
                         </span>
                       </div>
+
+                      {/* Direct Working URL */}
                       <div className="flex items-center gap-1.5">
-                        <div className="font-mono text-indigo-800 text-xs font-bold truncate bg-indigo-50/80 px-2 py-1 rounded-lg border border-indigo-200/80 flex-1 flex items-center gap-1">
-                          <span className="text-[10px] text-indigo-500 font-normal">https://</span>
-                          <span className="truncate">{vendor.domainPreview || `${vendor.id}.indianlalaji.com`}</span>
+                        <div className="font-mono text-emerald-900 text-xs font-bold truncate bg-emerald-50/80 px-2 py-1 rounded-lg border border-emerald-300/80 flex-1 flex items-center gap-1" title={getTenantDirectUrl(vendor.domainPreview || vendor.id)}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                          <span className="truncate">{getTenantDirectUrl(vendor.domainPreview || vendor.id)}</span>
                         </div>
                         <button
                           type="button"
                           onClick={() => {
-                            const url = `https://${vendor.domainPreview || `${vendor.id}.indianlalaji.com`}`;
+                            const directUrl = getTenantDirectUrl(vendor.domainPreview || vendor.id);
                             try {
-                              navigator.clipboard.writeText(url);
+                              navigator.clipboard.writeText(directUrl);
                             } catch {}
                             setCopiedLabId(vendor.id);
                             setTimeout(() => setCopiedLabId(null), 2000);
-                            showToast(`Copied ${vendor.name} URL: ${url}`);
+                            showToast(`Copied Live Direct URL for ${vendor.name}! Opens directly in any browser.`);
                           }}
-                          className="px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-[11px] font-bold shrink-0 transition flex items-center gap-1 cursor-pointer shadow-2xs"
-                          title="Copy direct website URL"
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold shrink-0 transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                          title="Copy live link that opens directly on any phone or browser"
                         >
                           {copiedLabId === vendor.id ? (
                             <>
-                              <Check className="w-3 h-3 text-emerald-600" />
-                              <span className="text-emerald-700 font-bold">Copied!</span>
+                              <Check className="w-3 h-3 text-white" />
+                              <span className="font-bold">Copied!</span>
                             </>
                           ) : (
                             <>
-                              <Copy className="w-3 h-3 text-indigo-600" />
-                              <span>Copy</span>
+                              <Copy className="w-3 h-3 text-white" />
+                              <span>Copy Link</span>
                             </>
                           )}
                         </button>
+                      </div>
+
+                      {/* Subdomain reference */}
+                      <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono">
+                        <Globe className="w-3 h-3 text-indigo-500 shrink-0" />
+                        <span className="text-slate-400">Subdomain:</span>
+                        <span className="text-indigo-700 font-semibold">{vendor.domainPreview || `${vendor.id}.indianlalaji.com`}</span>
+                        <span className="text-[10px] text-slate-400 ml-auto font-sans">(DNS Wildcard required for direct subdomain)</span>
                       </div>
                       <div className="text-slate-500 text-[11px]">
                         ★ {vendor.rating} ({vendor.reviewsCount || 80}+ reviews) • {vendor.turnaroundTime} TAT

@@ -24,7 +24,6 @@ import {
   User,
   ChevronRight,
   Info,
-  Zap,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { AppView, UserRole } from '../types';
@@ -264,21 +263,6 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
     }, 150);
   };
 
-  // 1-Click Quick Direct Login Helper
-  const handleDirectQuickLogin = (role: 'admin' | 'vendor' | 'reception' | 'technician', labId?: string) => {
-    setIsSubmitting(true);
-    setLoginError('');
-    const targetLab = labId || selectedLabId || 'lab-apex';
-    const res = login(role, '', '', targetLab);
-    setIsSubmitting(false);
-    if (res.success) {
-      onClose();
-      onNavigateView(res.targetView);
-    } else {
-      setLoginError(res.error || 'Login failed');
-    }
-  };
-
   // Handle Register / Create Lab Submit
   const handleRegisterLab = (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,9 +276,20 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
       setRegisterError('Please provide the Owner or Lab Director full name.');
       return;
     }
-    const cleanPhone = ownerPhone.replace(/\D/g, '');
+    const cleanPhone = ownerPhone.replace(/\D/g, '').slice(-10);
     if (cleanPhone.length < 10) {
       setRegisterError('Please enter a valid 10-digit mobile number for the Lab Owner.');
+      return;
+    }
+
+    // Strict Rule: Ek number se ek hi lab register hogi
+    const existingLabWithPhone = vendorLabsList.find(
+      (l) => (l.phone || '').replace(/\D/g, '').slice(-10) === cleanPhone
+    );
+    if (existingLabWithPhone) {
+      setRegisterError(
+        `यह मोबाइल नंबर (+91 ${cleanPhone}) पहले से पंजीकृत लैब "${existingLabWithPhone.name}" के साथ जुड़ा हुआ है। एक नंबर से केवल एक ही लैब रजिस्टर हो सकती है। (This phone number is already registered with another lab).`
+      );
       return;
     }
     if (!ownerEmail.trim() || !ownerEmail.includes('@')) {
@@ -479,87 +474,6 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
           {/* ================= TAB 1: LOGIN ================= */}
           {activeTab === 'login' && (
             <div className="space-y-5">
-              {/* 1-Click Quick Access Bar */}
-              <div className="p-3.5 bg-gradient-to-r from-blue-50 via-indigo-50 to-amber-50 rounded-xl border-2 border-blue-200 shadow-xs space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-[#123B6D]">
-                    <Zap className="w-4 h-4 text-amber-500 fill-amber-400" />
-                    <span>Instant 1-Click Role Login (तुरंत लॉगिन करें)</span>
-                  </div>
-                  <span className="text-[10px] font-bold bg-[#123B6D] text-white px-2 py-0.5 rounded-full">
-                    Direct Access
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-600 leading-tight">
-                  Click any role below to instantly log in with dedicated data isolation:
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                  {!isVendorContext && (
-                    <button
-                      type="button"
-                      onClick={() => handleDirectQuickLogin('admin')}
-                      className="p-2 rounded-lg bg-white border border-rose-200 hover:border-rose-400 hover:shadow-xs transition text-left cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-1.5 text-rose-700 font-bold text-xs mb-0.5">
-                        <Crown className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">Super Admin</span>
-                      </div>
-                      <span className="text-[10px] text-slate-500 block truncate group-hover:text-rose-600">
-                        R. K. Mehra (Portal)
-                      </span>
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleDirectQuickLogin('vendor', selectedLabId || 'lab-apex')}
-                    className="p-2 rounded-lg bg-white border border-amber-200 hover:border-amber-400 hover:shadow-xs transition text-left cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-1.5 text-amber-800 font-bold text-xs mb-0.5">
-                      <Building className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">Lab Owner</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 block truncate group-hover:text-amber-700">
-                      Dr. Rajesh (Owner)
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDirectQuickLogin('reception', selectedLabId || 'lab-apex')}
-                    className="p-2 rounded-lg bg-white border border-teal-200 hover:border-teal-400 hover:shadow-xs transition text-left cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-1.5 text-teal-700 font-bold text-xs mb-0.5">
-                      <Receipt className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">Reception Desk</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 block truncate group-hover:text-teal-600">
-                      Pooja Verma (Billing)
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDirectQuickLogin('technician', selectedLabId || 'lab-apex')}
-                    className="p-2 rounded-lg bg-white border border-purple-200 hover:border-purple-400 hover:shadow-xs transition text-left cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-1.5 text-purple-700 font-bold text-xs mb-0.5">
-                      <FlaskConical className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">Lab Technician</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 block truncate group-hover:text-purple-600">
-                      Amit Khurana (DMLT)
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="flex items-center gap-3">
-                <div className="h-px bg-slate-200 flex-1" />
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Or Log In with Specific Role Credentials
-                </span>
-                <div className="h-px bg-slate-200 flex-1" />
-              </div>
-
               {/* Role Selection Segmented Grid */}
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-2">
@@ -723,92 +637,16 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
                   )}
                 </div>
 
-                {/* Authorized Credentials Helper / Quick Fill Box */}
-                {(() => {
-                  let demoId = '';
-                  let demoPass = '';
-                  let demoPin: string | undefined = undefined;
-                  let demoName = '';
-
-                  const currentLabObj =
-                    vendorLabsList.find((l) => l.id === selectedLabId) ||
-                    vendorLabsList[0];
-
-                  const matchedReception =
-                    allStaffAccounts.find(
-                      (s) => s.role === 'reception' && (s.labId === selectedLabId || selectedLabId === 'all')
-                    ) || allStaffAccounts.find((s) => s.role === 'reception');
-
-                  const matchedTech =
-                    allStaffAccounts.find(
-                      (s) => s.role === 'technician' && (s.labId === selectedLabId || selectedLabId === 'all')
-                    ) || allStaffAccounts.find((s) => s.role === 'technician');
-
-                  if (selectedRole === 'super_admin') {
-                    demoId = 'rkmehra331996@gmail.com';
-                    demoPass = 'admin123';
-                    demoPin = '199633';
-                    demoName = 'R. K. Mehra (Global Portal Super Admin)';
-                  } else if (selectedRole === 'vendor') {
-                    demoId = currentLabObj?.phone || '9876543210';
-                    demoPass = currentLabObj?.password || 'owner123';
-                    demoPin = currentLabObj?.pin || '123456';
-                    demoName = `${currentLabObj?.ownerName || 'Dr. Rajesh Sharma'} (${currentLabObj?.name || 'Lab Admin'})`;
-                  } else if (selectedRole === 'reception') {
-                    demoId =
-                      matchedReception?.username ||
-                      (selectedLabId === 'lab-citycare'
-                        ? 'reception.citycare'
-                        : selectedLabId === 'lab-metropath'
-                        ? 'reception.metro'
-                        : 'reception.apex');
-                    demoPass = matchedReception?.password || 'reception123';
-                    demoName = `${matchedReception?.name || 'Pooja Verma'} (${currentLabObj?.name || 'Reception Desk'})`;
-                  } else if (selectedRole === 'technician') {
-                    demoId =
-                      matchedTech?.username ||
-                      (selectedLabId === 'lab-citycare'
-                        ? 'tech.citycare'
-                        : selectedLabId === 'lab-metropath'
-                        ? 'tech.metro'
-                        : 'tech.apex');
-                    demoPass = matchedTech?.password || 'tech123';
-                    demoName = `${matchedTech?.name || 'Amit Khurana'} (${currentLabObj?.name || 'Testing Desk'})`;
-                  }
-
-                  const handleAutoFill = () => {
-                    setEmailOrPhone(demoId);
-                    setPassword(demoPass);
-                    if (demoPin) setPinCode(demoPin);
-                    setLoginError('');
-                  };
-
-                  return (
-                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
-                          <KeyRound className="w-3.5 h-3.5 text-amber-600" />
-                          <span>Authorized Test Account for {currentRoleCfg.title}:</span>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleAutoFill}
-                          className="px-2 py-0.5 bg-[#123B6D] hover:bg-[#0e2c52] text-white rounded-md text-[10px] font-bold cursor-pointer transition shadow-xs"
-                        >
-                          ⚡ Auto-Fill Credentials
-                        </button>
-                      </div>
-                      <div className="text-[11px] text-slate-600 flex flex-wrap gap-x-3 gap-y-1 font-mono">
-                        <span>ID: <strong className="text-slate-900">{demoId}</strong></span>
-                        <span>Pass: <strong className="text-slate-900">{demoPass}</strong></span>
-                        {demoPin && <span>PIN: <strong className="text-slate-900">{demoPin}</strong></span>}
-                      </div>
-                      <div className="text-[10px] text-slate-500 italic">
-                        Account: {demoName}
-                      </div>
-                    </div>
-                  );
-                })()}
+                {/* Security Note (No Auto-Fill / No Quick Login) */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-start gap-2.5 text-slate-600">
+                  <ShieldCheck className="w-4 h-4 text-[#123B6D] shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-slate-800 text-[11px]">Strict Authentication Required (सुरक्षित लॉगिन)</p>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Please enter your assigned Login ID (Mobile or Username) and Password. Quick direct login and auto-filling are disabled for lab security.
+                    </p>
+                  </div>
+                </div>
 
                 {loginError && (
                   <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">

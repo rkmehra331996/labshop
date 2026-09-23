@@ -2823,7 +2823,7 @@ export const VENDOR_LABS_DIRECTORY: VendorLabDirectoryItem[] = [
     city: 'Jalandhar',
     state: 'Punjab',
     address: 'Model Town Market, Opp. Metro Plaza, Jalandhar',
-    phone: '+91 7087033009',
+    phone: '+91 9876543210',
     nablCode: 'NABL Ready (PMC Reg: 8492)',
     badge: 'Collection Desk',
     rating: 4.8,

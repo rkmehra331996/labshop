@@ -165,7 +165,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Mobile Drawer Menu - Clean 6 items: Home, Features, Solutions, Showcase, Pricing, Contact Us */}
+      {/* Mobile Drawer Menu - Clean 5 items: Home, Features, Solutions, Pricing, Contact Us */}
       {mobileMenuOpen && (
         <div className="sm:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-lg">
           <div className="flex flex-col space-y-1 text-sm font-semibold text-slate-800">

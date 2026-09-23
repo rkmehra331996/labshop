@@ -2,6 +2,7 @@ import React from 'react';
 import { MessageSquare, Phone, MapPin, Heart, Shield } from 'lucide-react';
 import { AppView } from '../types';
 import { useCms } from '../context/CmsContext';
+import { VendorLabSearchFooter } from './VendorLabSearchFooter';
 
 interface FooterProps {
   onSelectView: (view: AppView) => void;
@@ -23,7 +24,13 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
 
   return (
     <footer className="bg-[#0b1c33] text-slate-300 text-xs border-t border-slate-800 pb-20 sm:pb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12">
+        {/* Vendor Lab Website Search Box (1 Mobile = 1 Lab Website) */}
+        <VendorLabSearchFooter
+          onSelectView={onSelectView}
+          onOpenDemo={onOpenDemo}
+        />
+
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand Column */}
           <div className="col-span-2 space-y-4">

@@ -20,7 +20,7 @@ export const MultiBranchSection: React.FC = () => {
             One Account. Multiple Laboratories.
           </h2>
           <p className="text-sm text-[#64748B] mt-2">
-            Monitor real-time cash collection, specimen logistics, doctor referrals, and diagnostic volume across all your branches from a single Head Office login.
+            Monitor real-time cash collection, specimen logistics, doctor referrals, and diagnostic volume across all your centers from a single Head Office login.
           </p>
         </div>
 
@@ -36,7 +36,7 @@ export const MultiBranchSection: React.FC = () => {
                 </h3>
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
-                Real-time multi-branch synchronization • All Branches Online
+                Real-time laboratory synchronization • All Centers Online
               </p>
             </div>
 
