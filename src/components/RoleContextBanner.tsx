@@ -29,7 +29,7 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
   currentView,
   onNavigateView,
 }) => {
-  const { currentUser, logout, openLoginModal, isCloudConnected } =
+  const { currentUser, logout, openLoginModal, isCloudConnected, activeBranchId, setActiveBranchId } =
     useCms();
 
   if (!currentUser) return null;
@@ -75,15 +75,38 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
             </span>
           </div>
 
-          {/* Active Facility (Single Center) */}
+          {/* Active Workstation / Device (Device A & Device B) */}
           <div className="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700/60 px-2.5 py-1 rounded-full text-[11px]">
             <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span className="text-slate-400">Center:</span>
-            <span className="font-bold text-amber-300">
-              {currentUser.branchName || 'Main Diagnostic Center'}
-            </span>
+            <span className="text-slate-400">Workstation:</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveBranchId('branch-1')}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                  activeBranchId === 'branch-1'
+                    ? 'bg-emerald-500 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200 bg-slate-900/60'
+                }`}
+                title="Device A (Counter 1 - Reception & Billing)"
+              >
+                🖥️ Device A
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveBranchId('branch-2')}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold transition cursor-pointer ${
+                  activeBranchId === 'branch-2'
+                    ? 'bg-emerald-500 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200 bg-slate-900/60'
+                }`}
+                title="Device B (Counter 2 - Lab Workstation)"
+              >
+                💻 Device B
+              </button>
+            </div>
             <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.2 rounded font-semibold">
-              Single Lab
+              Both Live
             </span>
           </div>
 

@@ -72,6 +72,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     sendEntryToTechnician,
     publishReport,
     unpublishReport,
+    activeBranchId,
+    setActiveBranchId,
   } = useCms();
 
   const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory';
@@ -838,15 +840,44 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   {labName}
                 </span>
               </div>
-              {/* Konsa dashboard open hai uska naam */}
-              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+              {/* Konsa dashboard open hai uska naam + Device A / Device B selector */}
+              <div className="flex items-center gap-2 flex-wrap mt-0.5">
                 <span className="bg-amber-400 text-slate-950 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1">
                   <span>🖥️</span>
                   <span>Reception Entry & Billing Dashboard</span>
                 </span>
-                <span className="hidden sm:inline text-[11px] text-teal-100/90 font-medium">
-                  • Counter #1
-                </span>
+                {/* Active Device Toggle: Device A & Device B */}
+                <div
+                  id="reception-device-selector"
+                  className="inline-flex items-center bg-teal-950/70 p-0.5 rounded-lg border border-teal-400/40 text-[11px]"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setActiveBranchId('branch-1')}
+                    className={`px-2 py-0.5 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
+                      activeBranchId === 'branch-1'
+                        ? 'bg-amber-400 text-slate-950 shadow-xs'
+                        : 'text-teal-200 hover:text-white'
+                    }`}
+                    title="Device A: Counter #1 (Reception & Billing)"
+                  >
+                    <span>🖥️ Device A</span>
+                    <span className="text-[9px] opacity-80">(Counter 1)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveBranchId('branch-2')}
+                    className={`px-2 py-0.5 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
+                      activeBranchId === 'branch-2'
+                        ? 'bg-amber-400 text-slate-950 shadow-xs'
+                        : 'text-teal-200 hover:text-white'
+                    }`}
+                    title="Device B: Counter #2 (Lab Testing Workstation)"
+                  >
+                    <span>💻 Device B</span>
+                    <span className="text-[9px] opacity-80">(Counter 2)</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -923,7 +954,9 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
           <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
             <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
               <span>Today's Tokens</span>
-              <span className="text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded text-[10px] font-bold">Counter 1</span>
+              <span className="text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                {activeBranchId === 'branch-2' ? 'Device B (Counter 2)' : 'Device A (Counter 1)'}
+              </span>
             </div>
             <div className="text-2xl font-black text-[#172033] mt-1">
               {totalPatientsToday} <span className="text-xs font-medium text-slate-400">Patients</span>

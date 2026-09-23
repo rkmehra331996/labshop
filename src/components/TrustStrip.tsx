@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cloud, GitBranch, WifiOff, MessageSquare, ShieldCheck, IndianRupee } from 'lucide-react';
+import { Cloud, Building2, WifiOff, MessageSquare, ShieldCheck, IndianRupee } from 'lucide-react';
 
 export const TrustStrip: React.FC = () => {
   const items = [
@@ -12,7 +12,7 @@ export const TrustStrip: React.FC = () => {
     {
       title: 'Diagnostic Centers',
       desc: 'Consolidated Head Office view across all your lab centers',
-      icon: GitBranch,
+      icon: Building2,
       color: 'text-[#0F766E] bg-teal-50',
     },
     {

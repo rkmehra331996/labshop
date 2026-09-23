@@ -22,7 +22,7 @@ export const FAQSection: React.FC = () => {
             Frequently Asked Questions
           </h2>
           <p className="text-sm text-[#64748B] mt-2">
-            Clear answers about offline support, WhatsApp reports, multi-branch control, and onboarding.
+            Clear answers about offline support, WhatsApp reports, lab operations, and onboarding.
           </p>
         </div>
 

@@ -374,7 +374,7 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
                   ? 'Manual credential verification for Lab Owner, Reception Desk & Testing Technicians'
                   : activeTab === 'login'
                   ? 'Manual credential verification for Super Admin, Lab Owners, Receptionists & Technicians'
-                  : 'Instant multi-branch setup, test catalog initialization & staff credential provisioning'}
+                  : 'Instant diagnostic lab setup, test catalog initialization & staff credential provisioning'}
               </p>
             </div>
           </div>
@@ -572,6 +572,52 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
                       </div>
                     </div>
                   )
+                )}
+
+                {/* Workstation / Device Selection (Device A & Device B) */}
+                {selectedRole !== 'super_admin' && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>Select Terminal / Workstation Device <span className="text-rose-600">*</span></span>
+                      <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Live Synced
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBranchId('branch-1')}
+                        className={`p-2 rounded-xl border text-left transition flex flex-col gap-0.5 cursor-pointer ${
+                          selectedBranchId === 'branch-1'
+                            ? 'border-[#123B6D] bg-blue-50/80 text-[#123B6D] ring-2 ring-[#123B6D]/20 shadow-xs'
+                            : 'border-slate-200 bg-slate-50/50 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="font-extrabold text-xs flex items-center gap-1">
+                          <span>🖥️ Device A</span>
+                          <span className="text-[9px] bg-blue-100 text-blue-800 px-1 py-0.2 rounded font-bold">Counter 1</span>
+                        </span>
+                        <span className="text-[10px] text-slate-500 truncate">Reception & Billing Desk</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBranchId('branch-2')}
+                        className={`p-2 rounded-xl border text-left transition flex flex-col gap-0.5 cursor-pointer ${
+                          selectedBranchId === 'branch-2'
+                            ? 'border-[#123B6D] bg-blue-50/80 text-[#123B6D] ring-2 ring-[#123B6D]/20 shadow-xs'
+                            : 'border-slate-200 bg-slate-50/50 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="font-extrabold text-xs flex items-center gap-1">
+                          <span>💻 Device B</span>
+                          <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1 py-0.2 rounded font-bold">Counter 2</span>
+                        </span>
+                        <span className="text-[10px] text-slate-500 truncate">Lab Testing & Workstation</span>
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 {/* Identifier Input */}

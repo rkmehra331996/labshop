@@ -32,6 +32,19 @@ import {
   syncLabReportToCloud,
   deleteLabReportFromCloud,
   syncBookingToCloud,
+  deleteBookingFromCloud,
+  syncLabSettingsToCloud,
+  subscribeToLabSettings,
+  fetchAllLabSettingsFromCloud,
+  syncTestToCloud,
+  deleteTestFromCloud,
+  subscribeToTests,
+  syncPackageToCloud,
+  deletePackageFromCloud,
+  subscribeToPackages,
+  syncDoctorToCloud,
+  deleteDoctorFromCloud,
+  subscribeToDoctors,
   subscribeToReceptionEntries,
   subscribeToLabReports,
   subscribeToBookings,
@@ -55,28 +68,28 @@ export const DEFAULT_VENDOR_SECTIONS: VendorWebsiteSections = {
 export const DEFAULT_PORTAL_SECTIONS: PortalWebsiteSections = {
   hero: true,
   trustStrip: true,
-  problemSection: true,
-  solutionSection: true,
   workflow: true,
   features: true,
-  offline: true,
-  patientPortal: true,
-  vendorWebsitesShowcase: false,
-  reportPreview: true,
-  whatsapp: true,
-  testLibrary: true,
-  multiBranch: false,
-  staffRoles: true,
-  patientHistory: true,
-  dataSafety: true,
-  security: true,
-  auditLog: true,
-  indianMarket: true,
   pricing: true,
-  demo: true,
-  finalCta: true,
   faq: true,
+  finalCta: true,
   footer: true,
+  // Kept off from main home page by default for a simple, fast & clean experience:
+  problemSection: false,
+  solutionSection: false,
+  offline: false,
+  patientPortal: false,
+  vendorWebsitesShowcase: false,
+  reportPreview: false,
+  whatsapp: false,
+  testLibrary: false,
+  staffRoles: false,
+  patientHistory: false,
+  dataSafety: false,
+  security: false,
+  auditLog: false,
+  indianMarket: false,
+  demo: false,
 };
 
 // --- INITIAL DEFAULTS ---
@@ -86,7 +99,7 @@ const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
   heroBadge: 'NABL ISO 15189 Ready • Made for India',
   heroTitle: 'Run Your Pathology Lab on Autopilot',
   heroSubtitle:
-    'Complete Diagnostic Lab OS: Offline-ready desktop billing, 500+ pre-configured tests, automated WhatsApp PDF reports, multi-branch control, and instant patient results portal without login.',
+    'Complete Diagnostic Lab OS: Offline-ready desktop billing, 500+ pre-configured tests, automated WhatsApp PDF reports, central administration, and instant patient results portal without login.',
   supportPhone: '+91 7087033009',
   supportEmail: 'admin@indianlalaji.com',
   announcementText: '🚀 Version 3.4 Live: Instant UPI QR Dynamic Billing & Auto WhatsApp Dispatch Added!',
@@ -115,14 +128,14 @@ const DEFAULT_PRICING_PLANS: PricingPlan[] = [
   },
   {
     id: 'plan-multi',
-    name: 'Multi-Branch Lab Network',
+    name: 'Enterprise Diagnostic Network',
     target: 'Central Reference Labs & Collection Centers',
     monthlyPriceINR: 2999,
     yearlyPriceINR: 2399,
     description: 'Designed for diagnostic chains with central processing hubs and multiple sample collection desks.',
     isPopular: true,
     features: [
-      'Up to 5 Branches / Collection Desks',
+      'Up to 5 Testing Desks / Collection Hubs',
       'Centralized Real-Time HQ Analytics',
       'Role-Based Staff Access (Phlebo, Reception, MD)',
       'B2B Referral Doctor Commission Tracker',
@@ -767,19 +780,39 @@ const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
   {
     id: 'branch-1',
     labId: 'lab-apex',
-    name: 'Apex Diagnostic & Clinical Pathology Laboratory',
-    badge: 'Main Diagnostic Facility',
+    name: 'Device A — Reception & Billing Desk (Counter 1)',
+    badge: 'Device A (Primary)',
     address: 'SCF 42-43, Sector 18-C, Central Healthcare Complex, Ludhiana',
     phone: '+91 7087033009',
     timings: 'Open 24x7 (Round the Clock Testing)',
+    isEmergency: true,
+  },
+  {
+    id: 'branch-2',
+    labId: 'lab-apex',
+    name: 'Device B — Lab Testing & Analyzer Workstation (Counter 2)',
+    badge: 'Device B (Connected)',
+    address: 'Testing Floor, Central Healthcare Complex, Ludhiana',
+    phone: '+91 7087033009',
+    timings: 'Open 24x7 (Real-time Live Sync)',
     isEmergency: true,
   },
   // CityCare Branch (lab-citycare)
   {
     id: 'branch-cc-1',
     labId: 'lab-citycare',
-    name: 'CityCare Advanced Diagnostics & Scan Centre',
-    badge: 'Main Facility',
+    name: 'Device A — Reception Counter (Counter 1)',
+    badge: 'Device A',
+    address: 'SCO 14, Phase 7, Near Fortis Chowk, Mohali',
+    phone: '+91 9815012345',
+    timings: 'Mon–Sat: 7:00 AM – 9:00 PM',
+    isEmergency: true,
+  },
+  {
+    id: 'branch-cc-2',
+    labId: 'lab-citycare',
+    name: 'Device B — Lab Workstation (Counter 2)',
+    badge: 'Device B',
     address: 'SCO 14, Phase 7, Near Fortis Chowk, Mohali',
     phone: '+91 9815012345',
     timings: 'Mon–Sat: 7:00 AM – 9:00 PM',
@@ -1368,6 +1401,8 @@ interface CmsContextType {
   currentUser: CmsUser | null;
   activeBranchId: string;
   setActiveBranchId: (branchId: string) => void;
+  activeDeviceId: 'device-a' | 'device-b';
+  setActiveDeviceId: (dev: 'device-a' | 'device-b' | string) => void;
   login: (
     role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist',
     email?: string,
@@ -1522,6 +1557,7 @@ interface CmsContextType {
   isCloudConnected: boolean;
   cloudSyncStatus: 'synced' | 'syncing' | 'offline';
   lastCloudSyncTime: string;
+  refreshCloudData: () => Promise<void>;
 }
 
 const CmsContext = createContext<CmsContextType | null>(null);
@@ -1554,6 +1590,19 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
+  const activeDeviceId: 'device-a' | 'device-b' =
+    activeBranchId === 'branch-2' || activeBranchId === 'device-b' || activeBranchId === 'branch-cc-2' || activeBranchId === 'branch-mp-2'
+      ? 'device-b'
+      : 'device-a';
+
+  const setActiveDeviceId = (dev: 'device-a' | 'device-b' | string) => {
+    if (dev === 'device-b' || dev === 'branch-2') {
+      setActiveBranchId('branch-2');
+    } else {
+      setActiveBranchId('branch-1');
+    }
+  };
+
   // Company State
   const [companySettings, setCompanySettings] = useState<CompanySettings>(() => {
     try {
@@ -1580,9 +1629,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [portalSections, setPortalSections] = useState<PortalWebsiteSections>(() => {
     try {
-      const saved = localStorage.getItem('cms_portal_sections');
-      const parsed = saved ? JSON.parse(saved) : {};
-      return { ...DEFAULT_PORTAL_SECTIONS, ...parsed, vendorWebsitesShowcase: false };
+      const saved = localStorage.getItem('cms_portal_sections_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...DEFAULT_PORTAL_SECTIONS, ...parsed, vendorWebsitesShowcase: false };
+      }
+      return DEFAULT_PORTAL_SECTIONS;
     } catch {
       return DEFAULT_PORTAL_SECTIONS;
     }
@@ -1590,7 +1642,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     try {
-      localStorage.setItem('cms_portal_sections', JSON.stringify(portalSections));
+      localStorage.setItem('cms_portal_sections_v2', JSON.stringify(portalSections));
     } catch {}
   }, [portalSections]);
 
@@ -1830,13 +1882,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [allVendorBranches, setAllVendorBranches] = useState<VendorBranch[]>(() => {
     try {
-      const saved = localStorage.getItem('cms_vendor_branches');
+      const saved = localStorage.getItem('cms_vendor_devices_v6');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const existingIds = new Set(parsed.map((b: any) => b.id));
-          const existingLabIds = new Set(parsed.map((b: any) => b.labId));
-          const missingBranches = DEFAULT_VENDOR_BRANCHES.filter((b) => !existingIds.has(b.id) && !existingLabIds.has(b.labId));
+          const missingBranches = DEFAULT_VENDOR_BRANCHES.filter((b) => !existingIds.has(b.id));
           return [...parsed.map((b: any) => ({ ...b, labId: b.labId || 'lab-apex' })), ...missingBranches];
         }
       }
@@ -1934,7 +1985,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     try {
-      localStorage.setItem('cms_vendor_branches', JSON.stringify(allVendorBranches));
+      localStorage.setItem('cms_vendor_devices_v6', JSON.stringify(allVendorBranches));
     } catch {}
   }, [allVendorBranches]);
 
@@ -1956,19 +2007,98 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
   }, [allVendorTests]);
 
-  // Real-Time Cloud Firestore Multi-Computer Sync
-  // Subscribes Reception, Technician, and Pathologist workstations to live updates
+  // Real-Time Cloud Firestore Multi-Device Sync
+  // Subscribes All Devices (Client Phone, Reception, Technician, Pathologist, Admin) to Live Updates
   useEffect(() => {
     // 1. Seed initial mock records if cloud database is fresh
-    seedInitialFirestoreData(INITIAL_RECEPTION_ENTRIES, INITIAL_REPORTS);
+    seedInitialFirestoreData(
+      INITIAL_RECEPTION_ENTRIES, 
+      INITIAL_REPORTS, 
+      vendorLabSettingsMap, 
+      allVendorTests, 
+      allVendorPackages, 
+      allVendorDoctors
+    );
 
-    // 2. Subscribe to live reception patients
+    // 2. Subscribe to Lab Settings (Name, Phone, Address, QR Codes, Branding across all mobile & desktop devices)
+    const unsubscribeSettings = subscribeToLabSettings(
+      (cloudSettingsMap) => {
+        if (cloudSettingsMap && Object.keys(cloudSettingsMap).length > 0) {
+          setVendorLabSettingsMap((prev) => ({
+            ...prev,
+            ...cloudSettingsMap,
+          }));
+          setIsCloudConnected(true);
+          setCloudSyncStatus('synced');
+          setLastCloudSyncTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+        }
+      },
+      () => {
+        setIsCloudConnected(false);
+        setCloudSyncStatus('offline');
+      }
+    );
+
+    // 3. Subscribe to Tests Catalog & Pricing
+    const unsubscribeTests = subscribeToTests(
+      (cloudTests) => {
+        if (cloudTests && cloudTests.length > 0) {
+          setAllVendorTests((prevLocal) => {
+            const cloudMap = new Map(cloudTests.map((t) => [t.id, t]));
+            const merged = [...cloudTests];
+            prevLocal.forEach((loc) => {
+              if (!cloudMap.has(loc.id)) {
+                merged.push(loc);
+              }
+            });
+            return merged;
+          });
+        }
+      }
+    );
+
+    // 4. Subscribe to Health Packages
+    const unsubscribePackages = subscribeToPackages(
+      (cloudPackages) => {
+        if (cloudPackages && cloudPackages.length > 0) {
+          setAllVendorPackages((prevLocal) => {
+            const cloudMap = new Map(cloudPackages.map((p) => [p.id, p]));
+            const merged = [...cloudPackages];
+            prevLocal.forEach((loc) => {
+              if (!cloudMap.has(loc.id)) {
+                merged.push(loc);
+              }
+            });
+            return merged;
+          });
+        }
+      }
+    );
+
+    // 5. Subscribe to Doctors & Pathologists
+    const unsubscribeDoctors = subscribeToDoctors(
+      (cloudDoctors) => {
+        if (cloudDoctors && cloudDoctors.length > 0) {
+          setAllVendorDoctors((prevLocal) => {
+            const cloudMap = new Map(cloudDoctors.map((d) => [d.id, d]));
+            const merged = [...cloudDoctors];
+            prevLocal.forEach((loc) => {
+              if (!cloudMap.has(loc.id)) {
+                merged.push(loc);
+              }
+            });
+            return merged;
+          });
+        }
+      }
+    );
+
+    // 6. Subscribe to live reception patients
     const unsubscribeReception = subscribeToReceptionEntries(
       (cloudEntries) => {
         if (cloudEntries && cloudEntries.length > 0) {
           setAllReceptionEntries((prevLocal) => {
             const cloudMap = new Map(cloudEntries.map((item) => [item.id, item]));
-            // Merge cloud entries with any local-only entries
             const merged = [...cloudEntries];
             prevLocal.forEach((localItem) => {
               if (!cloudMap.has(localItem.id)) {
@@ -1988,7 +2118,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     );
 
-    // 3. Subscribe to live lab reports
+    // 7. Subscribe to live lab reports
     const unsubscribeReports = subscribeToLabReports(
       (cloudReports) => {
         if (cloudReports && cloudReports.length > 0) {
@@ -2013,7 +2143,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     );
 
-    // 4. Subscribe to home collection bookings
+    // 8. Subscribe to home collection bookings
     const unsubscribeBookings = subscribeToBookings(
       (cloudBookings) => {
         if (cloudBookings && cloudBookings.length > 0) {
@@ -2032,11 +2162,34 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     return () => {
+      unsubscribeSettings();
+      unsubscribeTests();
+      unsubscribePackages();
+      unsubscribeDoctors();
       unsubscribeReception();
       unsubscribeReports();
       unsubscribeBookings();
     };
   }, []);
+
+  // Explicit Cloud Refresh (Pulls latest from Cloud Firestore)
+  const refreshCloudData = async () => {
+    setCloudSyncStatus('syncing');
+    try {
+      const cloudSettings = await fetchAllLabSettingsFromCloud();
+      if (cloudSettings && Object.keys(cloudSettings).length > 0) {
+        setVendorLabSettingsMap((prev) => ({
+          ...prev,
+          ...cloudSettings,
+        }));
+      }
+      setIsCloudConnected(true);
+      setCloudSyncStatus('synced');
+      setLastCloudSyncTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
+    } catch {
+      setCloudSyncStatus('offline');
+    }
+  };
 
   // Tenant-Scoped Filtered Views (Zero cross-lab data leakage)
   const reports = useMemo(() => {
@@ -3231,56 +3384,71 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCompanyStats((prev) => prev.map((s) => (s.id === id ? { ...s, ...stat } : s)));
   };
 
-  // Vendor Lab CMS Actions (Tenant-Isolated)
+  // Vendor Lab CMS Actions (Tenant-Isolated & Cloud Synchronized)
   const updateVendorLabSettings = (newSettings: Partial<VendorLabSettings>) => {
     const targetLabId = effectiveSettingsLabId;
+    let updatedPayload: VendorLabSettings | null = null;
     setVendorLabSettingsMap((prev) => {
       const current = prev[targetLabId] || vendorLabSettings;
+      updatedPayload = {
+        ...current,
+        ...newSettings,
+        labId: targetLabId,
+      };
       return {
         ...prev,
-        [targetLabId]: {
-          ...current,
-          ...newSettings,
-          labId: targetLabId,
-        },
+        [targetLabId]: updatedPayload,
       };
     });
+    if (updatedPayload) {
+      syncLabSettingsToCloud(targetLabId, updatedPayload);
+    }
   };
 
   const updateVendorSection = (sectionKey: keyof VendorWebsiteSections, enabled: boolean) => {
     const targetLabId = effectiveSettingsLabId;
+    let updatedPayload: VendorLabSettings | null = null;
     setVendorLabSettingsMap((prev) => {
       const current = prev[targetLabId] || vendorLabSettings;
       const currentSections = current.sections || DEFAULT_VENDOR_SECTIONS;
-      return {
-        ...prev,
-        [targetLabId]: {
-          ...current,
-          sections: {
-            ...currentSections,
-            [sectionKey]: enabled,
-          },
+      updatedPayload = {
+        ...current,
+        sections: {
+          ...currentSections,
+          [sectionKey]: enabled,
         },
       };
+      return {
+        ...prev,
+        [targetLabId]: updatedPayload,
+      };
     });
+    if (updatedPayload) {
+      syncLabSettingsToCloud(targetLabId, updatedPayload);
+    }
   };
 
   const toggleAllVendorSections = (enabled: boolean) => {
     const targetLabId = effectiveSettingsLabId;
+    let updatedPayload: VendorLabSettings | null = null;
     setVendorLabSettingsMap((prev) => {
       const current = prev[targetLabId] || vendorLabSettings;
       const currentSections = { ...(current.sections || DEFAULT_VENDOR_SECTIONS) };
       (Object.keys(currentSections) as (keyof VendorWebsiteSections)[]).forEach((k) => {
         currentSections[k] = enabled;
       });
+      updatedPayload = {
+        ...current,
+        sections: currentSections,
+      };
       return {
         ...prev,
-        [targetLabId]: {
-          ...current,
-          sections: currentSections,
-        },
+        [targetLabId]: updatedPayload,
       };
     });
+    if (updatedPayload) {
+      syncLabSettingsToCloud(targetLabId, updatedPayload);
+    }
   };
 
   const addVendorPackage = (pkg: Omit<VendorPackage, 'id'>) => {
@@ -3291,9 +3459,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `pkg-${Date.now()}`,
     };
     setAllVendorPackages((prev) => [newPkg, ...prev]);
+    syncPackageToCloud(newPkg);
   };
 
   const updateVendorPackage = (id: string, pkg: Partial<VendorPackage>) => {
+    let syncedPkg: VendorPackage | null = null;
     setAllVendorPackages((prev) =>
       prev.map((p) => {
         if (p.id === id) {
@@ -3301,11 +3471,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant package update for ${id}`);
             return p;
           }
-          return { ...p, ...pkg };
+          syncedPkg = { ...p, ...pkg };
+          return syncedPkg;
         }
         return p;
       })
     );
+    if (syncedPkg) {
+      syncPackageToCloud(syncedPkg);
+    }
   };
 
   const deleteVendorPackage = (id: string) => {
@@ -3321,6 +3495,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return true;
       })
     );
+    deletePackageFromCloud(id);
   };
 
   const addVendorTest = (test: Omit<TestItem, 'id'>) => {
@@ -3331,9 +3506,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `TST-${Date.now().toString().slice(-4)}`,
     };
     setAllVendorTests((prev) => [newTest, ...prev]);
+    syncTestToCloud(newTest);
   };
 
   const updateVendorTest = (id: string, test: Partial<TestItem>) => {
+    let syncedTest: TestItem | null = null;
     setAllVendorTests((prev) =>
       prev.map((t) => {
         if (t.id === id) {
@@ -3341,11 +3518,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant test update for ${id}`);
             return t;
           }
-          return { ...t, ...test };
+          syncedTest = { ...t, ...test };
+          return syncedTest;
         }
         return t;
       })
     );
+    if (syncedTest) {
+      syncTestToCloud(syncedTest);
+    }
   };
 
   const deleteVendorTest = (id: string) => {
@@ -3361,6 +3542,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return true;
       })
     );
+    deleteTestFromCloud(id);
   };
 
   const addVendorDoctor = (doc: Omit<VendorDoctor, 'id'>) => {
@@ -3371,9 +3553,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `doc-${Date.now()}`,
     };
     setAllVendorDoctors((prev) => [...prev, newDoc]);
+    syncDoctorToCloud(newDoc);
   };
 
   const updateVendorDoctor = (id: string, doc: Partial<VendorDoctor>) => {
+    let syncedDoc: VendorDoctor | null = null;
     setAllVendorDoctors((prev) =>
       prev.map((d) => {
         if (d.id === id) {
@@ -3381,11 +3565,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant doctor update for ${id}`);
             return d;
           }
-          return { ...d, ...doc };
+          syncedDoc = { ...d, ...doc };
+          return syncedDoc;
         }
         return d;
       })
     );
+    if (syncedDoc) {
+      syncDoctorToCloud(syncedDoc);
+    }
   };
 
   const deleteVendorDoctor = (id: string) => {
@@ -3401,6 +3589,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return true;
       })
     );
+    deleteDoctorFromCloud(id);
   };
 
   const addVendorBranch = (branch: Omit<VendorBranch, 'id'>) => {
@@ -3494,6 +3683,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return true;
       })
     );
+    deleteBookingFromCloud(id);
   };
 
   // Vendor Lab Directory Management
@@ -3933,6 +4123,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         currentUser,
         activeBranchId,
         setActiveBranchId,
+        activeDeviceId,
+        setActiveDeviceId,
         login,
         logout,
         isAuthModalOpen,
@@ -4047,6 +4239,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isCloudConnected,
         cloudSyncStatus,
         lastCloudSyncTime,
+        refreshCloudData,
       }}
     >
       {children}

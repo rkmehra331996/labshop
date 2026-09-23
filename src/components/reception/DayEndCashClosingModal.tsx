@@ -76,6 +76,7 @@ export const DayEndCashClosingModal: React.FC<DayEndCashClosingModalProps> = ({
 
   const [activeTab, setActiveTab] = useState<'closing' | 'history'>('closing');
   const [selectedDateFilter, setSelectedDateFilter] = useState<string>('Today');
+  const [selectedDeviceFilter, setSelectedDeviceFilter] = useState<'all' | 'branch-1' | 'branch-2'>('all');
   const [cashierName, setCashierName] = useState<string>(
     staffName || currentUser?.name || 'Receptionist (Counter #1)'
   );
@@ -104,10 +105,16 @@ export const DayEndCashClosingModal: React.FC<DayEndCashClosingModalProps> = ({
     }
   });
 
-  // Filter entries according to date selection
+  // Filter entries according to date & device selection
   const relevantEntries = useMemo(() => {
-    return receptionEntries; // Single branch counter entries
-  }, [receptionEntries, selectedDateFilter]);
+    if (selectedDeviceFilter === 'branch-1') {
+      return receptionEntries.filter((e) => !e.branchId || e.branchId === 'branch-1');
+    }
+    if (selectedDeviceFilter === 'branch-2') {
+      return receptionEntries.filter((e) => e.branchId === 'branch-2');
+    }
+    return receptionEntries;
+  }, [receptionEntries, selectedDateFilter, selectedDeviceFilter]);
 
   // Calculations
   const patientCount = relevantEntries.length;
@@ -262,13 +269,48 @@ export const DayEndCashClosingModal: React.FC<DayEndCashClosingModalProps> = ({
                   Daily Z-Register
                 </span>
               </div>
-              <p className="text-xs text-teal-100 mt-0.5">
-                {vendorLabSettings?.labName || 'Apex Diagnostic & Pathology Laboratory'} • Counter #1 Reconciliation
+              <p className="text-xs text-teal-100 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span>{vendorLabSettings?.labName || 'Apex Diagnostic & Pathology Laboratory'}</span>
+                <span>•</span>
+                <span className="font-semibold text-amber-300">
+                  {selectedDeviceFilter === 'branch-2' ? 'Device B (Counter 2)' : selectedDeviceFilter === 'branch-1' ? 'Device A (Counter 1)' : 'All Devices (Combined)'}
+                </span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Device Filter for Reconciliation */}
+            <div className="flex bg-teal-950/70 p-0.5 rounded-lg text-xs font-bold border border-teal-500/40">
+              <button
+                type="button"
+                onClick={() => setSelectedDeviceFilter('all')}
+                className={`px-2 py-1 rounded transition cursor-pointer ${
+                  selectedDeviceFilter === 'all' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-teal-100 hover:text-white'
+                }`}
+              >
+                All Devices
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDeviceFilter('branch-1')}
+                className={`px-2 py-1 rounded transition cursor-pointer ${
+                  selectedDeviceFilter === 'branch-1' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-teal-100 hover:text-white'
+                }`}
+              >
+                🖥️ Device A
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDeviceFilter('branch-2')}
+                className={`px-2 py-1 rounded transition cursor-pointer ${
+                  selectedDeviceFilter === 'branch-2' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-teal-100 hover:text-white'
+                }`}
+              >
+                💻 Device B
+              </button>
+            </div>
+
             <div className="flex bg-teal-900/60 p-1 rounded-lg text-xs font-bold border border-teal-600/50">
               <button
                 type="button"

@@ -82,7 +82,6 @@ export interface PortalWebsiteSections {
   reportPreview: boolean;
   whatsapp: boolean;
   testLibrary: boolean;
-  multiBranch: boolean;
   staffRoles: boolean;
   patientHistory: boolean;
   dataSafety: boolean;

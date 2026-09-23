@@ -20,7 +20,7 @@ export const FinalCTASection: React.FC<FinalCTASectionProps> = ({ onOpenDemo }) 
 
         {/* Subheading as required by spec */}
         <p className="text-base sm:text-lg text-slate-200 mt-3 font-medium tracking-wide">
-          Patients. Tests. Samples. Reports. Billing. Branches.
+          Patients. Tests. Samples. Reports. Billing. Analytics.
         </p>
 
         {/* Buttons */}

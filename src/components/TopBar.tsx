@@ -1,5 +1,5 @@
-import React from 'react';
-import { Phone, Globe, KeyRound, LogOut, UserCheck, LayoutDashboard, Building2, Stethoscope, Wifi, WifiOff } from 'lucide-react';
+import React, { useState } from 'react';
+import { Phone, Globe, KeyRound, LogOut, UserCheck, LayoutDashboard, Building2, Stethoscope, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { AppView, Language, UserRole } from '../types';
 import { useCms } from '../context/CmsContext';
 import { ALL_ROLES_CONFIG } from '../utils/rbac';
@@ -17,7 +17,29 @@ export const TopBar: React.FC<TopBarProps> = ({
   language = 'en',
   onSelectLanguage = (_lang: Language) => {},
 }) => {
-  const { currentUser, logout, openLoginModal, openRegisterLabModal, companySettings, isCloudConnected, cloudSyncStatus, lastCloudSyncTime } = useCms();
+  const {
+    currentUser,
+    logout,
+    openLoginModal,
+    openRegisterLabModal,
+    companySettings,
+    isCloudConnected,
+    cloudSyncStatus,
+    lastCloudSyncTime,
+    refreshCloudData,
+    activeBranchId,
+    setActiveBranchId,
+  } = useCms();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleManualSync = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshCloudData();
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 600);
+    }
+  };
   const supportPhone = companySettings.supportPhone || '+91 7087033009';
 
   const handleLaunchDepartment = (role: UserRole, view: AppView) => {
@@ -221,18 +243,55 @@ export const TopBar: React.FC<TopBarProps> = ({
             </div>
           )}
 
-          {/* Cloud Database Live Sync Indicator */}
+          {/* Active Devices / Workstation Toggle: Device A & Device B */}
           <div
+            id="topbar-device-selector"
+            className="hidden sm:inline-flex items-center gap-1 bg-black/35 p-1 rounded-full border border-white/20 text-[11px]"
+            title="Multi-Device Cloud Sync: Toggle between Device A and Device B"
+          >
+            <span className="text-[10px] text-slate-300 font-bold px-1.5 hidden xl:inline">Workstations:</span>
+            <button
+              type="button"
+              onClick={() => setActiveBranchId('branch-1')}
+              className={`px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                activeBranchId === 'branch-1'
+                  ? 'bg-emerald-500 text-white shadow-xs'
+                  : 'text-slate-300 hover:text-white bg-white/5'
+              }`}
+              title="Device A: Reception & Billing Counter (Online & Synced)"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
+              <span>🖥️ Device A</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveBranchId('branch-2')}
+              className={`px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                activeBranchId === 'branch-2'
+                  ? 'bg-emerald-500 text-white shadow-xs'
+                  : 'text-slate-300 hover:text-white bg-white/5'
+              }`}
+              title="Device B: Lab Testing & Analyzer Workstation (Online & Synced)"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
+              <span>💻 Device B</span>
+            </button>
+          </div>
+
+          {/* Cloud Database Multi-Device Live Sync Button & Status */}
+          <button
+            type="button"
+            onClick={handleManualSync}
             id="topbar-cloud-sync-status"
-            className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition cursor-pointer active:scale-95 ${
               isCloudConnected
-                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40'
+                : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/40'
             }`}
             title={
               isCloudConnected
-                ? `Cloud Firestore Live: Multi-computer sync active (Last sync: ${lastCloudSyncTime})`
-                : 'Offline: Local fallback active'
+                ? `🟢 Multi-Device Cloud Sync Active: Changes sync live across all phones, tablets, and computers. Click to force-refresh. (Last sync: ${lastCloudSyncTime})`
+                : 'Offline: Local fallback active. Click to retry connection.'
             }
           >
             {isCloudConnected ? (
@@ -241,15 +300,18 @@ export const TopBar: React.FC<TopBarProps> = ({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
                 </span>
-                <span>Cloud Live</span>
+                <span className="hidden sm:inline">All Devices Live</span>
+                <span className="sm:hidden">Live</span>
+                <RefreshCw className={`w-3 h-3 text-emerald-300 ${isRefreshing || cloudSyncStatus === 'syncing' ? 'animate-spin' : ''}`} />
               </>
             ) : (
               <>
                 <WifiOff className="w-3 h-3 text-amber-400" />
                 <span>Offline</span>
+                <RefreshCw className={`w-3 h-3 text-amber-300 ${isRefreshing ? 'animate-spin' : ''}`} />
               </>
             )}
-          </div>
+          </button>
 
           {/* 3. Language Selector */}
           <div className="flex items-center gap-1.5 pl-2 sm:pl-3 border-l border-white/20">

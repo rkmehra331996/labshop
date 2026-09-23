@@ -112,12 +112,6 @@ const SECTIONS_CONFIG: SectionMeta[] = [
     description: 'Comprehensive test definitions with Indian clinical reference ranges and units.',
   },
   {
-    key: 'multiBranch',
-    name: 'Multi-Branch & Sample Collection Centers',
-    category: 'Diagnostics',
-    description: 'Manage multiple collection desks, satellite centers, and processing labs.',
-  },
-  {
     key: 'staffRoles',
     name: 'Staff Roles & Permission Matrix',
     category: 'Security',

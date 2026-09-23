@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Clock, AlertTriangle, Calculator, Building2, PhoneCall, XCircle } from 'lucide-react';
+import { BookOpen, Clock, AlertTriangle, Calculator, Stethoscope, PhoneCall, XCircle } from 'lucide-react';
 
 export const ProblemSection: React.FC = () => {
   const problems = [
@@ -24,9 +24,9 @@ export const ProblemSection: React.FC = () => {
       explanation: 'Unclear partial payments, due amounts, and missing cash tallies.',
     },
     {
-      title: 'Multiple Branch Problems',
-      icon: Building2,
-      explanation: 'No centralized visibility into satellite collection centers or test volumes.',
+      title: 'Doctor Referral Disputes',
+      icon: Stethoscope,
+      explanation: 'Manual incentive calculation and untracked doctor referral payouts lead to revenue leakage.',
     },
     {
       title: 'Patients Calling for Reports',

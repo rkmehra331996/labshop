@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, ArrowRight, ShieldCheck, Sparkles, Building, GitBranch } from 'lucide-react';
+import { Check, ArrowRight, ShieldCheck, Sparkles, Building } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 
 interface PricingSectionProps {
@@ -74,7 +74,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
                         plan.isPopular ? 'bg-teal-100 text-[#0F766E]' : 'bg-blue-100 text-[#123B6D]'
                       } flex items-center justify-center`}
                     >
-                      {plan.isPopular ? <GitBranch className="w-5 h-5" /> : <Building className="w-5 h-5" />}
+                      {plan.isPopular ? <Sparkles className="w-5 h-5" /> : <Building className="w-5 h-5" />}
                     </div>
                     <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#123B6D] border border-blue-200">
                       {plan.target}

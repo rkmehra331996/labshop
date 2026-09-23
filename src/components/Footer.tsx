@@ -47,7 +47,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
               Laboratory Management Software for India.
             </p>
             <p className="text-slate-400 max-w-sm text-[11px] leading-relaxed">
-              Empowering standalone pathology labs and multi-branch diagnostic chains with offline capabilities, ₹ INR billing, and instant WhatsApp report delivery.
+              Empowering standalone pathology labs and diagnostic healthcare centres with offline capabilities, ₹ INR billing, and instant WhatsApp report delivery.
             </p>
 
             <div className="pt-2 text-[11px] text-slate-400 space-y-1">

@@ -62,6 +62,8 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
     updateReceptionEntry,
     vendorTests,
     logout,
+    activeBranchId,
+    setActiveBranchId,
   } = useCms();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'patients' | 'results' | 'reception_orders'>('dashboard');
   const [receptionFilter, setReceptionFilter] = useState<'All' | 'Awaiting' | 'Accepted' | 'Completed'>('All');
@@ -511,14 +513,41 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
               <span className="font-extrabold text-sm sm:text-base tracking-tight text-white leading-tight truncate">
                 {labName}
               </span>
-              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+              <div className="flex items-center gap-2 flex-wrap mt-0.5">
                 <span className="bg-amber-400 text-slate-950 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1">
                   <span>🔬</span>
                   <span>Technician Lab Workstation & Reports</span>
                 </span>
-                <span className="hidden sm:inline text-[11px] text-teal-100/90 font-medium">
-                  • Clinical Pathology Console
-                </span>
+                {/* Active Workstation / Device selector */}
+                <div
+                  id="tech-device-selector"
+                  className="inline-flex items-center bg-white/15 p-0.5 rounded-lg border border-white/20 text-[11px]"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setActiveBranchId('branch-1')}
+                    className={`px-2 py-0.5 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
+                      activeBranchId === 'branch-1'
+                        ? 'bg-amber-400 text-slate-950 shadow-xs'
+                        : 'text-slate-200 hover:text-white'
+                    }`}
+                    title="Device A: Counter #1 (Reception & Billing)"
+                  >
+                    <span>🖥️ Device A</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveBranchId('branch-2')}
+                    className={`px-2 py-0.5 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
+                      activeBranchId === 'branch-2'
+                        ? 'bg-amber-400 text-slate-950 shadow-xs'
+                        : 'text-slate-200 hover:text-white'
+                    }`}
+                    title="Device B: Counter #2 (Lab Testing Workstation)"
+                  >
+                    <span>💻 Device B</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

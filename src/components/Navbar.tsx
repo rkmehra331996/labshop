@@ -84,13 +84,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               Features
             </button>
 
-            {/* 3. Solutions */}
+            {/* 3. Workflow */}
             <button
-              onClick={() => scrollToSection('solution-section')}
+              onClick={() => scrollToSection('workflow-section')}
               className="hover:text-[#123B6D] transition cursor-pointer text-slate-700 hover:font-bold whitespace-nowrap inline-block"
-              id="nav-link-solutions"
+              id="nav-link-workflow"
             >
-              Solutions
+              Workflow
             </button>
 
             {/* 4. Pricing */}
@@ -185,12 +185,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Features</span>
             </button>
 
-            {/* 3. Solutions */}
+            {/* 3. Workflow */}
             <button
-              onClick={() => scrollToSection('solution-section')}
+              onClick={() => scrollToSection('workflow-section')}
               className="text-left py-2 px-3 rounded-lg hover:bg-slate-50 text-slate-700 font-semibold"
             >
-              <span>Solutions</span>
+              <span>Workflow</span>
             </button>
 
             {/* 4. Pricing */}

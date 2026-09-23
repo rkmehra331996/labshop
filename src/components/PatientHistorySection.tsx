@@ -12,7 +12,7 @@ export const PatientHistorySection: React.FC = () => {
     'Doctor',
     'Test',
     'Date',
-    'Branch',
+    'Department',
   ];
 
   const timelineRecords = [
@@ -22,7 +22,7 @@ export const PatientHistorySection: React.FC = () => {
       reportId: 'RPT-2026-8812',
       tests: 'Complete Blood Count (CBC) + HbA1c Diabetes Profile',
       doctor: 'Dr. S. K. Gupta (MD Med)',
-      branch: 'Branch A — Central Hub',
+      branch: 'Clinical Pathology',
       flag: 'HbA1c: 6.8% (Elevated)',
       status: 'Verified & Delivered',
     },
@@ -32,7 +32,7 @@ export const PatientHistorySection: React.FC = () => {
       reportId: 'RPT-2026-4109',
       tests: 'Lipid Profile Comprehensive + Fasting Blood Sugar',
       doctor: 'Dr. S. K. Gupta (MD Med)',
-      branch: 'Branch A — Central Hub',
+      branch: 'Biochemistry',
       flag: 'FBS: 142 mg/dL',
       status: 'Archived',
     },
@@ -42,7 +42,7 @@ export const PatientHistorySection: React.FC = () => {
       reportId: 'RPT-2025-9921',
       tests: 'Executive Health Checkup Package (54 Parameters)',
       doctor: 'Self Walk-in',
-      branch: 'Branch B — City Health',
+      branch: 'Wellness Screening',
       flag: 'Vit D3: 16.4 ng/mL (Deficient)',
       status: 'Archived',
     },
@@ -132,7 +132,7 @@ export const PatientHistorySection: React.FC = () => {
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] text-[#64748B] pt-2 border-t border-slate-100">
                   <span>Dr: <strong className="text-slate-700">{rec.doctor}</strong></span>
-                  <span>Branch: <strong className="text-slate-700">{rec.branch}</strong></span>
+                  <span>Dept: <strong className="text-slate-700">{rec.branch}</strong></span>
                   <span className="text-rose-600 font-semibold bg-rose-50 px-1.5 py-0.5 rounded">
                     {rec.flag}
                   </span>

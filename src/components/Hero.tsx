@@ -43,20 +43,29 @@ export const Hero: React.FC<HeroProps> = ({
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-1">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
               <button
                 id="hero-btn-start"
                 onClick={openRegisterLabModal}
-                className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-8 py-3.5 rounded-lg font-bold text-sm transition shadow-lg hover:shadow-xl flex items-center justify-center gap-2 cursor-pointer"
+                className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-7 py-3.5 rounded-xl font-bold text-sm transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
                 <span>{t.getStarted}</span>
                 <ArrowRight className="w-4 h-4 text-amber-400" />
               </button>
 
               <button
+                id="hero-btn-launch-app"
+                onClick={onLaunchApp}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3.5 rounded-xl font-bold text-sm transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+              >
+                <Laptop className="w-4 h-4 text-white" />
+                <span>Try Live Software</span>
+              </button>
+
+              <button
                 id="hero-btn-book-demo"
                 onClick={onOpenDemo}
-                className="bg-white hover:bg-slate-50 border-2 border-[#123B6D] text-[#123B6D] px-8 py-3.5 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 hover:text-[#123B6D] px-6 py-3.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>{t.bookDemo}</span>
               </button>

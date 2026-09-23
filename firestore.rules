@@ -18,6 +18,18 @@ service cloud.firestore {
     match /lab_settings/{settingId} {
       allow read, write: if true;
     }
+    match /lab_tests/{testId} {
+      allow read, write: if true;
+    }
+    match /lab_packages/{packageId} {
+      allow read, write: if true;
+    }
+    match /lab_doctors/{doctorId} {
+      allow read, write: if true;
+    }
+    match /vendor_branches/{branchId} {
+      allow read, write: if true;
+    }
     match /{document=**} {
       allow read, write: if true;
     }

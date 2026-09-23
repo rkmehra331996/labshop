@@ -13,7 +13,6 @@ import { PatientPortalSection } from './components/PatientPortalSection';
 import { ReportPreviewSection } from './components/ReportPreviewSection';
 import { WhatsAppReportSection } from './components/WhatsAppReportSection';
 import { TestLibrarySection } from './components/TestLibrarySection';
-import { MultiBranchSection } from './components/MultiBranchSection';
 import { StaffRolesSection } from './components/StaffRolesSection';
 import { PatientHistorySection } from './components/PatientHistorySection';
 import { DataSafetySection } from './components/DataSafetySection';
@@ -599,10 +598,7 @@ export default function App() {
         {/* 13. 500+ Test Library */}
         {portalSections.testLibrary && <TestLibrarySection />}
 
-        {/* 14. Multi-Branch */}
-        {portalSections.multiBranch && <MultiBranchSection />}
-
-        {/* 15. Staff & Roles */}
+        {/* 14. Staff & Roles */}
         {portalSections.staffRoles && <StaffRolesSection onNavigateView={setCurrentView} />}
 
         {/* 16. Patient History */}

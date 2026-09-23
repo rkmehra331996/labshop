@@ -1316,7 +1316,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                   >
                     <option value="Starter Lab Plan">Starter Lab Plan (₹999/mo)</option>
                     <option value="Professional Lab Plan">Professional Lab Plan (₹1,999/mo)</option>
-                    <option value="Multi-Branch Network Plan">Multi-Branch Network Plan (₹2,999/mo)</option>
+                    <option value="Diagnostic Network Plan">Diagnostic Network Plan (₹2,999/mo)</option>
                     <option value="Enterprise Diagnostics">Enterprise Diagnostics (Custom)</option>
                   </select>
                 </div>

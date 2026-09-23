@@ -239,7 +239,8 @@ export const LAB_OPTIONS: LabOption[] = [
     city: 'Ludhiana, Punjab',
     nablCode: 'MC-4821',
     branches: [
-      { id: 'branch-1', name: 'Apex Diagnostic & Clinical Pathology Laboratory', type: 'Main Facility' },
+      { id: 'branch-1', name: 'Device A — Reception & Billing Desk (Counter 1)', type: 'Device A' },
+      { id: 'branch-2', name: 'Device B — Lab Testing & Analyzer Workstation (Counter 2)', type: 'Device B' },
     ],
   },
   {
@@ -248,7 +249,8 @@ export const LAB_OPTIONS: LabOption[] = [
     city: 'Mohali, Punjab',
     nablCode: 'MC-3912',
     branches: [
-      { id: 'branch-1', name: 'CityCare Advanced Diagnostics Main Hub', type: 'Main Facility' },
+      { id: 'branch-1', name: 'Device A — Reception Counter', type: 'Device A' },
+      { id: 'branch-2', name: 'Device B — Lab Testing Workstation', type: 'Device B' },
     ],
   },
   {
@@ -257,13 +259,15 @@ export const LAB_OPTIONS: LabOption[] = [
     city: 'Chandigarh',
     nablCode: 'MC-5104',
     branches: [
-      { id: 'branch-1', name: 'MetroPath Scans Central Diagnostic Hub', type: 'Main Facility' },
+      { id: 'branch-1', name: 'Device A — Reception Counter', type: 'Device A' },
+      { id: 'branch-2', name: 'Device B — Molecular Lab Workstation', type: 'Device B' },
     ],
   },
 ];
 
 export const BRANCH_OPTIONS = [
-  { id: 'branch-1', name: '🏥 Central Diagnostic Laboratory (Main Facility)', badge: 'Main Lab' },
+  { id: 'branch-1', name: '🖥️ Device A — Reception & Billing Desk (Counter 1)', badge: 'Device A' },
+  { id: 'branch-2', name: '💻 Device B — Lab Testing & Analyzer Workstation (Counter 2)', badge: 'Device B' },
 ];
 
 export function getPermissionsForRole(role: string): RolePermissions {

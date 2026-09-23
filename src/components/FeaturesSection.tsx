@@ -16,7 +16,7 @@ import {
   RefreshCw,
   HardDriveDownload,
   Building,
-  GitBranch,
+  TrendingUp,
   UserCog,
   ArrowRight,
 } from 'lucide-react';
@@ -43,7 +43,7 @@ export const FeaturesSection: React.FC<FeaturesSectionProps> = ({ onExploreFeatu
     { title: 'Automatic Cloud Sync', desc: 'Zero-conflict background synchronization once online', icon: RefreshCw },
     { title: 'Backup & Restore', desc: 'Continuous snapshot backups with one-click Excel data export', icon: HardDriveDownload },
     { title: 'Standalone Labs', desc: 'Optimized high-speed interface for standalone diagnostic centers', icon: Building },
-    { title: 'Lab Network & Centers', desc: 'Centralized HO oversight for regional chains & collection points', icon: GitBranch },
+    { title: 'Doctor Referral Accounting', desc: 'Automate doctor incentives, commission slabs & referral statements', icon: TrendingUp },
     { title: 'Staff & Roles', desc: 'Granular permissions for owners, technicians, pathologists & clerks', icon: UserCog },
   ];
 

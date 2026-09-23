@@ -80,7 +80,7 @@ export const BookDemoModal: React.FC<ModalProps> = ({ isOpen, onClose }) => {
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none bg-white"
                 >
                   <option>Single Standalone Pathology Lab</option>
-                  <option>Multi-Branch Diagnostic Chain (2–10 Centers)</option>
+                  <option>Diagnostic Pathology Network (2–10 Centers)</option>
                   <option>Hospital Attached Laboratory</option>
                   <option>Collection Centre Network</option>
                 </select>
