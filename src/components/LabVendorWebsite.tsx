@@ -76,6 +76,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     openLoginModal,
     vendorLabsList,
     selectedVendorLabId,
+    setVendorStatus,
   } = useCms();
 
   const currentLabItem = React.useMemo(() => {
@@ -272,6 +273,78 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans selection:bg-[#123B6D]/15 selection:text-[#123B6D]">
+      {/* Super Admin Website Live Control & Status Banner */}
+      {currentUser?.role === 'admin' && (
+        <div className="bg-slate-950 text-white px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 shadow-md sticky top-0 z-50">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
+              Super Admin Mode
+            </span>
+            <span className="text-slate-300">
+              Previewing Lab Website: <strong className="text-white">{labName}</strong>
+            </span>
+            {currentLabItem?.status === 'Draft' ? (
+              <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-400" />
+                <span>Status: DRAFT (ड्राफ्ट - पेंडिंग अप्रूवल)</span>
+              </span>
+            ) : (
+              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                <span>Status: LIVE (स्वीकृत व लाइव)</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {currentLabItem && (currentLabItem.status !== 'Active' || !currentLabItem.isWebsiteApproved) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setVendorStatus(currentLabItem.id, 'Active');
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Approve Website (लाइव करें)</span>
+              </button>
+            )}
+
+            {currentLabItem && currentLabItem.status !== 'Draft' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setVendorStatus(currentLabItem.id, 'Draft');
+                }}
+                className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Move to Draft (ड्राफ्ट बनाएं)</span>
+              </button>
+            )}
+
+            {onOpenAdminDashboard && (
+              <button
+                type="button"
+                onClick={onOpenAdminDashboard}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-100 hover:text-white px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition cursor-pointer border border-slate-700"
+              >
+                <span>← Back to Super Admin Dashboard</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onOpenSoftwareWebsite}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1 rounded-lg text-xs font-black flex items-center gap-1 transition cursor-pointer shadow-xs"
+              title="Go to IndianLalaji.com Home Portal"
+            >
+              <span>🏠 Main Portal Home</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Lab Header */}
       <header className="sticky top-0 bg-white border-b border-slate-200 z-40 shadow-xs">
         <div className="max-w-7xl mx-auto px-3 sm:px-8 h-16 sm:h-18 flex items-center justify-between gap-2 sm:gap-4">
@@ -312,13 +385,23 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
           {/* Desktop Navigation Links: (home, health package, test's, pathologists, contact us) */}
           <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs lg:text-sm font-semibold text-slate-700 whitespace-nowrap">
-            {/* 1. Home */}
+            {/* Return to Software / Main Portal Home */}
+            <button
+              onClick={onOpenSoftwareWebsite}
+              className="text-[#0F766E] hover:text-[#123B6D] transition font-bold py-1 flex items-center gap-1.5 cursor-pointer bg-teal-50 hover:bg-teal-100/80 px-2.5 rounded-lg border border-teal-200/80 text-xs shadow-2xs"
+              title="Return to Main indianlalaji.com Home Portal"
+              id="vendor-nav-main-home"
+            >
+              <span>🏠 Main Portal</span>
+            </button>
+
+            {/* 1. Lab Home */}
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="hover:text-[#123B6D] transition cursor-pointer text-slate-700 hover:font-bold whitespace-nowrap py-1"
               id="vendor-nav-home"
             >
-              Home
+              Lab Home
             </button>
 
             {/* 2. Health Package */}
@@ -418,7 +501,24 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1.5 shadow-xl animate-in fade-in duration-200">
-            {/* 1. Home */}
+            {/* Return to Software / Main Home Portal */}
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onOpenSoftwareWebsite();
+              }}
+              className="w-full text-left py-2 px-3 rounded-lg bg-teal-50 text-[#0F766E] font-bold flex items-center justify-between text-sm border border-teal-200"
+            >
+              <span className="flex items-center gap-1.5">
+                <span>🏠</span>
+                <span>Main Portal Home</span>
+              </span>
+              <span className="text-[10px] bg-teal-200 text-teal-900 px-2 py-0.5 rounded font-bold">
+                Home
+              </span>
+            </button>
+
+            {/* 1. Lab Home */}
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
@@ -426,7 +526,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               }}
               className="w-full text-left py-2 px-3 rounded-lg hover:bg-slate-50 font-bold text-[#123B6D] flex items-center justify-between text-sm"
             >
-              <span>Home</span>
+              <span>Lab Home</span>
             </button>
 
             {/* 2. Health Package */}
@@ -1563,6 +1663,14 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 Quick Access & Links
               </h4>
               <ul className="space-y-2">
+                <li>
+                  <button
+                    onClick={onOpenSoftwareWebsite}
+                    className="hover:text-[#123B6D] flex items-center gap-1.5 cursor-pointer text-[#0F766E] font-bold"
+                  >
+                    <span>🏠 Main Home Portal</span>
+                  </button>
+                </li>
                 <li>
                   <button
                     onClick={handleOpenReception}

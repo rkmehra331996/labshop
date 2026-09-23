@@ -2592,7 +2592,7 @@ export const TRANSLATIONS: Record<Language, {
   supportHours: string;
   heroHeading: string;
   heroSubheading: string;
-  startTrial: string;
+  getStarted: string;
   bookDemo: string;
   offlineBanner: string;
   whatsappButton: string;
@@ -2605,7 +2605,7 @@ export const TRANSLATIONS: Record<Language, {
     supportHours: 'WhatsApp: 7087033009 | Mon–Fri, 10 AM–6 PM',
     heroHeading: 'Complete Laboratory Management Software for India',
     heroSubheading: 'Manage Patients, Tests, Samples, Reports, Billing and Branches — All From One Platform.',
-    startTrial: 'Start Free Trial',
+    getStarted: 'Get Started',
     bookDemo: 'Book a Demo',
     offlineBanner: 'Internet Disconnected? Laboratory Work Never Stops.',
     whatsappButton: 'Send on WhatsApp',
@@ -2618,7 +2618,7 @@ export const TRANSLATIONS: Record<Language, {
     supportHours: 'व्हाट्सएप सहायता: 7087033009 | सोम–शुक्र, 10 AM–6 PM',
     heroHeading: 'भारतीय प्रयोगशालाओं के लिए संपूर्ण लैब मैनेजमेंट सॉफ्टवेयर',
     heroSubheading: 'मरीज़, टेस्ट, सैंपल, रिपोर्ट, बिलिंग और शाखाएं — सब कुछ एक ही प्लेटफॉर्म पर प्रबंधित करें।',
-    startTrial: 'मुफ्त ट्रायल शुरू करें',
+    getStarted: 'शुरू करें',
     bookDemo: 'डेमो बुक करें',
     offlineBanner: 'इंटरनेट गया? प्रयोगशाला का काम नहीं रुकेगा।',
     whatsappButton: 'व्हाट्सएप पर भेजें',
@@ -2631,7 +2631,7 @@ export const TRANSLATIONS: Record<Language, {
     supportHours: 'ਵਟਸਐਪ ਸਹਾਇਤਾ: 7087033009 | ਸੋਮ–ਸ਼ੁੱਕਰ, 10 AM–6 PM',
     heroHeading: 'ਭਾਰਤ ਦੀਆਂ ਪ੍ਰਯੋਗਸ਼ਾਲਾਵਾਂ ਲਈ ਸੰਪੂਰਨ ਲੈਬ ਪ੍ਰਬੰਧਨ ਸਾਫਟਵੇਅਰ',
     heroSubheading: 'ਮਰੀਜ਼, ਟੈਸਟ, ਸੈਂਪਲ, ਰਿਪੋਰਟਾਂ, ਬਿਲਿੰਗ ਅਤੇ ਬ੍ਰਾਂਚਾਂ — ਸਭ ਕੁਝ ਇੱਕ ਹੀ ਪਲੇਟਫਾਰਮ ਤੋਂ।',
-    startTrial: 'ਮੁਫ਼ਤ ਟ੍ਰਾਇਲ ਸ਼ੁਰੂ ਕਰੋ',
+    getStarted: 'ਹੁਣੇ ਸ਼ੁਰੂ ਕਰੋ',
     bookDemo: 'ਡੈਮੋ ਬੁੱਕ ਕਰੋ',
     offlineBanner: 'ਇੰਟਰਨੈੱਟ ਗਿਆ? ਲੈਬ ਦਾ ਕੰਮ ਨਹੀਂ ਰੁਕੇਗਾ।',
     whatsappButton: 'ਵਟਸਐਪ ਤੇ ਭੇਜੋ',

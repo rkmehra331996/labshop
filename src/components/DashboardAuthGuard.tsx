@@ -34,7 +34,7 @@ export const DashboardAuthGuard: React.FC<DashboardAuthGuardProps> = ({
           badge: '🖥️ Receptionist Access Only',
           badgeColor: 'bg-teal-100 text-teal-900 border-teal-300',
           desc: 'This panel is reserved for front-desk staff to handle patient registrations, token issuance, billing receipts, and due collections.',
-          hint: 'Note: Your Login ID & Password are created and reset by your Lab Owner.',
+          hint: 'Note: Lab Admin Only can set and reset your Login ID & Password (केवल आपके लैब एडमिन ही पासवर्ड बदल सकते हैं).',
         };
       case 'technician_dashboard':
         return {
@@ -44,7 +44,7 @@ export const DashboardAuthGuard: React.FC<DashboardAuthGuardProps> = ({
           badge: '🔬 Lab Technician Access Only',
           badgeColor: 'bg-purple-100 text-purple-900 border-purple-300',
           desc: 'This clinical analyzer workstation is restricted to verified lab technicians for specimen barcode processing, test findings entry, and report authorizations.',
-          hint: 'Note: Your Login ID & Password are created and reset by your Lab Owner.',
+          hint: 'Note: Lab Admin Only can set and reset your Login ID & Password (केवल आपके लैब एडमिन ही पासवर्ड बदल सकते हैं).',
         };
       case 'branch_manager_dashboard':
         return {

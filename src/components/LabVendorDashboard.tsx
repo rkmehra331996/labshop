@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   X,
   ArrowRight,
+  ArrowLeft,
   ExternalLink,
   Percent,
   TrendingUp,
@@ -609,8 +610,20 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
       {/* Header: Vendor Company Logo + Dashboard Name + Vendor Home Website + Log Out Button */}
       <header className="bg-[#123B6D] text-white px-4 sm:px-8 py-3 border-b border-white/10 shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          {/* Vendor Company Logo + Active Dashboard Name */}
-          <div className="flex items-center gap-3 min-w-0">
+          {/* Back Button + Vendor Company Logo + Active Dashboard Name */}
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            {/* Back Button */}
+            <button
+              type="button"
+              id="owner-btn-back"
+              onClick={() => onNavigateView('vendor_website')}
+              className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-white/20 cursor-pointer shrink-0"
+              title="Back to Laboratory Website (वापस जाएं)"
+            >
+              <ArrowLeft className="w-4 h-4 text-amber-300" />
+              <span>Back</span>
+            </button>
+
             {vendorLabSettings?.logoUrl ? (
               <img
                 src={vendorLabSettings.logoUrl}
@@ -1188,9 +1201,10 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                     🔑
                   </div>
                   <div className="text-xs">
-                    <div className="font-bold text-amber-950">Who Can Reset Staff Passwords?</div>
+                    <div className="font-bold text-amber-950">Lab Admin Only Password Privilege (पासवर्ड नियम)</div>
                     <p className="text-amber-900/80 text-[11px] mt-0.5 leading-relaxed">
-                      <strong>Only Lab Owner (You)</strong> can create and reset passwords for Receptionist & Lab Technician accounts. Updated passwords take effect instantly.
+                      <strong>Only Lab Admin (You)</strong> can set or reset passwords for your own Receptionist & Lab Technician. Staff cannot reset passwords themselves.
+                      <span className="block font-semibold text-amber-950 mt-1">केवल लैब एडमिन ही अपने रिसेप्शनिस्ट और टेक्नीशियन का पासवर्ड बदल सकते हैं।</span>
                     </p>
                   </div>
                 </div>

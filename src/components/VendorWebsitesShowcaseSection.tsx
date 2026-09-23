@@ -22,13 +22,11 @@ import { useCms } from '../context/CmsContext';
 
 interface VendorWebsitesShowcaseSectionProps {
   onSelectView: (view: AppView) => void;
-  onOpenTrial?: () => void;
   onOpenDemo?: () => void;
 }
 
 export const VendorWebsitesShowcaseSection: React.FC<VendorWebsitesShowcaseSectionProps> = ({
   onSelectView,
-  onOpenTrial,
   onOpenDemo,
 }) => {
   const { vendorLabsList, selectVendorLab, selectedVendorLabId, currentUser } = useCms();
@@ -438,22 +436,14 @@ export const VendorWebsitesShowcaseSection: React.FC<VendorWebsitesShowcaseSecti
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
-              {onOpenTrial && (
-                <button
-                  onClick={onOpenTrial}
-                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Start 14-Day Free Trial</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              )}
               {onOpenDemo && (
                 <button
                   onClick={onOpenDemo}
-                  className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <CalendarCheck className="w-4 h-4 text-emerald-300" />
+                  <CalendarCheck className="w-4 h-4 text-slate-950" />
                   <span>Schedule Live Demo</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               )}
             </div>

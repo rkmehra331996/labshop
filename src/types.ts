@@ -413,6 +413,8 @@ export interface VendorLabDirectoryItem {
   isWebsiteApproved?: boolean;
   approvedAt?: string;
   approvedBy?: string;
+  password?: string;
+  pin?: string;
   ownerName?: string;
   email?: string;
   subscriptionPlan?: string;

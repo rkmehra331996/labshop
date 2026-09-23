@@ -65,6 +65,18 @@ export const TopBar: React.FC<TopBarProps> = ({
             <span className="font-semibold tracking-wide text-amber-300 group-hover:text-amber-200">{supportPhone}</span>
           </a>
 
+          {/* Lab Website & Home Navigation Buttons */}
+          {currentView === 'vendor_website' && (
+            <button
+              type="button"
+              onClick={() => onSelectView('website')}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-full text-[11px] sm:text-xs transition shadow-xs cursor-pointer active:scale-95"
+              title="Go to IndianLalaji.com Home Portal"
+            >
+              <span>🏠 Main Home</span>
+            </button>
+          )}
+
           {(currentView === 'reception_dashboard' ||
             currentView === 'technician_dashboard' ||
             currentView === 'branch_manager_dashboard' ||
@@ -72,15 +84,25 @@ export const TopBar: React.FC<TopBarProps> = ({
             currentView === 'vendor_dashboard' ||
             currentView === 'admin_dashboard' ||
             currentView === 'lab_app') && (
-            <button
-              type="button"
-              onClick={() => onSelectView('vendor_website')}
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black rounded-full text-[11px] sm:text-xs transition shadow-xs cursor-pointer active:scale-95"
-              title="Return to Vendor Home Website"
-            >
-              <Globe className="w-3.5 h-3.5 text-slate-950" />
-              <span>← Lab Website</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => onSelectView('website')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-full text-[11px] sm:text-xs transition shadow-xs cursor-pointer active:scale-95"
+                title="Go to IndianLalaji.com Home Portal"
+              >
+                <span>🏠 Home</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelectView('vendor_website')}
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black rounded-full text-[11px] sm:text-xs transition shadow-xs cursor-pointer active:scale-95"
+                title="Return to Vendor Home Website"
+              >
+                <Globe className="w-3.5 h-3.5 text-slate-950" />
+                <span className="hidden sm:inline">Lab Website</span>
+              </button>
+            </div>
           )}
         </div>
 

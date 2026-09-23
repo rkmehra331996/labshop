@@ -4,14 +4,12 @@ import { AppView } from '../types';
 import { useCms } from '../context/CmsContext';
 
 interface NavbarProps {
-  onOpenTrial: () => void;
   onOpenDemo: () => void;
   onSelectView: (view: AppView) => void;
   currentView: AppView;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  onOpenTrial,
   onOpenDemo,
   onSelectView,
   currentView,
@@ -213,7 +211,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <button
                         onClick={() => {
                           setVendorDropdownOpen(false);
-                          onOpenTrial();
+                          openRegisterLabModal();
                         }}
                         className="text-[#0F766E] font-bold hover:underline cursor-pointer"
                       >
@@ -266,24 +264,24 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Create Lab</span>
             </button>
 
-            {/* Start Free Trial CTA */}
+            {/* Book Demo CTA */}
             <button
-              onClick={onOpenTrial}
-              className="bg-[#F59E0B] hover:bg-[#D97706] text-white px-4 py-2 rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1 cursor-pointer"
-              id="navbar-btn-trial"
+              onClick={onOpenDemo}
+              className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2 rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1 cursor-pointer"
+              id="navbar-btn-demo"
             >
-              <span>Start Free Trial</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Book Demo</span>
+              <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
             </button>
           </div>
 
           {/* Mobile Hamburger Button */}
           <div className="flex sm:hidden items-center gap-2">
             <button
-              onClick={onOpenTrial}
-              className="bg-[#F59E0B] hover:bg-[#D97706] text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs"
+              onClick={onOpenDemo}
+              className="bg-[#123B6D] text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs"
             >
-              Free Trial
+              Demo
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -388,21 +386,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
-                onOpenTrial();
-              }}
-              className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-white py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
-            >
-              <span>Start Free Trial</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
                 onOpenDemo();
               }}
-              className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-xs font-bold"
+              className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
             >
-              Book a Demo
+              <span>Book a Demo</span>
+              <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
             </button>
           </div>
         </div>

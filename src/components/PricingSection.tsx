@@ -3,11 +3,10 @@ import { Check, ArrowRight, ShieldCheck, Sparkles, Building, GitBranch } from 'l
 import { useCms } from '../context/CmsContext';
 
 interface PricingSectionProps {
-  onOpenTrial: () => void;
   onOpenDemo: () => void;
 }
 
-export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenTrial, onOpenDemo }) => {
+export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) => {
   const [isYearly, setIsYearly] = useState(true);
   const { pricingPlans } = useCms();
 
@@ -113,14 +112,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenTrial, onO
 
                 <div className="mt-8 pt-6 border-t border-slate-200 space-y-2">
                   <button
-                    onClick={onOpenTrial}
-                    className={`w-full ${
-                      plan.isPopular
-                        ? 'bg-[#123B6D] hover:bg-[#0e2c52] text-white'
-                        : 'bg-[#123B6D] hover:bg-[#0e2c52] text-white'
-                    } py-3 rounded-xl font-semibold text-xs transition shadow-sm flex items-center justify-center gap-1.5`}
+                    onClick={onOpenDemo}
+                    className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-3 rounded-xl font-semibold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <span>Start 14-Day Free Trial</span>
+                    <span>Choose Plan • Get Started</span>
                     <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
                   </button>
                   <div className="text-[11px] text-center text-slate-500">

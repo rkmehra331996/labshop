@@ -1463,6 +1463,7 @@ interface CmsContextType {
   vendorLabsList: VendorLabDirectoryItem[];
   addVendorLab: (vendor: Omit<VendorLabDirectoryItem, 'id'>) => VendorLabDirectoryItem;
   updateVendorLab: (id: string, updates: Partial<VendorLabDirectoryItem>) => void;
+  updateVendorLabCredentials: (labId: string, password: string, pin?: string) => void;
   deleteVendorLab: (id: string) => void;
   setVendorStatus: (id: string, status: VendorStatus) => void;
 
@@ -2580,7 +2581,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [companyStats]);
 
   // Lab Staff Accounts Mutators (Isolated by tenant labId)
+  // Lab Admin Only can change/reset password of own receptionist and technician
   const resetStaffPassword = (id: string, newPassword: string) => {
+    // STRICT SECURITY CHECK: Only Lab Admin (vendor) or Super Admin (admin)
+    if (currentUser?.role !== 'admin' && currentUser?.role !== 'vendor') {
+      console.warn(`[SECURITY] Access Denied: Only Lab Admin can reset staff passwords.`);
+      return;
+    }
+
     const now = new Date().toLocaleString('en-IN', {
       day: '2-digit',
       month: 'short',
@@ -2591,8 +2599,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllStaffAccounts((prev) =>
       prev.map((s) => {
         if (s.id === id) {
+          // Verify ownership: only own lab's receptionist & technician
           if (currentUser?.role !== 'admin' && activeTenantId !== 'all' && !verifyTenantOwnership(s, activeTenantId)) {
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant password reset for staff ${id}`);
+            return s;
+          }
+          // Only receptionist and technician passwords can be reset
+          if (s.role !== 'reception' && s.role !== 'technician') {
+            console.warn(`[SECURITY] Blocked: Lab Admin can only reset password for own receptionist and technician.`);
             return s;
           }
           return { ...s, password: newPassword, lastPasswordReset: now };
@@ -3260,6 +3274,29 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  const updateVendorLabCredentials = (labId: string, password: string, pin?: string) => {
+    setVendorLabsList((prev) =>
+      prev.map((lab) =>
+        lab.id === labId
+          ? {
+              ...lab,
+              password,
+              ...(pin ? { pin } : {}),
+            }
+          : lab
+      )
+    );
+
+    // Sync with staff accounts
+    setAllStaffAccounts((prev) =>
+      prev.map((staff) =>
+        staff.labId === labId && (staff.role === 'branch_manager' || staff.role === 'reception' || staff.role === 'technician')
+          ? { ...staff, password }
+          : staff
+      )
+    );
+  };
+
   const deleteVendorLab = (id: string) => {
     setVendorLabsList((prev) => prev.filter((lab) => lab.id !== id));
   };
@@ -3679,6 +3716,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addVendorLab,
         registerNewLab,
         updateVendorLab,
+        updateVendorLabCredentials,
         deleteVendorLab,
         setVendorStatus,
 

@@ -21,7 +21,6 @@ import {
   Sparkles,
   MapPin,
   ShieldCheck,
-  CreditCard,
   User,
   ChevronRight,
   Info,
@@ -1075,65 +1074,6 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
                       className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono tracking-widest"
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* 4. Subscription Plan */}
-              <div>
-                <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-2 flex items-center gap-1.5">
-                  <CreditCard className="w-3.5 h-3.5 text-[#123B6D]" />
-                  <span>4. Choose Subscription Plan</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[
-                    {
-                      id: 'Starter',
-                      name: 'Starter Solo',
-                      price: '₹799 / mo',
-                      desc: 'Single collection counter, up to 150 reports/month.',
-                    },
-                    {
-                      id: 'Professional',
-                      name: 'Professional Lab',
-                      price: '₹1,499 / mo',
-                      desc: 'Recommended: Reception desk, Tech station, WhatsApp PDF reports & barcode tracker.',
-                      popular: true,
-                    },
-                    {
-                      id: 'Enterprise',
-                      name: 'Enterprise Multi-Branch',
-                      price: '₹3,999 / mo',
-                      desc: 'Unlimited branches, Pathologist MD digital sign-off & audit telemetry.',
-                    },
-                  ].map((plan) => (
-                    <div
-                      key={plan.id}
-                      onClick={() => setSubscriptionPlan(plan.id as any)}
-                      className={`p-3 rounded-xl border-2 cursor-pointer transition relative ${
-                        subscriptionPlan === plan.id
-                          ? 'border-[#123B6D] bg-blue-50/60 ring-1 ring-[#123B6D]/20 shadow-xs'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                      }`}
-                    >
-                      {plan.popular && (
-                        <span className="absolute -top-2 right-3 bg-amber-400 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded-full uppercase">
-                          Popular
-                        </span>
-                      )}
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-extrabold text-xs text-slate-900">{plan.name}</span>
-                        <input
-                          type="radio"
-                          name="subscriptionPlan"
-                          checked={subscriptionPlan === plan.id}
-                          onChange={() => setSubscriptionPlan(plan.id as any)}
-                          className="text-[#123B6D]"
-                        />
-                      </div>
-                      <div className="font-black text-sm text-[#123B6D] mb-1">{plan.price}</div>
-                      <p className="text-[11px] text-slate-600 leading-normal">{plan.desc}</p>
-                    </div>
-                  ))}
                 </div>
               </div>
 

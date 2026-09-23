@@ -18,6 +18,7 @@ import {
   Eye,
   Building,
   RefreshCw,
+  ArrowLeft,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { AppView, LabReport, ReportItem } from '../types';
@@ -160,8 +161,18 @@ export const PathologistDashboard: React.FC<PathologistDashboardProps> = ({
             </p>
           </div>
 
-          {/* Direct Link to Technician Workstation */}
+          {/* Back Button & Direct Link to Technician Workstation */}
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onNavigateView('vendor_website')}
+              className="bg-indigo-900/80 hover:bg-indigo-800 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-indigo-700/60"
+              title="Back (वापस जाएं)"
+            >
+              <ArrowLeft className="w-4 h-4 text-amber-300" />
+              <span>Back</span>
+            </button>
+
             <button
               type="button"
               onClick={() => onNavigateView('technician_dashboard')}

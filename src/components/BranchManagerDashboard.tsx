@@ -23,6 +23,7 @@ import {
   Phone,
   Receipt,
   Download,
+  ArrowLeft,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { AppView } from '../types';
@@ -193,8 +194,18 @@ export const BranchManagerDashboard: React.FC<BranchManagerDashboardProps> = ({
             </p>
           </div>
 
-          {/* Quick Action to open Reception Desk for this branch */}
+          {/* Back Button & Quick Action to open Reception Desk for this branch */}
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onNavigateView('vendor_website')}
+              className="bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-white/20"
+              title="Back (वापस जाएं)"
+            >
+              <ArrowLeft className="w-4 h-4 text-amber-300" />
+              <span>Back</span>
+            </button>
+
             <button
               type="button"
               onClick={() => onNavigateView('reception_dashboard')}

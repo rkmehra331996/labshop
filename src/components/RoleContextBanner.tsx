@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   UserCheck,
   RefreshCw,
+  ArrowLeft,
   Cloud,
   WifiOff,
 } from 'lucide-react';
@@ -121,6 +122,18 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
             <div className="hidden lg:flex items-center gap-1">
               <button
                 type="button"
+                onClick={() => onNavigateView('website')}
+                className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                  currentView === 'website'
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'text-slate-300 hover:text-white bg-slate-800'
+                }`}
+                title="Open IndianLalaji.com Home Portal"
+              >
+                🏠 Home
+              </button>
+              <button
+                type="button"
                 onClick={() => onNavigateView('admin_dashboard')}
                 className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
                   currentView === 'admin_dashboard'
@@ -164,6 +177,29 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
                 Technician
               </button>
             </div>
+          )}
+
+          {/* Back button */}
+          <button
+            type="button"
+            onClick={() => onNavigateView('vendor_website')}
+            className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 border border-slate-700 rounded-lg text-[11px] font-bold transition cursor-pointer"
+            title="Back to Vendor Website (वापस जाएं)"
+          >
+            <ArrowLeft className="w-3 h-3 text-amber-400" />
+            <span>Back</span>
+          </button>
+
+          {/* Quick Home button for non-superadmin roles */}
+          {role !== 'admin' && (
+            <button
+              type="button"
+              onClick={() => onNavigateView('website')}
+              className="inline-flex items-center gap-1 px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 border border-slate-700 rounded-lg text-[11px] font-bold transition cursor-pointer"
+              title="Return to Main indianlalaji.com Home Portal"
+            >
+              <span>🏠 Main Home</span>
+            </button>
           )}
 
           {/* Quick 1-Click Role Switch button */}

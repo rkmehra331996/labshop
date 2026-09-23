@@ -25,6 +25,11 @@ import {
   Globe,
   Copy,
   Check,
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
+  RefreshCw,
 } from 'lucide-react';
 import { useCms } from '../../context/CmsContext';
 import { VendorLabDirectoryItem, VendorStatus, AppView } from '../../types';
@@ -42,6 +47,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     vendorLabsList,
     addVendorLab,
     updateVendorLab,
+    updateVendorLabCredentials,
     deleteVendorLab,
     setVendorStatus,
     selectVendorLab,
@@ -59,6 +65,14 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
   const [deleteConfirmVendor, setDeleteConfirmVendor] = useState<VendorLabDirectoryItem | null>(null);
   const [copiedLabId, setCopiedLabId] = useState<string | null>(null);
 
+  // Change Password Modal State
+  const [passwordVendor, setPasswordVendor] = useState<VendorLabDirectoryItem | null>(null);
+  const [passwordForm, setPasswordForm] = useState({
+    password: '',
+    pin: '123456',
+    showPassword: false,
+  });
+
   // Form state for add / edit
   const initialFormState: Omit<VendorLabDirectoryItem, 'id'> = {
     name: '',
@@ -66,6 +80,8 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     ownerName: '',
     phone: '',
     email: '',
+    password: 'owner123',
+    pin: '123456',
     city: '',
     state: 'Punjab',
     address: '',
@@ -91,6 +107,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
   };
 
   const [formState, setFormState] = useState<Omit<VendorLabDirectoryItem, 'id'>>(initialFormState);
+  const [editShowPassword, setEditShowPassword] = useState(false);
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -141,6 +158,8 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       isWebsiteApproved: false,
       badge: 'Draft - Pending Admin Approval',
       joinedDate: new Date().toISOString().split('T')[0],
+      password: 'owner123',
+      pin: '123456',
     });
     setIsAddModalOpen(true);
   };
@@ -153,6 +172,8 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       ownerName: vendor.ownerName || '',
       phone: vendor.phone || '',
       email: vendor.email || '',
+      password: vendor.password || 'owner123',
+      pin: vendor.pin || '123456',
       city: vendor.city || '',
       state: vendor.state || 'Punjab',
       address: vendor.address || '',
@@ -178,6 +199,35 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     });
   };
 
+  const handleOpenPasswordModal = (vendor: VendorLabDirectoryItem) => {
+    setPasswordVendor(vendor);
+    setPasswordForm({
+      password: vendor.password || 'owner123',
+      pin: vendor.pin || '123456',
+      showPassword: false,
+    });
+  };
+
+  const handleSavePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordVendor) return;
+    if (!passwordForm.password.trim()) {
+      showToast('Please enter a valid password (कम से कम 4 अक्षर)');
+      return;
+    }
+    const cleanPass = passwordForm.password.trim();
+    const cleanPin = passwordForm.pin.trim() || '123456';
+
+    updateVendorLab(passwordVendor.id, {
+      password: cleanPass,
+      pin: cleanPin,
+    });
+    updateVendorLabCredentials(passwordVendor.id, cleanPass, cleanPin);
+
+    showToast(`Password successfully changed for ${passwordVendor.name}! New password: "${cleanPass}"`);
+    setPasswordVendor(null);
+  };
+
   const handleSubmitSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formState.name.trim()) {
@@ -195,7 +245,12 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
         ...formState,
         domainPreview: finalDomain,
         isWebsiteApproved: isApproved,
+        password: formState.password,
+        pin: formState.pin,
       });
+      if (formState.password) {
+        updateVendorLabCredentials(editingVendor.id, formState.password, formState.pin);
+      }
       showToast(`Updated laboratory: ${formState.name} (${finalDomain})`);
       setEditingVendor(null);
     } else {
@@ -723,130 +778,161 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                     </div>
                   </div>
 
-                  {/* Bottom Row: Actions & Status Switchers */}
-                  <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                    {/* Status Changer Actions */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[11px] text-slate-400 font-semibold mr-1">Admin Status & Website:</span>
+                  {/* Super Admin Quick Credentials View */}
+                  <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs bg-slate-50/80 px-3.5 py-2 rounded-xl">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                        <Lock className="w-3.5 h-3.5 text-purple-600" />
+                        <span>Vendor Access Credentials:</span>
+                      </span>
+                      <div className="flex items-center gap-1 text-[11px] font-mono text-purple-950 bg-white px-2 py-0.5 rounded-md border border-purple-200 shadow-2xs">
+                        <span className="text-slate-400 font-sans font-medium">Password:</span>
+                        <strong className="text-purple-700 font-black">{vendor.password || 'owner123'}</strong>
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] font-mono text-indigo-950 bg-white px-2 py-0.5 rounded-md border border-indigo-200 shadow-2xs">
+                        <span className="text-slate-400 font-sans font-medium">PIN:</span>
+                        <strong className="text-indigo-700 font-black">{vendor.pin || '123456'}</strong>
+                      </div>
+                      <span className="text-[11px] text-slate-500">
+                        (Login via Phone: <strong>{vendor.phone}</strong> or Email)
+                      </span>
+                    </div>
 
-                      {/* 1-Click Approve & Go Live */}
-                      {(vendor.status !== 'Active' || !vendor.isWebsiteApproved) && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPasswordModal(vendor)}
+                      className="text-[11px] font-bold text-purple-700 hover:text-purple-900 bg-purple-100/70 hover:bg-purple-200 px-2.5 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <KeyRound className="w-3 h-3 text-purple-700" />
+                      <span>Change Password (पासवर्ड बदलें)</span>
+                    </button>
+                  </div>
+
+                  {/* Bottom Row: Actions & Status Controls */}
+                  <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                    {/* Status Changer Actions */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* 1. APPROVAL / MAKE LIVE BUTTON */}
+                      {vendor.status !== 'Active' || !vendor.isWebsiteApproved ? (
                         <button
+                          type="button"
                           onClick={() => {
                             setVendorStatus(vendor.id, 'Active');
-                            showToast(`Approved and published LIVE: ${vendor.name}! Website is now active.`);
+                            showToast(`Approved & Published LIVE: ${vendor.name}! Website is now live.`);
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                          title="Admin Approval: Approve laboratory website and publish live"
+                          className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          title="Approve laboratory website and make it live on dedicated URL"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5 text-white" />
-                          <span>Approve & Make Live (लाइव करें)</span>
+                          <CheckCircle2 className="w-4 h-4 text-white" />
+                          <span>Approve (लाइव करें)</span>
                         </button>
+                      ) : (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-bold">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>Approved & Live</span>
+                        </div>
                       )}
 
-                      {/* Move to Draft Mode */}
-                      {vendor.status !== 'Draft' && (
+                      {/* 2. DRAFT BUTTON */}
+                      {vendor.status !== 'Draft' ? (
                         <button
+                          type="button"
                           onClick={() => {
                             setVendorStatus(vendor.id, 'Draft');
-                            showToast(`Moved ${vendor.name} to Draft mode (Website hidden from public)`);
+                            showToast(`Moved "${vendor.name}" to Draft mode (Website hidden from public)`);
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                          title="Move website back to Draft mode"
+                          className="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                          title="Move website back to Draft mode so it is hidden from public"
                         >
-                          <Clock className="w-3 h-3 text-amber-700" />
-                          <span>Move to Draft</span>
+                          <Clock className="w-4 h-4 text-amber-700" />
+                          <span>Draft (ड्राफ्ट बनाएं)</span>
                         </button>
+                      ) : (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold">
+                          <Clock className="w-4 h-4 text-amber-700" />
+                          <span>In Draft Mode</span>
+                        </div>
                       )}
 
-                      {/* Mark Processing due to payment confirmation */}
+                      {/* Payment Due shortcut */}
                       {vendor.status !== 'Processing due to payment confirmation' && (
                         <button
+                          type="button"
                           onClick={() => {
                             setVendorStatus(vendor.id, 'Processing due to payment confirmation');
-                            showToast(`Marked ${vendor.name} as Processing due to payment confirmation`);
+                            showToast(`Marked ${vendor.name} as Payment Confirmation Pending`);
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-medium transition flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition flex items-center gap-1 cursor-pointer"
                         >
-                          <Receipt className="w-3 h-3 text-slate-500" />
+                          <Receipt className="w-3.5 h-3.5 text-slate-500" />
                           <span>Payment Due</span>
                         </button>
                       )}
 
-                      {/* Mark Pending */}
-                      {vendor.status !== 'Pending' && (
-                        <button
-                          onClick={() => {
-                            setVendorStatus(vendor.id, 'Pending');
-                            showToast(`Marked ${vendor.name} as Pending review`);
-                          }}
-                          className="px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                        >
-                          <Clock className="w-3 h-3 text-sky-600" />
-                          <span>Set Pending</span>
-                        </button>
-                      )}
-
-                      {/* Suspend */}
-                      {vendor.status !== 'Suspended' && (
-                        <button
-                          onClick={() => {
-                            setVendorStatus(vendor.id, 'Suspended');
-                            showToast(`Suspended ${vendor.name}`);
-                          }}
-                          className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-700 text-xs font-medium transition cursor-pointer"
-                          title="Temporarily deactivate lab access"
-                        >
-                          <span>Suspend</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Operational Buttons */}
-                    <div className="flex items-center gap-2">
-                      {/* Filter Super Admin Data Scope */}
+                      {/* Scope filter */}
                       <button
+                        type="button"
                         onClick={() => {
                           setSuperAdminTenantScope(vendor.id);
-                          showToast(`Super Admin data scope set to: ${vendor.name} (${vendor.id})`);
+                          showToast(`Super Admin workspace scoped to: ${vendor.name}`);
                         }}
                         className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
                           superAdminTenantScope === vendor.id
-                            ? 'bg-emerald-600 text-white shadow-2xs'
-                            : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300'
+                            ? 'bg-indigo-600 text-white shadow-2xs'
+                            : 'bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200'
                         }`}
-                        title="Isolate Super Admin view to this specific lab tenant"
+                        title="Filter Super Admin data workspace exclusively for this lab"
                       >
                         <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>{superAdminTenantScope === vendor.id ? 'Scope Active' : 'Filter Scope'}</span>
+                        <span>{superAdminTenantScope === vendor.id ? 'Scoped' : 'Scope'}</span>
                       </button>
+                    </div>
 
-                      {/* View Website */}
+                    {/* Operational Action Buttons: PREVIEW, EDIT, CHANGE PASSWORD, DELETE */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* 3. PREVIEW WEBSITE BUTTON */}
                       <button
+                        type="button"
                         onClick={() => handleOpenLabWebsite(vendor.id)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-[#123B6D] text-slate-700 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                        title="View the dedicated patient-facing website for this lab"
+                        className="px-3.5 py-2 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs group"
+                        title="Preview the complete patient-facing live website for this lab"
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        <span>Preview Lab Website</span>
+                        <Globe className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition-transform" />
+                        <span>Preview Website (वेबसाइट देखें)</span>
+                        <ExternalLink className="w-3 h-3 text-slate-300" />
                       </button>
 
-                      {/* Edit */}
+                      {/* 4. EDIT LAB DETAILS BUTTON */}
                       <button
+                        type="button"
                         onClick={() => handleOpenEditModal(vendor)}
-                        className="p-1.5 text-slate-600 hover:text-[#123B6D] hover:bg-slate-100 rounded-lg transition cursor-pointer"
-                        title="Edit lab vendor details"
+                        className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                        title="Edit lab name, domain, NABL, address, and credentials"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Edit Lab (एडिट करें)</span>
                       </button>
 
-                      {/* Delete */}
+                      {/* 5. CHANGE PASSWORD BUTTON */}
                       <button
-                        onClick={() => setDeleteConfirmVendor(vendor)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                        title="Delete laboratory vendor"
+                        type="button"
+                        onClick={() => handleOpenPasswordModal(vendor)}
+                        className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                        title="Change login password and PIN for this laboratory owner"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <KeyRound className="w-3.5 h-3.5 text-purple-700" />
+                        <span>Change Password</span>
+                      </button>
+
+                      {/* 6. DELETE BUTTON */}
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirmVendor(vendor)}
+                        className="px-2.5 py-2 text-rose-700 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                        title="Delete laboratory vendor and remove website"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete (हटाएं)</span>
                       </button>
                     </div>
                   </div>
@@ -1008,6 +1094,82 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                     placeholder="e.g. NABL-MC-2024-998"
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
                   />
+                </div>
+
+                {/* Owner Login Password & Access PIN (Super Admin Control) */}
+                <div className="sm:col-span-2 bg-gradient-to-r from-purple-50 via-indigo-50/70 to-purple-50 p-4 rounded-2xl border border-purple-200 shadow-2xs">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-purple-600 text-white flex items-center justify-center">
+                        <KeyRound className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-extrabold text-xs text-purple-950">
+                        Owner Login Password & Access Credentials (पासवर्ड व क्रेडेंशियल्स)
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold bg-purple-700 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Super Admin Privileged
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-purple-900/90 mb-3 leading-relaxed">
+                    Super Admin can directly set or reset this laboratory owner's login password and 6-digit security PIN here.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-bold text-purple-950 mb-1">
+                        Lab Owner Password (लॉगिन पासवर्ड) *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={editShowPassword ? 'text' : 'password'}
+                          required
+                          value={formState.password || ''}
+                          onChange={(e) => setFormState({ ...formState, password: e.target.value })}
+                          placeholder="e.g. owner123"
+                          className="w-full pl-3 pr-10 py-2 bg-white border border-purple-300 rounded-xl font-mono text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 shadow-2xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditShowPassword(!editShowPassword)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-purple-600 hover:text-purple-800 p-1"
+                          title={editShowPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {editShowPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        <span className="text-[10px] text-purple-700 font-semibold">Presets:</span>
+                        {['owner123', 'Apex@2026#', 'LabOwner@123', 'Admin@2026'].map((p) => (
+                          <button
+                            type="button"
+                            key={p}
+                            onClick={() => setFormState({ ...formState, password: p })}
+                            className="text-[10px] font-bold bg-white text-purple-700 px-1.5 py-0.5 rounded-md border border-purple-200 hover:bg-purple-100 transition shadow-2xs"
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-purple-950 mb-1">
+                        Security PIN (सुरक्षा पिन - 6 Digits)
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={formState.pin || ''}
+                        onChange={(e) => setFormState({ ...formState, pin: e.target.value.replace(/\D/g, '') })}
+                        placeholder="e.g. 123456"
+                        className="w-full px-3 py-2 bg-white border border-purple-300 rounded-xl font-mono text-xs font-bold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-600 tracking-wider shadow-2xs"
+                      />
+                      <span className="text-[10px] text-purple-700 mt-1 block">
+                        Default PIN is 123456 (used for quick authorization)
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* City */}
@@ -1236,6 +1398,157 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                 >
                   <CheckCircle2 className="w-4 h-4 text-amber-300" />
                   <span>{editingVendor ? 'Save Changes' : 'Add Laboratory'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {passwordVendor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-purple-200 overflow-hidden space-y-0">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-800 to-indigo-900 text-white px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/30 border border-purple-300/40 text-amber-300 flex items-center justify-center font-black">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm">Change Lab Owner Password</h3>
+                  <p className="text-[11px] text-purple-200">
+                    लैब ओनर का लॉगिन पासवर्ड व सुरक्षा पिन बदलें
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPasswordVendor(null)}
+                className="text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSavePassword} className="p-6 space-y-4 text-xs">
+              {/* Lab Summary Card */}
+              <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-200/80 space-y-1">
+                <div className="font-extrabold text-purple-950 text-sm">{passwordVendor.name}</div>
+                <div className="text-[11px] text-purple-800 flex items-center gap-2 flex-wrap">
+                  <span>Owner: <strong>{passwordVendor.ownerName || 'Dr. Lab Incharge'}</strong></span>
+                  <span>•</span>
+                  <span>Phone: <strong>{passwordVendor.phone}</strong></span>
+                </div>
+                <div className="text-[10px] font-mono text-purple-700 truncate">
+                  Domain: https://{passwordVendor.domainPreview || `${passwordVendor.id}.indianlalaji.com`}
+                </div>
+              </div>
+
+              {/* Password Input */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  New Password (नया पासवर्ड) *
+                </label>
+                <div className="relative">
+                  <input
+                    type={passwordForm.showPassword ? 'text' : 'password'}
+                    required
+                    value={passwordForm.password}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, password: e.target.value })}
+                    placeholder="Enter new password"
+                    className="w-full pl-3 pr-10 py-2.5 bg-white border border-purple-300 rounded-xl font-mono text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600 shadow-2xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPasswordForm({ ...passwordForm, showPassword: !passwordForm.showPassword })
+                    }
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-purple-600 hover:text-purple-800 p-1"
+                    title={passwordForm.showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {passwordForm.showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Quick Presets & Generator */}
+                <div className="mt-2 flex items-center justify-between gap-1 flex-wrap">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="text-[10px] text-slate-500 font-semibold">Quick Presets:</span>
+                    {['owner123', 'Apex@2026#', 'Lab@998', 'Admin@123'].map((preset) => (
+                      <button
+                        type="button"
+                        key={preset}
+                        onClick={() => setPasswordForm({ ...passwordForm, password: preset })}
+                        className="text-[10px] font-bold bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md border border-purple-200 hover:bg-purple-100 transition shadow-2xs"
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const randPass = `Lab#${Math.floor(1000 + Math.random() * 9000)}!`;
+                      setPasswordForm({ ...passwordForm, password: randPass, showPassword: true });
+                    }}
+                    className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 underline flex items-center gap-0.5"
+                  >
+                    <RefreshCw className="w-2.5 h-2.5" />
+                    <span>Generate Random</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Security PIN */}
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">
+                  Security PIN (6 Digits)
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={passwordForm.pin}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      pin: e.target.value.replace(/\D/g, ''),
+                    })
+                  }
+                  placeholder="e.g. 123456"
+                  className="w-full px-3 py-2 bg-white border border-purple-300 rounded-xl font-mono text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-purple-600 tracking-wider shadow-2xs"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Used as fallback verification PIN for owner staff logins.
+                </span>
+              </div>
+
+              {/* Notice */}
+              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-[11px] leading-relaxed flex items-start gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <span>
+                  The vendor can immediately log in on their dedicated website or login portal using this new password with their phone number (<strong>{passwordVendor.phone}</strong>).
+                </span>
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPasswordVendor(null)}
+                  className="px-4 py-2 border border-slate-300 hover:bg-slate-50 rounded-xl font-bold text-slate-700 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Update Password (पासवर्ड सेव करें)</span>
                 </button>
               </div>
             </form>

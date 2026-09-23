@@ -20,6 +20,7 @@ import {
   Send,
   Sparkles,
   ArrowRight,
+  ArrowLeft,
   LogOut,
   X,
   Stethoscope,
@@ -471,8 +472,21 @@ export const TechnicianDepartmentDashboard: React.FC<TechnicianDepartmentDashboa
       {/* Top Header: Vendor Company Logo + Dashboard Name + Vendor Home Website + Log Out Button */}
       <header className="bg-[#123B6D] text-white px-4 sm:px-8 py-3 border-b border-white/10 shadow-sm sticky top-0 z-30">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          {/* Vendor Company Logo + Active Dashboard Name */}
-          <div className="flex items-center gap-3 min-w-0">
+          {/* Back Button + Vendor Company Logo + Active Dashboard Name */}
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            {onNavigateView && (
+              <button
+                type="button"
+                id="tech-btn-back"
+                onClick={() => onNavigateView(currentUser?.role === 'vendor' ? 'vendor_dashboard' : 'vendor_website')}
+                className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-white/20 cursor-pointer shrink-0"
+                title="Back (वापस जाएं)"
+              >
+                <ArrowLeft className="w-4 h-4 text-amber-300" />
+                <span>Back</span>
+              </button>
+            )}
+
             {labLogoUrl ? (
               <img
                 src={labLogoUrl}

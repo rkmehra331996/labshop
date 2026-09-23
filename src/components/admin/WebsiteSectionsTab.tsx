@@ -167,9 +167,9 @@ const SECTIONS_CONFIG: SectionMeta[] = [
   },
   {
     key: 'finalCta',
-    name: 'Final 14-Day Free Trial Call to Action',
+    name: 'Final Call to Action (Book Live Demo)',
     category: 'Conversion',
-    description: 'Prominent closing section encouraging new laboratories to start their free trial.',
+    description: 'Prominent closing section encouraging new laboratories to digitize with the platform.',
   },
   {
     key: 'faq',

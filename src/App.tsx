@@ -27,7 +27,7 @@ import { FinalCTASection } from './components/FinalCTASection';
 import { FAQSection } from './components/FAQSection';
 import { Footer } from './components/Footer';
 import { MobileFixedCTA } from './components/MobileFixedCTA';
-import { BookDemoModal, StartTrialModal } from './components/Modals';
+import { BookDemoModal } from './components/Modals';
 import { LabSoftwareApp } from './components/LabSoftwareApp';
 import { PatientPortalApp } from './components/PatientPortalApp';
 import { LabVendorWebsite } from './components/LabVendorWebsite';
@@ -49,7 +49,6 @@ export default function App() {
   const [currentView, setCurrentView] = useState<AppView>('website');
   const [language, setLanguage] = useState<Language>('en');
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
-  const [isTrialModalOpen, setIsTrialModalOpen] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState('');
   const [selectedPatientMobile, setSelectedPatientMobile] = useState('');
 
@@ -73,7 +72,8 @@ export default function App() {
       // Check if hostname is e.g. <subdomain>.indianlalaji.com
       const hostname = window.location.hostname;
       let hostSubdomain: string | null = null;
-      if (hostname.includes('.') && !hostname.startsWith('www.') && !hostname.startsWith('localhost')) {
+      // Only extract subdomain if hostname actually belongs to the platform production domain (e.g. *.indianlalaji.com)
+      if (hostname.endsWith('indianlalaji.com') && !hostname.startsWith('www.') && hostname !== 'indianlalaji.com') {
         const parts = hostname.split('.');
         if (parts.length >= 3) {
           hostSubdomain = parts[0];
@@ -104,6 +104,9 @@ export default function App() {
         ].includes(viewParam)
       ) {
         setCurrentView(viewParam);
+      } else if (!targetLab) {
+        // Default root landing page is the main platform website
+        setCurrentView('website');
       }
     } catch {}
   }, []);
@@ -160,7 +163,6 @@ export default function App() {
   };
 
   const handleOpenDemo = () => setIsDemoModalOpen(true);
-  const handleOpenTrial = () => setIsTrialModalOpen(true);
 
   const handleViewPatientPortal = (reportId?: string, mobile?: string) => {
     setSelectedReportId(reportId || '');
@@ -548,14 +550,12 @@ export default function App() {
         currentView={currentView}
         onSelectView={setCurrentView}
         onOpenDemo={handleOpenDemo}
-        onOpenTrial={handleOpenTrial}
       />
 
       <main className="flex-1">
         {/* 3. Hero Section */}
         {portalSections.hero && (
           <Hero
-            onOpenTrial={handleOpenTrial}
             onOpenDemo={handleOpenDemo}
             onLaunchApp={handleLaunchLabApp}
             language={language}
@@ -591,7 +591,6 @@ export default function App() {
         {portalSections.vendorWebsitesShowcase && (
           <VendorWebsitesShowcaseSection
             onSelectView={setCurrentView}
-            onOpenTrial={handleOpenTrial}
             onOpenDemo={handleOpenDemo}
           />
         )}
@@ -632,7 +631,7 @@ export default function App() {
 
         {/* 21. Pricing */}
         {portalSections.pricing && (
-          <PricingSection onOpenTrial={handleOpenTrial} onOpenDemo={handleOpenDemo} />
+          <PricingSection onOpenDemo={handleOpenDemo} />
         )}
 
         {/* 22. Demo Section */}
@@ -642,7 +641,7 @@ export default function App() {
 
         {/* 23. Final CTA */}
         {portalSections.finalCta && (
-          <FinalCTASection onOpenTrial={handleOpenTrial} onOpenDemo={handleOpenDemo} />
+          <FinalCTASection onOpenDemo={handleOpenDemo} />
         )}
 
         {/* 24. FAQ */}
@@ -654,16 +653,14 @@ export default function App() {
         <Footer
           onSelectView={setCurrentView}
           onOpenDemo={handleOpenDemo}
-          onOpenTrial={handleOpenTrial}
         />
       )}
 
       {/* 33. Mobile Fixed CTA */}
-      <MobileFixedCTA onOpenTrial={handleOpenTrial} />
+      <MobileFixedCTA onOpenDemo={handleOpenDemo} />
 
       {/* Interactive Modals */}
       <BookDemoModal isOpen={isDemoModalOpen} onClose={() => setIsDemoModalOpen(false)} />
-      <StartTrialModal isOpen={isTrialModalOpen} onClose={() => setIsTrialModalOpen(false)} />
       <CmsAuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}

@@ -6,10 +6,9 @@ import { useCms } from '../context/CmsContext';
 interface FooterProps {
   onSelectView: (view: AppView) => void;
   onOpenDemo: () => void;
-  onOpenTrial: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo, onOpenTrial }) => {
+export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
   const { companySettings } = useCms();
   const displayBrand = companySettings?.companyName || 'INDIANLALAJI.COM';
   const superAdminDomain = companySettings?.superAdminDomain || 'indianlalaji.com';

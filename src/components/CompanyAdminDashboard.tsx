@@ -16,6 +16,7 @@ import {
   Mail,
   Sparkles,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
   CheckCircle2,
   X,
@@ -300,6 +301,18 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
       <header className="bg-[#123B6D] text-white sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            {/* Back Button */}
+            <button
+              type="button"
+              id="admin-btn-back"
+              onClick={() => onNavigateView('website')}
+              className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-white/20 cursor-pointer shrink-0"
+              title="Back to Home Portal (वापस जाएं)"
+            >
+              <ArrowLeft className="w-4 h-4 text-amber-300" />
+              <span>Back</span>
+            </button>
+
             <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-sm">
               HQ
             </div>
@@ -325,11 +338,10 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
           <div className="flex items-center gap-2">
             <button
               onClick={() => onNavigateView('website')}
-              className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-white/20"
-              title="Open Company Public Website"
+              className="bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+              title="Open Company Public Website (indianlalaji.com Home Portal)"
             >
-              <Eye className="w-3.5 h-3.5 text-amber-300" />
-              <span>Preview Live Website</span>
+              <span>🏠 Main Home Portal</span>
             </button>
 
             {/* Direct jump to Reception Counter */}
