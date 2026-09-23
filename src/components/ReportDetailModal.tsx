@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Printer,
@@ -15,6 +15,7 @@ import {
   Check,
   PhoneCall,
   BellRing,
+  Award,
 } from 'lucide-react';
 import { LabReport } from '../types';
 import { maskMobileForOnlineReport } from '../utils/reportUtils';
@@ -23,6 +24,7 @@ import { generateReportPdf } from '../utils/pdfGenerator';
 import { printReportSafely } from '../utils/printHelper';
 import { checkPanicOrCriticalValue } from '../utils/criticalAlerts';
 import { DigitalSignatureBadge } from './DigitalSignatureBadge';
+import { generateNablLogoDataUrl, generateWatermarkedQrDataUrl } from '../utils/reportAssets';
 
 interface ReportDetailModalProps {
   report: LabReport | null;
@@ -43,8 +45,32 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [doctorAlertLogged, setDoctorAlertLogged] = useState(false);
   const [doctorAlertTime, setDoctorAlertTime] = useState<string>('');
+  const [watermarkUrl, setWatermarkUrl] = useState<string>('');
+
+  useEffect(() => {
+    if (!report) return;
+    let active = true;
+    generateWatermarkedQrDataUrl({
+      reportId: report.reportId,
+      uhid: report.uhid,
+      nablCode: report.nablAccreditationNo,
+      patientName: report.patientName,
+      labName: report.labName,
+      verificationHash: report.verificationHash || 'MED-HASH-7819',
+    })
+      .then((url) => {
+        if (active) setWatermarkUrl(url);
+      })
+      .catch((err) => console.warn('Watermark generation error:', err));
+
+    return () => {
+      active = false;
+    };
+  }, [report]);
 
   if (!isOpen || !report) return null;
+
+  const nablLogoUrl = generateNablLogoDataUrl(report.nablAccreditationNo);
 
   const handleDownloadPdf = () => {
     try {
@@ -179,68 +205,122 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
         </div>
 
         {/* Report Document Sheet (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-10 bg-white text-[#172033] space-y-6 print:p-0">
-          {/* Quick Edit Banner on top of document */}
-          {onEditReport && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between no-print text-xs text-amber-900">
-              <div className="flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>
-                  <strong>Need to modify results or patient details?</strong> Click Edit to change any test parameter, reference ranges, or doctor notes.
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleEdit}
-                  className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-lg transition shrink-0 cursor-pointer shadow-2xs"
-                >
-                  Edit This Report
-                </button>
-                {onDeleteReport && (
-                  <button
-                    onClick={handleDelete}
-                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition shrink-0 cursor-pointer shadow-2xs flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    <span>Delete</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-          {/* Header with Lab Branding */}
-          <div className="border-b-2 border-[#123B6D] pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#123B6D] text-white flex items-center justify-center font-black text-xl shadow-xs">
-                  <span className="text-amber-400">AP</span>EX
+        <div className="relative flex-1 overflow-y-auto p-6 sm:p-10 bg-white text-[#172033] print:p-0">
+          {/* Background Security Watermark: Authentic Watermarked QR Code & NABL Hospital Verification Seal */}
+          <div
+            className="pointer-events-none select-none absolute inset-0 flex items-center justify-center z-0 overflow-hidden"
+            aria-hidden="true"
+          >
+            {watermarkUrl ? (
+              <img
+                src={watermarkUrl}
+                alt="Hospital Submission Watermark"
+                className="w-[500px] max-w-full opacity-[0.38] mix-blend-multiply"
+              />
+            ) : (
+              <div className="text-center opacity-[0.06] rotate-[-25deg]">
+                <div className="text-4xl sm:text-6xl font-black text-[#0B3558] tracking-widest uppercase">
+                  ★ NABL ACCREDITED ★
                 </div>
-                <div>
-                  <h1 className="text-lg sm:text-xl font-black text-[#123B6D] tracking-tight uppercase">
-                    {report.labName}
-                  </h1>
-                  <p className="text-xs text-slate-600 mt-0.5 max-w-lg">
-                    {report.labAddress}
-                  </p>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Phone: {report.labPhone} • Accreditation: {report.nablAccreditationNo}
-                  </p>
+                <div className="text-xl sm:text-2xl font-bold text-[#0F766E] mt-2">
+                  HOSPITAL SUBMISSION VERIFIED • {report.reportId}
                 </div>
               </div>
-            </div>
-
-            {/* QR Code */}
-            <div className="flex items-center gap-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200 shrink-0">
-              <div className="w-14 h-14 bg-white p-1 rounded border border-slate-300 flex items-center justify-center">
-                <QrCode className="w-12 h-12 text-[#123B6D]" />
-              </div>
-              <div className="text-[10px] text-slate-500 font-mono">
-                <div className="font-bold text-slate-800">Scan to Authenticate</div>
-                <div className="text-[#123B6D] font-bold">{report.reportId}</div>
-                <div className="text-emerald-700 font-semibold">ISO 15189 NABL</div>
-              </div>
-            </div>
+            )}
           </div>
+
+          <div className="relative z-10 space-y-6">
+            {/* Quick Edit Banner on top of document */}
+            {onEditReport && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between no-print text-xs text-amber-900">
+                <div className="flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>
+                    <strong>Need to modify results or patient details?</strong> Click Edit to change any test parameter, reference ranges, or doctor notes.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleEdit}
+                    className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-lg transition shrink-0 cursor-pointer shadow-2xs"
+                  >
+                    Edit This Report
+                  </button>
+                  {onDeleteReport && (
+                    <button
+                      onClick={handleDelete}
+                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition shrink-0 cursor-pointer shadow-2xs flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Delete</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Header with Lab Branding, NABL Certification Logo & Authenticity QR */}
+            <div className="border-b-2 border-[#123B6D] pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-[#123B6D] text-white flex items-center justify-center font-black text-xl shadow-xs">
+                    <span className="text-amber-400">AP</span>EX
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-lg sm:text-xl font-black text-[#123B6D] tracking-tight uppercase">
+                        {report.labName}
+                      </h1>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-blue-50 text-blue-900 border border-blue-200 px-2 py-0.5 rounded-full">
+                        <Award className="w-3 h-3 text-blue-600" />
+                        <span>NABL Certified</span>
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full">
+                        <span>🏥 Hospital Submission Ready</span>
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-0.5 max-w-lg">
+                      {report.labAddress}
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Phone: {report.labPhone} • Accreditation: {report.nablAccreditationNo}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side: NABL Official Accreditation Logo & Scannable QR Code */}
+              <div className="flex items-center gap-3 shrink-0">
+                {/* Official NABL Certification Logo */}
+                {nablLogoUrl && (
+                  <div
+                    className="flex flex-col items-center bg-slate-50 p-1.5 rounded-xl border border-slate-200 shrink-0"
+                    title="National Accreditation Board for Testing and Calibration Laboratories (ISO 15189:2022)"
+                  >
+                    <img
+                      src={nablLogoUrl}
+                      alt="NABL Certification Logo"
+                      className="w-14 h-14 object-contain drop-shadow-xs"
+                    />
+                    <span className="text-[8px] font-black text-[#0B3558] tracking-wider uppercase mt-0.5">
+                      Govt. QCI
+                    </span>
+                  </div>
+                )}
+
+                {/* Scannable Verification QR Code */}
+                <div className="flex items-center gap-2.5 bg-slate-50 p-2.5 rounded-xl border border-slate-200 shrink-0">
+                  <div className="w-14 h-14 bg-white p-1 rounded border border-slate-300 flex items-center justify-center">
+                    <QrCode className="w-12 h-12 text-[#123B6D]" />
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono">
+                    <div className="font-bold text-slate-800">Scan to Authenticate</div>
+                    <div className="text-[#123B6D] font-bold">{report.reportId}</div>
+                    <div className="text-emerald-700 font-semibold">ISO 15189 NABL</div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
           {/* Patient Demographics Grid */}
           <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -465,11 +545,18 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             softwareDomain="indianlalaji.com"
             reportId={report.reportId}
           />
+          </div>
         </div>
 
         {/* Footer info bar */}
         <div className="bg-slate-100 px-5 py-2.5 border-t border-slate-200 flex flex-wrap items-center justify-between text-[11px] text-slate-500 gap-2 no-print">
-          <span>NABL / ISO 15189 Compliant Print Format • A4 Standard</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-slate-700">NABL / ISO 15189 Compliant Print Format</span>
+            <span className="text-slate-300">•</span>
+            <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              Watermarked QR & NABL Logo Embedded for Hospital Submission
+            </span>
+          </div>
           <div className="flex items-center gap-3">
             <button
               onClick={handleDownloadPdf}

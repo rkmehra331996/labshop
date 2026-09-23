@@ -479,8 +479,20 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
       {/* Top Application Bar: Vendor Company Logo + Dashboard Name + Vendor Home Website + Log Out Button */}
       <header className="bg-[#123B6D] text-white sticky top-0 z-30 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
-          {/* Vendor Company Logo + Active Dashboard Name */}
-          <div className="flex items-center gap-3 min-w-0">
+          {/* Back Button + Vendor Company Logo + Active Dashboard Name */}
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            {/* Back Button */}
+            <button
+              type="button"
+              id="lab-app-btn-back"
+              onClick={onBackToWebsite}
+              className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-white/20 cursor-pointer shrink-0"
+              title="Back to Laboratory Website (वापस जाएं)"
+            >
+              <ArrowLeft className="w-4 h-4 text-amber-300" />
+              <span>Back</span>
+            </button>
+
             {labLogoUrl ? (
               <img
                 src={labLogoUrl}

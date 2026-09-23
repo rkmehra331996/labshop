@@ -182,12 +182,26 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
           {/* Back button */}
           <button
             type="button"
-            onClick={() => onNavigateView('vendor_website')}
-            className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 border border-slate-700 rounded-lg text-[11px] font-bold transition cursor-pointer"
-            title="Back to Vendor Website (वापस जाएं)"
+            id="role-banner-btn-back"
+            onClick={() => {
+              if (
+                currentView === 'reception_dashboard' ||
+                currentView === 'technician_dashboard' ||
+                currentView === 'pathologist_dashboard' ||
+                currentView === 'branch_manager_dashboard'
+              ) {
+                onNavigateView(currentUser?.role === 'vendor' ? 'vendor_dashboard' : 'vendor_website');
+              } else if (currentView === 'vendor_dashboard') {
+                onNavigateView('vendor_website');
+              } else {
+                onNavigateView('website');
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-slate-950 border border-amber-400/50 rounded-lg text-xs font-black transition cursor-pointer shadow-xs active:scale-95"
+            title="Back to Previous View / Website (वापस जाएं)"
           >
-            <ArrowLeft className="w-3 h-3 text-amber-400" />
-            <span>Back</span>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back (वापस जाएं)</span>
           </button>
 
           {/* Quick Home button for non-superadmin roles */}

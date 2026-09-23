@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { ShieldCheck, Download, Share2, Printer, QrCode, AlertCircle, CheckCircle2, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, Download, Share2, Printer, QrCode, AlertCircle, CheckCircle2, Check, Award } from 'lucide-react';
 import { SAMPLE_REPORT } from '../data/mockData';
 import { maskMobileForOnlineReport } from '../utils/reportUtils';
 import { ReportCopyrightBottomBar } from './ReportCopyrightBottomBar';
 import { generateReportPdf } from '../utils/pdfGenerator';
 import { printReportSafely } from '../utils/printHelper';
+import { generateNablLogoDataUrl, generateWatermarkedQrDataUrl } from '../utils/reportAssets';
 
 interface ReportPreviewSectionProps {
   onOpenVerifyModal?: () => void;
@@ -17,6 +18,26 @@ export const ReportPreviewSection: React.FC<ReportPreviewSectionProps> = ({
 }) => {
   const report = SAMPLE_REPORT;
   const [downloadDone, setDownloadDone] = useState(false);
+  const [watermarkUrl, setWatermarkUrl] = useState<string>('');
+
+  useEffect(() => {
+    let active = true;
+    generateWatermarkedQrDataUrl({
+      reportId: report.reportId,
+      uhid: report.uhid,
+      nablCode: report.nablAccreditationNo,
+      patientName: report.patientName,
+      labName: report.labName,
+      verificationHash: report.verificationHash,
+    }).then((url) => {
+      if (active) setWatermarkUrl(url);
+    }).catch((err) => console.warn('Watermark generation error:', err));
+    return () => {
+      active = false;
+    };
+  }, [report]);
+
+  const nablLogoUrl = generateNablLogoDataUrl(report.nablAccreditationNo);
 
   const handleDownloadPdf = () => {
     try {
@@ -99,37 +120,66 @@ export const ReportPreviewSection: React.FC<ReportPreviewSectionProps> = ({
           </div>
 
           {/* Report Paper Inner */}
-          <div className="p-6 sm:p-10 bg-white">
-            {/* Header: Lab Logo & Details */}
-            <div className="border-b-2 border-[#123B6D] pb-5 mb-5 flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-xl bg-[#123B6D] text-white flex items-center justify-center font-bold text-xl tracking-wider">
-                  <span className="text-amber-400">AP</span>EX
-                </div>
-                <div>
-                  <h3 className="text-lg sm:text-xl font-black text-[#123B6D] tracking-tight uppercase">
-                    {report.labName}
-                  </h3>
-                  <p className="text-xs text-slate-600 mt-0.5 max-w-md">
-                    {report.labAddress}
-                  </p>
-                  <p className="text-[11px] text-slate-500 font-medium">
-                    Phone: {report.labPhone} • NABL Cert No: {report.nablAccreditationNo}
-                  </p>
-                </div>
-              </div>
-
-              {/* Digital Verification Seal & QR */}
-              <div className="text-right sm:text-right flex items-center sm:flex-col sm:items-end gap-3 sm:gap-1">
-                <div className="w-16 h-16 border-2 border-slate-800 p-1 rounded-md bg-white flex flex-col items-center justify-center">
-                  <QrCode className="w-12 h-12 text-[#123B6D]" />
-                </div>
-                <div className="text-[10px] font-bold text-[#0F766E] flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>DIGITALLY VERIFIED</span>
-                </div>
-              </div>
+          <div className="relative p-6 sm:p-10 bg-white overflow-hidden">
+            {/* Background Security Watermark: Watermarked QR Code & NABL Seal */}
+            <div
+              className="pointer-events-none select-none absolute inset-0 flex items-center justify-center z-0 overflow-hidden"
+              aria-hidden="true"
+            >
+              {watermarkUrl ? (
+                <img
+                  src={watermarkUrl}
+                  alt="Security Watermark"
+                  className="w-[480px] max-w-full opacity-[0.38] mix-blend-multiply"
+                />
+              ) : null}
             </div>
+
+            <div className="relative z-10">
+              {/* Header: Lab Logo & Details */}
+              <div className="border-b-2 border-[#123B6D] pb-5 mb-5 flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-xl bg-[#123B6D] text-white flex items-center justify-center font-bold text-xl tracking-wider">
+                    <span className="text-amber-400">AP</span>EX
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg sm:text-xl font-black text-[#123B6D] tracking-tight uppercase">
+                        {report.labName}
+                      </h3>
+                      <span className="text-[10px] font-extrabold bg-blue-50 text-blue-900 border border-blue-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                        <Award className="w-3 h-3 text-blue-600" />
+                        <span>NABL Accredited</span>
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-0.5 max-w-md">
+                      {report.labAddress}
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      Phone: {report.labPhone} • NABL Cert No: {report.nablAccreditationNo}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Digital Verification Seal & NABL Logo */}
+                <div className="flex items-center gap-3 shrink-0">
+                  {nablLogoUrl && (
+                    <div className="flex flex-col items-center bg-slate-50 p-1.5 rounded-xl border border-slate-200" title="NABL ISO 15189 Certified">
+                      <img src={nablLogoUrl} alt="NABL Logo" className="w-13 h-13 object-contain drop-shadow-xs" />
+                      <span className="text-[8px] font-bold text-[#0B3558] mt-0.5">Govt. QCI</span>
+                    </div>
+                  )}
+                  <div className="text-right sm:text-right flex items-center sm:flex-col sm:items-end gap-3 sm:gap-1">
+                    <div className="w-14 h-14 border border-slate-300 p-1 rounded-md bg-white flex flex-col items-center justify-center shadow-xs">
+                      <QrCode className="w-11 h-11 text-[#123B6D]" />
+                    </div>
+                    <div className="text-[10px] font-bold text-[#0F766E] flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>DIGITALLY VERIFIED</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
             {/* Patient & Sample Metadata Grid */}
             <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-6 text-xs text-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -258,6 +308,7 @@ export const ReportPreviewSection: React.FC<ReportPreviewSectionProps> = ({
               softwareDomain="Labname.com"
               reportId={report.reportId}
             />
+            </div>
           </div>
         </div>
       </div>

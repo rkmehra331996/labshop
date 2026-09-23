@@ -482,10 +482,11 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onBackToWebsite}
-              className="p-1.5 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 flex items-center gap-1 text-xs cursor-pointer transition"
+              className="px-2.5 py-1.5 text-slate-700 hover:text-slate-950 rounded-lg hover:bg-slate-100 flex items-center gap-1.5 text-xs font-bold cursor-pointer transition border border-slate-200 bg-white shadow-2xs"
+              title="Back to Website (वापस जाएं)"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline font-semibold">Back to Main Website</span>
+              <ArrowLeft className="w-4 h-4 text-[#123B6D]" />
+              <span>Back</span>
             </button>
             <div className="flex items-center gap-1.5 font-extrabold text-sm text-[#123B6D]">
               <span>report.indianlalaji.com</span>
