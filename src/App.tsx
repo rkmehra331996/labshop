@@ -136,6 +136,24 @@ export default function App() {
     } catch {}
   }, [currentView, selectedVendorLabId, vendorLabsList]);
 
+  // When user logs out while on a protected dashboard, transition back to public lab website
+  useEffect(() => {
+    if (!currentUser) {
+      const protectedViews: AppView[] = [
+        'admin_dashboard',
+        'vendor_dashboard',
+        'reception_dashboard',
+        'technician_dashboard',
+        'branch_manager_dashboard',
+        'pathologist_dashboard',
+      ];
+      if (protectedViews.includes(currentView)) {
+        setCurrentView(selectedVendorLabId ? 'vendor_website' : 'website');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  }, [currentUser, currentView, selectedVendorLabId]);
+
   // Authorization check for protected dashboard workspaces using RBAC
   const isAuthorizedForView = (view: AppView): boolean => {
     return isUserAuthorizedForView(currentUser, view);

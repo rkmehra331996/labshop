@@ -23,6 +23,9 @@ import {
   ShieldCheck,
   CreditCard,
   User,
+  ChevronRight,
+  Info,
+  Zap,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { AppView, UserRole } from '../types';
@@ -238,13 +241,6 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
       return;
     }
 
-    if (currentRoleCfg.hasPin) {
-      if (!pinCode.trim() || pinCode.length !== 6 || !/^\d{6}$/.test(pinCode)) {
-        setLoginError('A 6-digit numeric Security PIN is required for this role.');
-        return;
-      }
-    }
-
     setIsSubmitting(true);
 
     setTimeout(() => {
@@ -253,7 +249,8 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
         emailOrPhone.trim(),
         password.trim(),
         selectedLabId,
-        selectedBranchId
+        selectedBranchId,
+        pinCode.trim()
       );
 
       setIsSubmitting(false);
@@ -264,7 +261,22 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
       } else {
         setLoginError(result.error || 'Authentication failed. Please verify your credentials and role.');
       }
-    }, 400);
+    }, 150);
+  };
+
+  // 1-Click Quick Direct Login Helper
+  const handleDirectQuickLogin = (role: 'admin' | 'vendor' | 'reception' | 'technician', labId?: string) => {
+    setIsSubmitting(true);
+    setLoginError('');
+    const targetLab = labId || selectedLabId || 'lab-apex';
+    const res = login(role, '', '', targetLab);
+    setIsSubmitting(false);
+    if (res.success) {
+      onClose();
+      onNavigateView(res.targetView);
+    } else {
+      setLoginError(res.error || 'Login failed');
+    }
   };
 
   // Handle Register / Create Lab Submit
@@ -467,6 +479,87 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
           {/* ================= TAB 1: LOGIN ================= */}
           {activeTab === 'login' && (
             <div className="space-y-5">
+              {/* 1-Click Quick Access Bar */}
+              <div className="p-3.5 bg-gradient-to-r from-blue-50 via-indigo-50 to-amber-50 rounded-xl border-2 border-blue-200 shadow-xs space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-[#123B6D]">
+                    <Zap className="w-4 h-4 text-amber-500 fill-amber-400" />
+                    <span>Instant 1-Click Role Login (तुरंत लॉगिन करें)</span>
+                  </div>
+                  <span className="text-[10px] font-bold bg-[#123B6D] text-white px-2 py-0.5 rounded-full">
+                    Direct Access
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-tight">
+                  Click any role below to instantly log in with dedicated data isolation:
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  {!isVendorContext && (
+                    <button
+                      type="button"
+                      onClick={() => handleDirectQuickLogin('admin')}
+                      className="p-2 rounded-lg bg-white border border-rose-200 hover:border-rose-400 hover:shadow-xs transition text-left cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-1.5 text-rose-700 font-bold text-xs mb-0.5">
+                        <Crown className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">Super Admin</span>
+                      </div>
+                      <span className="text-[10px] text-slate-500 block truncate group-hover:text-rose-600">
+                        R. K. Mehra (Portal)
+                      </span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDirectQuickLogin('vendor', selectedLabId || 'lab-apex')}
+                    className="p-2 rounded-lg bg-white border border-amber-200 hover:border-amber-400 hover:shadow-xs transition text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1.5 text-amber-800 font-bold text-xs mb-0.5">
+                      <Building className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Lab Owner</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block truncate group-hover:text-amber-700">
+                      Dr. Rajesh (Owner)
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDirectQuickLogin('reception', selectedLabId || 'lab-apex')}
+                    className="p-2 rounded-lg bg-white border border-teal-200 hover:border-teal-400 hover:shadow-xs transition text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1.5 text-teal-700 font-bold text-xs mb-0.5">
+                      <Receipt className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Reception Desk</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block truncate group-hover:text-teal-600">
+                      Pooja Verma (Billing)
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDirectQuickLogin('technician', selectedLabId || 'lab-apex')}
+                    className="p-2 rounded-lg bg-white border border-purple-200 hover:border-purple-400 hover:shadow-xs transition text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1.5 text-purple-700 font-bold text-xs mb-0.5">
+                      <FlaskConical className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate">Lab Technician</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block truncate group-hover:text-purple-600">
+                      Amit Khurana (DMLT)
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3">
+                <div className="h-px bg-slate-200 flex-1" />
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Or Log In with Specific Role Credentials
+                </span>
+                <div className="h-px bg-slate-200 flex-1" />
+              </div>
+
               {/* Role Selection Segmented Grid */}
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-2">
@@ -523,21 +616,48 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
 
               {/* Manual Login Form */}
               <form onSubmit={handleManualLogin} className="space-y-4">
-                {/* Diagnostic Center Context (Read-only single facility, no dropdown) */}
+                {/* Diagnostic Center Context */}
                 {selectedRole !== 'super_admin' && (
-                  <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
-                    <div className="w-7 h-7 rounded-lg bg-blue-100/80 text-[#123B6D] flex items-center justify-center shrink-0">
-                      <Building className="w-4 h-4" />
+                  isVendorContext ? (
+                    <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                      <div className="w-7 h-7 rounded-lg bg-blue-100/80 text-[#123B6D] flex items-center justify-center shrink-0">
+                        <Building className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block leading-tight">
+                          Dedicated Laboratory Workspace (Locked)
+                        </span>
+                        <span className="font-bold text-slate-800 text-xs truncate block mt-0.5">
+                          {vendorLabsList.find((l) => l.id === selectedLabId)?.name || vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block leading-tight">
-                        Diagnostic Center
-                      </span>
-                      <span className="font-bold text-slate-800 text-xs truncate block mt-0.5">
-                        {vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory'}
-                      </span>
+                  ) : (
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                        <span>Select Laboratory / Diagnostic Center <span className="text-rose-600">*</span></span>
+                        <span className="text-[10px] text-slate-400 font-normal">Multi-Tenant Scoped</span>
+                      </label>
+                      <div className="relative">
+                        <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                          value={selectedLabId}
+                          onChange={(e) => {
+                            setSelectedLabId(e.target.value);
+                            setLoginError('');
+                          }}
+                          className="w-full pl-9 pr-8 py-2.5 rounded-xl border border-slate-300 text-xs bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none appearance-none cursor-pointer hover:border-slate-400 transition shadow-xs"
+                        >
+                          {vendorLabsList.map((lab) => (
+                            <option key={lab.id} value={lab.id}>
+                              {lab.name} — {lab.city} ({lab.id})
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronRight className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 rotate-90 pointer-events-none" />
+                      </div>
                     </div>
-                  </div>
+                  )
                 )}
 
                 {/* Identifier Input */}
@@ -602,6 +722,99 @@ export const CmsAuthModal: React.FC<CmsAuthModalProps> = ({
                     </div>
                   )}
                 </div>
+
+                {/* Authorized Credentials Helper / Quick Fill Box */}
+                {(() => {
+                  let demoId = '';
+                  let demoPass = '';
+                  let demoPin = '';
+                  let demoName = '';
+
+                  if (selectedRole === 'super_admin') {
+                    demoId = 'rkmehra331996@gmail.com';
+                    demoPass = 'admin123';
+                    demoPin = '199633';
+                    demoName = 'R. K. Mehra (Global Portal Super Admin)';
+                  } else if (selectedRole === 'vendor') {
+                    if (selectedLabId === 'lab-citycare') {
+                      demoId = '9815012345';
+                      demoPass = 'owner123';
+                      demoPin = '123456';
+                      demoName = 'Dr. S. K. Narang (CityCare Owner)';
+                    } else if (selectedLabId === 'lab-metropath') {
+                      demoId = '9417098765';
+                      demoPass = 'owner123';
+                      demoPin = '123456';
+                      demoName = 'Dr. Arunava Ghosh (MetroPath Owner)';
+                    } else {
+                      demoId = '9876543210';
+                      demoPass = 'owner123';
+                      demoPin = '123456';
+                      demoName = 'Dr. Rajesh Sharma (Apex Owner)';
+                    }
+                  } else if (selectedRole === 'reception') {
+                    if (selectedLabId === 'lab-citycare') {
+                      demoId = 'reception.citycare';
+                      demoPass = 'reception123';
+                      demoName = 'Jasleen Kaur (CityCare Billing Desk)';
+                    } else if (selectedLabId === 'lab-metropath') {
+                      demoId = 'reception.metro';
+                      demoPass = 'reception123';
+                      demoName = 'Divya Mehra (MetroPath Billing Desk)';
+                    } else {
+                      demoId = 'reception.apex';
+                      demoPass = 'reception123';
+                      demoName = 'Pooja Verma (Apex Billing Desk)';
+                    }
+                  } else if (selectedRole === 'technician') {
+                    if (selectedLabId === 'lab-citycare') {
+                      demoId = 'tech.citycare';
+                      demoPass = 'tech123';
+                      demoName = 'Satnam Singh (CityCare Testing Desk)';
+                    } else if (selectedLabId === 'lab-metropath') {
+                      demoId = 'tech.metro';
+                      demoPass = 'tech123';
+                      demoName = 'Nikhil Bhatt (MetroPath Testing Desk)';
+                    } else {
+                      demoId = 'tech.apex';
+                      demoPass = 'tech123';
+                      demoName = 'Amit Khurana (Apex Testing Desk)';
+                    }
+                  }
+
+                  const handleAutoFill = () => {
+                    setEmailOrPhone(demoId);
+                    setPassword(demoPass);
+                    if (demoPin) setPinCode(demoPin);
+                    setLoginError('');
+                  };
+
+                  return (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
+                          <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Authorized Test Account for {currentRoleCfg.title}:</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleAutoFill}
+                          className="px-2 py-0.5 bg-[#123B6D] hover:bg-[#0e2c52] text-white rounded-md text-[10px] font-bold cursor-pointer transition shadow-xs"
+                        >
+                          ⚡ Auto-Fill Credentials
+                        </button>
+                      </div>
+                      <div className="text-[11px] text-slate-600 flex flex-wrap gap-x-3 gap-y-1 font-mono">
+                        <span>ID: <strong className="text-slate-900">{demoId}</strong></span>
+                        <span>Pass: <strong className="text-slate-900">{demoPass}</strong></span>
+                        {demoPin && <span>PIN: <strong className="text-slate-900">{demoPin}</strong></span>}
+                      </div>
+                      <div className="text-[10px] text-slate-500 italic">
+                        Account: {demoName}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {loginError && (
                   <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">

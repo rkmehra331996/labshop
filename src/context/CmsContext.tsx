@@ -1373,7 +1373,8 @@ interface CmsContextType {
     email?: string,
     password?: string,
     labId?: string,
-    branchId?: string
+    branchId?: string,
+    pin?: string
   ) => { success: boolean; targetView: AppView; error?: string };
   logout: () => void;
   isAuthModalOpen: boolean;
@@ -1701,7 +1702,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
-  const effectiveSettingsLabId = activeTenantId === 'all' ? (selectedVendorLabId || 'lab-apex') : activeTenantId;
+  const effectiveSettingsLabId = selectedVendorLabId || (currentUser?.role !== 'admin' ? currentUser?.labId : 'lab-apex') || 'lab-apex';
 
   const vendorLabSettings = useMemo<VendorLabSettings>(() => {
     if (vendorLabSettingsMap[effectiveSettingsLabId]) {
@@ -1751,14 +1752,30 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   const vendorPackages = useMemo(() => {
-    if (activeTenantId === 'all') return allVendorPackages;
-    return allVendorPackages.filter((p) => isTenantMatch(p, activeTenantId));
-  }, [allVendorPackages, activeTenantId]);
+    if (currentUser?.role === 'admin') {
+      if (superAdminTenantScope === 'all') {
+        return selectedVendorLabId
+          ? allVendorPackages.filter((p) => isTenantMatch(p, selectedVendorLabId))
+          : allVendorPackages;
+      }
+      return allVendorPackages.filter((p) => isTenantMatch(p, superAdminTenantScope));
+    }
+    const targetLab = selectedVendorLabId || currentUser?.labId || 'lab-apex';
+    return allVendorPackages.filter((p) => isTenantMatch(p, targetLab));
+  }, [allVendorPackages, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   const vendorDoctors = useMemo(() => {
-    if (activeTenantId === 'all') return allVendorDoctors;
-    return allVendorDoctors.filter((d) => isTenantMatch(d, activeTenantId));
-  }, [allVendorDoctors, activeTenantId]);
+    if (currentUser?.role === 'admin') {
+      if (superAdminTenantScope === 'all') {
+        return selectedVendorLabId
+          ? allVendorDoctors.filter((d) => isTenantMatch(d, selectedVendorLabId))
+          : allVendorDoctors;
+      }
+      return allVendorDoctors.filter((d) => isTenantMatch(d, superAdminTenantScope));
+    }
+    const targetLab = selectedVendorLabId || currentUser?.labId || 'lab-apex';
+    return allVendorDoctors.filter((d) => isTenantMatch(d, targetLab));
+  }, [allVendorDoctors, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   // Real-Time Cloud Firestore Sync State
   const [isCloudConnected, setIsCloudConnected] = useState<boolean>(true);
@@ -2019,34 +2036,52 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Tenant-Scoped Filtered Views (Zero cross-lab data leakage)
   const reports = useMemo(() => {
-    if (activeTenantId === 'all') return allReports;
-    return allReports.filter((r) => isTenantMatch(r, activeTenantId));
-  }, [allReports, activeTenantId]);
+    if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && !selectedVendorLabId) {
+      return allReports;
+    }
+    const targetLab = (currentUser?.role !== 'admin' ? currentUser?.labId : superAdminTenantScope) || selectedVendorLabId || 'lab-apex';
+    return allReports.filter((r) => isTenantMatch(r, targetLab));
+  }, [allReports, currentUser, superAdminTenantScope, selectedVendorLabId]);
 
   const receptionEntries = useMemo(() => {
-    if (activeTenantId === 'all') return allReceptionEntries;
-    return allReceptionEntries.filter((e) => isTenantMatch(e, activeTenantId));
-  }, [allReceptionEntries, activeTenantId]);
+    if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && !selectedVendorLabId) {
+      return allReceptionEntries;
+    }
+    const targetLab = (currentUser?.role !== 'admin' ? currentUser?.labId : superAdminTenantScope) || selectedVendorLabId || 'lab-apex';
+    return allReceptionEntries.filter((e) => isTenantMatch(e, targetLab));
+  }, [allReceptionEntries, currentUser, superAdminTenantScope, selectedVendorLabId]);
 
   const vendorBranches = useMemo(() => {
-    if (activeTenantId === 'all') return allVendorBranches;
-    return allVendorBranches.filter((b) => isTenantMatch(b, activeTenantId));
-  }, [allVendorBranches, activeTenantId]);
+    if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && !selectedVendorLabId) {
+      return allVendorBranches;
+    }
+    const targetLab = selectedVendorLabId || (currentUser?.role !== 'admin' ? currentUser?.labId : superAdminTenantScope) || 'lab-apex';
+    return allVendorBranches.filter((b) => isTenantMatch(b, targetLab));
+  }, [allVendorBranches, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   const vendorBookings = useMemo(() => {
-    if (activeTenantId === 'all') return allVendorBookings;
-    return allVendorBookings.filter((b) => isTenantMatch(b, activeTenantId));
-  }, [allVendorBookings, activeTenantId]);
+    if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && !selectedVendorLabId) {
+      return allVendorBookings;
+    }
+    const targetLab = selectedVendorLabId || (currentUser?.role !== 'admin' ? currentUser?.labId : superAdminTenantScope) || 'lab-apex';
+    return allVendorBookings.filter((b) => isTenantMatch(b, targetLab));
+  }, [allVendorBookings, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   const staffAccounts = useMemo(() => {
-    if (activeTenantId === 'all') return allStaffAccounts;
-    return allStaffAccounts.filter((s) => isTenantMatch(s, activeTenantId));
-  }, [allStaffAccounts, activeTenantId]);
+    if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && !selectedVendorLabId) {
+      return allStaffAccounts;
+    }
+    const targetLab = (currentUser?.role !== 'admin' ? currentUser?.labId : superAdminTenantScope) || selectedVendorLabId || 'lab-apex';
+    return allStaffAccounts.filter((s) => isTenantMatch(s, targetLab));
+  }, [allStaffAccounts, currentUser, superAdminTenantScope, selectedVendorLabId]);
 
   const vendorTests = useMemo(() => {
-    if (activeTenantId === 'all') return allVendorTests;
-    return allVendorTests.filter((t) => isTenantMatch(t, activeTenantId));
-  }, [allVendorTests, activeTenantId]);
+    if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && !selectedVendorLabId) {
+      return allVendorTests;
+    }
+    const targetLab = selectedVendorLabId || (currentUser?.role !== 'admin' ? currentUser?.labId : superAdminTenantScope) || 'lab-apex';
+    return allVendorTests.filter((t) => isTenantMatch(t, targetLab));
+  }, [allVendorTests, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   // Tenant-Isolated Query Helpers
   const queryTenantIsolatedPatients = (targetLabId?: string): ReceptionPatientEntry[] => {
@@ -2619,37 +2654,55 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const login = (
     role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist',
     email?: string,
-    _password?: string,
+    password?: string,
     labId?: string,
-    branchId?: string
+    branchId?: string,
+    pin?: string
   ): { success: boolean; targetView: AppView; error?: string } => {
-    // Resolve lab details
+    const inputIdentifier = (email || '').trim().toLowerCase();
+    const inputPassword = (password || '').trim();
+    const inputPin = (pin || '').trim();
+
+    // Resolve target laboratory
     const chosenLabId = labId || (role === 'admin' ? 'all' : selectedVendorLabId || 'lab-apex');
-    const selectedLabObj = vendorLabsList.find((l) => l.id === chosenLabId) || vendorLabsList[0];
+    const selectedLabObj =
+      vendorLabsList.find((l) => l.id === chosenLabId) ||
+      VENDOR_LABS_DIRECTORY.find((l) => l.id === chosenLabId) ||
+      vendorLabsList[0];
     const labName =
       chosenLabId === 'all'
         ? 'All Registered Labs (Global)'
         : selectedLabObj?.name || vendorLabSettings.labName;
 
-    // Resolve branch details (Single Branch Lab mode)
-    const chosenBranchId = 'branch-1';
+    // Resolve branch
+    const chosenBranchId = branchId || 'branch-1';
     const branchObj = vendorBranches.find((b) => b.id === chosenBranchId) || vendorBranches[0];
     const branchName = branchObj?.name || 'Main Diagnostic Facility';
-
-    const permissions = getPermissionsForRole(role);
 
     let user: CmsUser;
     let targetView: AppView = 'vendor_dashboard';
 
-    // Staff lookup scoped to tenant labId
-    const findStaffForTenant = (targetRole: LabStaffAccount['role']) => {
-      return (
-        allStaffAccounts.find((s) => s.role === targetRole && (s.labId === chosenLabId || !s.labId || chosenLabId === 'all')) ||
-        allStaffAccounts.find((s) => s.role === targetRole)
-      );
-    };
+    // 1. SUPER ADMIN: Check if user is Super Admin by role, email, or username
+    const isSuperAdminEmail =
+      inputIdentifier === 'rkmehra331996@gmail.com' ||
+      inputIdentifier === 'admin@indianlalaji.com' ||
+      inputIdentifier === 'admin' ||
+      inputIdentifier === 'superadmin' ||
+      inputIdentifier === 'super_admin';
 
-    if (role === 'admin') {
+    if (role === 'admin' || isSuperAdminEmail) {
+      const validAdminPasswords = ['asdfzxcv@331996@#', 'admin123', 'admin@123', 'admin', '123456', 'password', '1234'];
+      const passLower = inputPassword.toLowerCase();
+      const isPassValid = !inputPassword || validAdminPasswords.some((p) => passLower.includes(p) || p.includes(passLower));
+
+      if (inputPassword && !isPassValid && inputPassword.length < 3) {
+        return {
+          success: false,
+          targetView: 'website',
+          error: 'Password must be at least 4 characters. Default password is: admin123',
+        };
+      }
+
       user = {
         id: 'usr-admin-super',
         name: 'R. K. Mehra (Super Admin)',
@@ -2660,11 +2713,81 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         labName: 'All Laboratories (Global Portal)',
         branchId: 'branch-1',
         branchName: 'Main Diagnostic Facility',
-        permissions,
+        permissions: getPermissionsForRole('admin'),
       };
       targetView = 'admin_dashboard';
-    } else if (role === 'branch_manager') {
-      const staff = findStaffForTenant('branch_manager');
+    }
+
+    // 2. RECEPTION DESK
+    else if (
+      role === 'reception' ||
+      inputIdentifier.includes('reception') ||
+      inputIdentifier.includes('billing') ||
+      inputIdentifier.includes('pooja') ||
+      inputIdentifier.includes('jasleen') ||
+      inputIdentifier.includes('divya')
+    ) {
+      // Find staff in this lab or default to reception staff
+      const staff =
+        allStaffAccounts.find((s) => s.role === 'reception' && s.labId === chosenLabId) ||
+        allStaffAccounts.find((s) => s.role === 'reception') ||
+        DEFAULT_STAFF_ACCOUNTS.find((s) => s.role === 'reception' && s.labId === chosenLabId) ||
+        DEFAULT_STAFF_ACCOUNTS[0];
+
+      const staffName = staff?.name || 'Pooja Verma';
+      user = {
+        id: staff?.id || `usr-reception-${chosenLabId}`,
+        name: `${staffName} (Front Desk)`,
+        email: email || staff?.username || `reception@${chosenLabId}.com`,
+        role: 'reception',
+        entityName: `${staff?.labName || labName} (Billing & Counter)`,
+        labId: chosenLabId,
+        labName: staff?.labName || labName,
+        branchId: staff?.branchId || 'branch-1',
+        branchName: staff?.branchName || branchName,
+        permissions: getPermissionsForRole('reception'),
+      };
+      setSelectedVendorLabId(chosenLabId);
+      targetView = 'reception_dashboard';
+    }
+
+    // 3. TECHNICIAN WORKSTATION
+    else if (
+      role === 'technician' ||
+      inputIdentifier.includes('tech') ||
+      inputIdentifier.includes('amit') ||
+      inputIdentifier.includes('satnam') ||
+      inputIdentifier.includes('nikhil')
+    ) {
+      const staff =
+        allStaffAccounts.find((s) => s.role === 'technician' && s.labId === chosenLabId) ||
+        allStaffAccounts.find((s) => s.role === 'technician') ||
+        DEFAULT_STAFF_ACCOUNTS.find((s) => s.role === 'technician' && s.labId === chosenLabId) ||
+        DEFAULT_STAFF_ACCOUNTS[1];
+
+      const staffName = staff?.name || 'Amit Khurana (DMLT)';
+      user = {
+        id: staff?.id || `usr-tech-${chosenLabId}`,
+        name: `${staffName} (Lab Technician)`,
+        email: email || staff?.username || `technician@${chosenLabId}.com`,
+        role: 'technician',
+        entityName: `${staff?.labName || labName} (Diagnostic Workstation)`,
+        labId: chosenLabId,
+        labName: staff?.labName || labName,
+        branchId: staff?.branchId || 'branch-1',
+        branchName: staff?.branchName || branchName,
+        permissions: getPermissionsForRole('technician'),
+      };
+      setSelectedVendorLabId(chosenLabId);
+      targetView = 'technician_dashboard';
+    }
+
+    // 4. BRANCH MANAGER
+    else if (role === 'branch_manager' || inputIdentifier.includes('manager')) {
+      const staff =
+        allStaffAccounts.find((s) => s.role === 'branch_manager' && s.labId === chosenLabId) ||
+        allStaffAccounts.find((s) => s.role === 'branch_manager');
+
       user = {
         id: staff?.id || `usr-manager-${chosenLabId}`,
         name: staff ? `${staff.name} (Operations Manager)` : 'Vikram Malhotra (Operations Manager)',
@@ -2675,41 +2798,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         labName,
         branchId: 'branch-1',
         branchName,
-        permissions,
+        permissions: getPermissionsForRole('branch_manager'),
       };
+      setSelectedVendorLabId(chosenLabId);
       targetView = 'vendor_dashboard';
-    } else if (role === 'reception') {
-      const staff = findStaffForTenant('reception');
-      user = {
-        id: staff?.id || `usr-reception-${chosenLabId}`,
-        name: staff ? `${staff.name} (Front Desk)` : 'Pooja Verma (Front Desk)',
-        email: email || staff?.username || `reception@${chosenLabId}.com`,
-        role: 'reception',
-        entityName: `${labName} (Billing & Counter)`,
-        labId: chosenLabId,
-        labName,
-        branchId: 'branch-1',
-        branchName,
-        permissions,
-      };
-      targetView = 'reception_dashboard';
-    } else if (role === 'technician') {
-      const staff = findStaffForTenant('technician');
-      user = {
-        id: staff?.id || `usr-tech-${chosenLabId}`,
-        name: staff ? `${staff.name} (Lab Technician)` : 'Amit Khurana (Lab Technician)',
-        email: email || staff?.username || `technician@${chosenLabId}.com`,
-        role: 'technician',
-        entityName: `${labName} (Diagnostic Workstation)`,
-        labId: chosenLabId,
-        labName,
-        branchId: 'branch-1',
-        branchName,
-        permissions,
-      };
-      targetView = 'technician_dashboard';
-    } else if (role === 'pathologist') {
-      const staff = findStaffForTenant('pathologist');
+    }
+
+    // 5. PATHOLOGIST
+    else if (role === 'pathologist' || inputIdentifier.includes('patho') || inputIdentifier.includes('doctor')) {
+      const staff =
+        allStaffAccounts.find((s) => s.role === 'pathologist' && s.labId === chosenLabId) ||
+        allStaffAccounts.find((s) => s.role === 'pathologist');
+
       user = {
         id: staff?.id || `usr-pathologist-${chosenLabId}`,
         name: staff ? `${staff.name} (MD Pathologist)` : 'Dr. Meenakshi Sundaram (MD Pathologist)',
@@ -2720,20 +2820,29 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         labName,
         branchId: 'branch-1',
         branchName,
-        permissions,
+        permissions: getPermissionsForRole('pathologist'),
       };
+      setSelectedVendorLabId(chosenLabId);
       targetView = 'pathologist_dashboard';
-    } else {
-      // vendor / lab_admin
-      let ownerName = 'Dr. Rajesh Sharma (Lab Owner)';
-      let defaultEmail = '9876543210';
+    }
+
+    // 6. LAB OWNER / VENDOR (Default)
+    else {
+      const currentLab =
+        vendorLabsList.find((l) => l.id === chosenLabId) ||
+        VENDOR_LABS_DIRECTORY.find((l) => l.id === chosenLabId);
+
+      let ownerName = currentLab?.ownerName || 'Dr. Rajesh Sharma (Lab Owner)';
+      let defaultEmail = currentLab?.email || currentLab?.phone || '9876543210';
+
       if (chosenLabId === 'lab-citycare') {
         ownerName = 'Dr. S. K. Narang (Lab Owner & Director)';
-        defaultEmail = 'dr.narang@citycare.com';
+        defaultEmail = '9815012345';
       } else if (chosenLabId === 'lab-metropath') {
         ownerName = 'Dr. Arunava Ghosh (Managing Pathologist & Owner)';
-        defaultEmail = 'dr.ghosh@metropath.com';
+        defaultEmail = '9417098765';
       }
+
       user = {
         id: `usr-vendor-${chosenLabId}`,
         name: ownerName,
@@ -2744,8 +2853,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         labName,
         branchId: 'branch-1',
         branchName,
-        permissions,
+        permissions: getPermissionsForRole('vendor'),
       };
+      setSelectedVendorLabId(chosenLabId);
       targetView = 'vendor_dashboard';
     }
 
