@@ -167,7 +167,7 @@ export const PathologistDashboard: React.FC<PathologistDashboardProps> = ({
               type="button"
               onClick={() => onNavigateView('vendor_website')}
               className="bg-indigo-900/80 hover:bg-indigo-800 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-indigo-700/60"
-              title="Back (वापस जाएं)"
+              title="Back"
             >
               <ArrowLeft className="w-4 h-4 text-amber-300" />
               <span>Back</span>

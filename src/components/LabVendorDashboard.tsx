@@ -666,7 +666,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
               id="owner-btn-back"
               onClick={() => onNavigateView('vendor_website')}
               className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-white/20 cursor-pointer shrink-0"
-              title="Back to Laboratory Website (वापस जाएं)"
+              title="Back to Laboratory Website"
             >
               <ArrowLeft className="w-4 h-4 text-amber-300" />
               <span>Back</span>
@@ -1229,10 +1229,9 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                     🔑
                   </div>
                   <div className="text-xs">
-                    <div className="font-bold text-amber-950">Lab Admin Only Password Privilege (पासवर्ड नियम)</div>
+                    <div className="font-bold text-amber-950">Lab Admin Only Password Privilege</div>
                     <p className="text-amber-900/80 text-[11px] mt-0.5 leading-relaxed">
                       <strong>Only Lab Admin (You)</strong> can set or reset passwords for your own Receptionist & Lab Technician. Staff cannot reset passwords themselves.
-                      <span className="block font-semibold text-amber-950 mt-1">केवल लैब एडमिन ही अपने रिसेप्शनिस्ट और टेक्नीशियन का पासवर्ड बदल सकते हैं।</span>
                     </p>
                   </div>
                 </div>
@@ -1244,7 +1243,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-xs">Lab Owner Credentials (लैब ओनर क्रेडेंशियल्स)</span>
+                        <span className="font-bold text-slate-900 text-xs">Lab Owner Credentials</span>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">
                           Primary Admin
                         </span>

@@ -221,10 +221,10 @@ export const RoleContextBanner: React.FC<RoleContextBannerProps> = ({
               }
             }}
             className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400/20 hover:bg-amber-400 text-amber-300 hover:text-slate-950 border border-amber-400/50 rounded-lg text-xs font-black transition cursor-pointer shadow-xs active:scale-95"
-            title="Back to Previous View / Website (वापस जाएं)"
+            title="Back to Previous View / Website"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back (वापस जाएं)</span>
+            <span>Back</span>
           </button>
 
           {/* Quick Home button for non-superadmin roles */}

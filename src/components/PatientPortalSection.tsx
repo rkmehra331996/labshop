@@ -105,7 +105,7 @@ export const PatientPortalSection: React.FC<PatientPortalSectionProps> = ({
                 {/* Patient Name */}
                 <div>
                   <label htmlFor="portal-patient-name" className="block text-xs font-bold text-[#172033] mb-1">
-                    Patient Name (मरीज का नाम) <span className="text-rose-500">*</span>
+                    Patient Name <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -121,7 +121,7 @@ export const PatientPortalSection: React.FC<PatientPortalSectionProps> = ({
                 {/* Mobile Number */}
                 <div>
                   <label htmlFor="portal-mobile" className="block text-xs font-bold text-[#172033] mb-1">
-                    Mobile Number (10 Digits / मोबाइल नंबर) <span className="text-rose-500">*</span>
+                    Mobile Number (10 Digits) <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-semibold">+91</span>
@@ -141,7 +141,7 @@ export const PatientPortalSection: React.FC<PatientPortalSectionProps> = ({
             ) : (
               <div>
                 <label htmlFor="portal-report-id" className="block text-xs font-bold text-[#172033] mb-1">
-                  Token Number or Report ID (टोकन नं. या रिपोर्ट ID) <span className="text-rose-500">*</span>
+                  Token Number or Report ID <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"

@@ -18,10 +18,10 @@ import { DataSafetySection } from './components/DataSafetySection';
 import { SecuritySection } from './components/SecuritySection';
 import { AuditLogSection } from './components/AuditLogSection';
 import { IndianMarketSection } from './components/IndianMarketSection';
+import { LabSearchSection } from './components/LabSearchSection';
 import { PricingSection } from './components/PricingSection';
 import { DemoSection } from './components/DemoSection';
 import { FinalCTASection } from './components/FinalCTASection';
-import { Footer } from './components/Footer';
 import { MobileFixedCTA } from './components/MobileFixedCTA';
 import { BookDemoModal } from './components/Modals';
 import { LabSoftwareApp } from './components/LabSoftwareApp';
@@ -531,8 +531,8 @@ export default function App() {
       />
 
       <main className="flex-1">
-        {/* 3. Hero Section */}
-        {portalSections.hero && (
+        {/* 1. Home Section */}
+        {portalSections.hero !== false && (
           <Hero
             onOpenDemo={handleOpenDemo}
             onLaunchApp={handleLaunchLabApp}
@@ -540,85 +540,27 @@ export default function App() {
           />
         )}
 
-        {/* 4. Trust Strip */}
-        {portalSections.trustStrip && <TrustStrip />}
+        {/* 2. Feature Section */}
+        {portalSections.features !== false && <FeaturesSection />}
 
-        {/* 5. Problem Section */}
-        {portalSections.problemSection && <ProblemSection />}
-
-        {/* 6. Solution Section */}
-        {portalSections.solutionSection && <SolutionSection onLaunchApp={handleLaunchLabApp} />}
-
-        {/* 7. Laboratory Workflow */}
-        {portalSections.workflow && <LabWorkflow />}
-
-        {/* 8. Core Features */}
-        {portalSections.features && <FeaturesSection />}
-
-        {/* 9. Offline Section (USP 1) */}
-        {portalSections.offline && <OfflineSection onLaunchApp={handleLaunchLabApp} />}
-
-        {/* 10. Patient Portal Section (USP 2) */}
-        {portalSections.patientPortal && (
-          <PatientPortalSection
-            onOpenPortal={() => handleViewPatientPortal('RPT-2026-8812', '9876543210')}
+        {/* 3. Lab Search Section (Premium Styling, Under Features) */}
+        {portalSections.vendorWebsitesShowcase !== false && (
+          <LabSearchSection
+            onSelectView={setCurrentView}
+            onOpenDemo={handleOpenDemo}
           />
         )}
 
-        {/* 11. Report Preview */}
-        {portalSections.reportPreview && (
-          <ReportPreviewSection
-            onViewFullReport={() => handleViewPatientPortal('RPT-2026-8812', '9876543210')}
-          />
-        )}
-
-        {/* 12. WhatsApp Reports */}
-        {portalSections.whatsapp && <WhatsAppReportSection onLaunchApp={handleLaunchLabApp} />}
-
-        {/* 13. 500+ Test Library */}
-        {portalSections.testLibrary && <TestLibrarySection />}
-
-        {/* 14. Staff & Roles */}
-        {portalSections.staffRoles && <StaffRolesSection onNavigateView={setCurrentView} />}
-
-        {/* 16. Patient History */}
-        {portalSections.patientHistory && <PatientHistorySection />}
-
-        {/* 17. Data Safety */}
-        {portalSections.dataSafety && <DataSafetySection />}
-
-        {/* 18. Security */}
-        {portalSections.security && <SecuritySection />}
-
-        {/* 19. Audit Log */}
-        {portalSections.auditLog && <AuditLogSection />}
-
-        {/* 20. Indian Market */}
-        {portalSections.indianMarket && <IndianMarketSection />}
-
-        {/* 21. Pricing */}
-        {portalSections.pricing && (
+        {/* 4. Pricing Section */}
+        {portalSections.pricing !== false && (
           <PricingSection onOpenDemo={handleOpenDemo} />
         )}
 
-        {/* 22. Demo Section */}
-        {portalSections.demo && (
-          <DemoSection onOpenDemo={handleOpenDemo} onLaunchApp={handleLaunchLabApp} />
-        )}
-
-        {/* 23. Final CTA */}
-        {portalSections.finalCta && (
+        {/* 5. Contact Us Section */}
+        {portalSections.finalCta !== false && (
           <FinalCTASection onOpenDemo={handleOpenDemo} />
         )}
       </main>
-
-      {/* 25. Footer */}
-      {portalSections.footer && (
-        <Footer
-          onSelectView={setCurrentView}
-          onOpenDemo={handleOpenDemo}
-        />
-      )}
 
       {/* 33. Mobile Fixed CTA */}
       <MobileFixedCTA onOpenReport={() => handleViewPatientPortal()} />

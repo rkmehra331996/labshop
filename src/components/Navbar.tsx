@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Building2, KeyRound, Globe, LogOut, UserCheck, LayoutDashboard, FileText } from 'lucide-react';
+import { Menu, X, Building2, KeyRound, Globe, LogOut, UserCheck, LayoutDashboard, FileText, Search } from 'lucide-react';
 import { AppView, Language, UserRole } from '../types';
 import { useCms } from '../context/CmsContext';
 
@@ -106,8 +106,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* Desktop Menu: Home, Features, Workflow, Pricing, Contact Us */}
-          <div className="hidden lg:flex items-center gap-5 xl:gap-7 text-sm font-semibold text-slate-700 whitespace-nowrap">
+          {/* Desktop Menu: Home, Feature, Lab Search, Pricing, Contact Us */}
+          <div className="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-semibold text-slate-700 whitespace-nowrap">
             <button
               onClick={() => scrollToSection('hero-section')}
               className="hover:text-[#123B6D] transition cursor-pointer text-slate-700 hover:font-bold whitespace-nowrap inline-block"
@@ -121,15 +121,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               className="hover:text-[#123B6D] transition cursor-pointer text-slate-700 hover:font-bold whitespace-nowrap inline-block"
               id="nav-link-features"
             >
-              Features
+              Feature
             </button>
 
             <button
-              onClick={() => scrollToSection('workflow-section')}
-              className="hover:text-[#123B6D] transition cursor-pointer text-slate-700 hover:font-bold whitespace-nowrap inline-block"
-              id="nav-link-workflow"
+              onClick={() => scrollToSection('lab-search-section')}
+              className="hover:text-[#123B6D] transition cursor-pointer text-slate-700 hover:font-bold whitespace-nowrap inline-flex items-center gap-1.5"
+              id="nav-link-lab-search"
             >
-              Workflow
+              <Search className="w-3.5 h-3.5 text-teal-600" />
+              <span>Lab Search</span>
             </button>
 
             <button
@@ -149,13 +150,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* Right Actions */}
+          {/* Right Actions: Language, Login, Create Lab */}
           <div className="hidden sm:flex items-center gap-2.5">
-            {/* Language Selector in lower header */}
+            {/* Language Selector */}
             {onSelectLanguage && (
               <div
                 id="navbar-language-selector-wrap"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 text-xs transition"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-xs transition"
                 title="Select Language / भाषा चुनें"
               >
                 <Globe className="w-3.5 h-3.5 text-[#123B6D] shrink-0" />
@@ -175,7 +176,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Authenticated User Session or Login/Register Buttons */}
             {currentUser ? (
-              <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg text-xs">
+              <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl text-xs">
                 <div className="flex items-center gap-1.5">
                   <UserCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span className="max-w-[100px] truncate font-bold text-slate-800">
@@ -188,7 +189,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 <button
                   onClick={() => onSelectView(getDashboardViewForRole(currentUser.role))}
-                  className="px-2.5 py-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold rounded text-[11px] flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                  className="px-2.5 py-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold rounded-lg text-[11px] flex items-center gap-1 transition cursor-pointer shadow-2xs"
                   title="Go to Dashboard Workspace"
                 >
                   <LayoutDashboard className="w-3 h-3" />
@@ -224,17 +225,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </>
             )}
-
-            {/* Track Report by Mobile Button */}
-            <button
-              onClick={() => onSelectView('patient_portal')}
-              className="text-xs font-bold text-emerald-800 hover:text-emerald-950 px-3.5 py-2 border border-emerald-300 hover:bg-emerald-100/70 rounded-xl transition flex items-center gap-1.5 cursor-pointer bg-emerald-50 shadow-2xs active:scale-98"
-              title="Track Lab Report by Mobile Number / मोबाइल नंबर से रिपोर्ट देखें"
-              id="navbar-btn-track-report"
-            >
-              <FileText className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Track Report</span>
-            </button>
           </div>
 
           {/* Mobile Actions & Hamburger Button */}
@@ -255,14 +245,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
             <button
-              onClick={() => onSelectView('patient_portal')}
-              className="bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-2xs flex items-center gap-1 active:scale-95"
-              title="Track Report"
-            >
-              <FileText className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Report</span>
-            </button>
-            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 text-slate-700 hover:text-[#123B6D] focus:outline-none rounded-lg hover:bg-slate-100 transition"
               aria-label="Toggle navigation menu"
@@ -279,7 +261,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="sm:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 shadow-lg">
           {/* Mobile Language Selector */}
           {onSelectLanguage && (
-            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs">
+            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
               <div className="flex items-center gap-2 text-slate-700 font-semibold">
                 <Globe className="w-4 h-4 text-[#123B6D]" />
                 <span>Language / भाषा:</span>
@@ -309,14 +291,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => scrollToSection('features-section')}
               className="text-left py-2 px-3 rounded-lg hover:bg-slate-50 text-slate-700 font-semibold"
             >
-              <span>Features</span>
+              <span>Feature</span>
             </button>
 
             <button
-              onClick={() => scrollToSection('workflow-section')}
-              className="text-left py-2 px-3 rounded-lg hover:bg-slate-50 text-slate-700 font-semibold"
+              onClick={() => scrollToSection('lab-search-section')}
+              className="text-left py-2 px-3 rounded-lg hover:bg-slate-50 text-slate-700 font-semibold flex items-center justify-between"
             >
-              <span>Workflow</span>
+              <span className="flex items-center gap-2">
+                <Search className="w-4 h-4 text-teal-600" />
+                <span>Lab Search</span>
+              </span>
+              <span className="text-[10px] text-teal-700 font-bold bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                Find Labs
+              </span>
             </button>
 
             <button
@@ -333,22 +321,6 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Contact Us</span>
               <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                 7087033009
-              </span>
-            </button>
-
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onSelectView('patient_portal');
-              }}
-              className="text-left py-2.5 px-3 rounded-lg bg-emerald-50 text-emerald-900 font-bold flex items-center justify-between border border-emerald-200"
-            >
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-emerald-600" />
-                <span>Track Report / रिपोर्ट देखें</span>
-              </div>
-              <span className="text-[10px] bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">
-                By Mobile
               </span>
             </button>
           </div>

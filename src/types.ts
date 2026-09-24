@@ -114,8 +114,11 @@ export interface PricingPlan {
   id: string;
   name: string;
   target: string;
+  duration?: string;
+  priceINR?: number;
   monthlyPriceINR: number;
   yearlyPriceINR: number;
+  billingCycle?: string;
   description: string;
   isPopular: boolean;
   features: string[];

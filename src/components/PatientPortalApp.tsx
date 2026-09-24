@@ -247,8 +247,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     const inputName = patientName.trim().toLowerCase();
 
     if (!inputMobile || inputMobile.length < 10) {
-      setErrorMessage('मोबाइल नंबर दर्ज करें (Please enter mobile number)');
-      setErrorDetails('कृपया 10 अंकों का पंजीकृत मोबाइल नंबर दर्ज करें (e.g. 9876543210)।');
+      setErrorMessage('Please enter mobile number');
+      setErrorDetails('Please enter your 10-digit registered mobile number (e.g. 9876543210).');
       return;
     }
 
@@ -307,9 +307,9 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     }
 
     if (results.length === 0) {
-      setErrorMessage('कोई रिकॉर्ड नहीं मिला (No Record Found)');
+      setErrorMessage('No Record Found');
       setErrorDetails(
-        `मोबाइल नंबर +91 ${inputMobile} ${inputName ? `(Name: ${patientName})` : ''} पर कोई सक्रिय जांच रिकॉर्ड नहीं मिला। कृपया रिसेप्शन से संपर्क करें या टोकन नंबर से खोजें।`
+        `No active diagnostic record found for mobile number +91 ${inputMobile} ${inputName ? `(Name: ${patientName})` : ''}. Please contact reception or search with Token Number.`
       );
       return;
     }
@@ -336,7 +336,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
     const raw = reportIdInput.trim().toLowerCase();
     if (!raw) {
-      setErrorMessage('टोकन या रिपोर्ट ID दर्ज करें (Please enter details)');
+      setErrorMessage('Please enter details');
       setErrorDetails('Please enter Token Number (e.g. 101, TK-101) or Report ID (e.g. RPT-2026-8812).');
       return;
     }
@@ -420,7 +420,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     }
 
     // Not found
-    setErrorMessage('टोकन नं. या रिपोर्ट ID नहीं मिला (Token or Report ID Not Found)');
+    setErrorMessage('Token or Report ID Not Found');
     setErrorDetails(
       `No active record matched Token / Report ID "${reportIdInput}". Please check the Token Number (e.g. 101, TK-101) or Report ID (e.g. RPT-2026-8812) on your payment receipt slip.`
     );
@@ -554,7 +554,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             <button
               onClick={onBackToWebsite}
               className="px-2.5 py-1.5 text-slate-700 hover:text-slate-950 rounded-lg hover:bg-slate-100 flex items-center gap-1.5 text-xs font-bold cursor-pointer transition border border-slate-200 bg-white shadow-2xs"
-              title="Back to Website (वापस जाएं)"
+              title="Back to Website"
             >
               <ArrowLeft className="w-4 h-4 text-[#123B6D]" />
               <span>Back</span>
@@ -660,7 +660,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Mobile Number (मोबाइल नंबर) <span className="text-rose-500">*</span>
+                    Mobile Number <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">+91</span>
@@ -728,7 +728,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                       {matchedList.length} Records Found for +91 {mobileNumber}
                     </h3>
                     <p className="text-[11px] text-slate-600">
-                      इस मोबाइल नंबर पर {matchedList.length} जांच रिकॉर्ड मिले हैं। कृपया अपनी जांच रिपोर्ट चुनें:
+                      Found {matchedList.length} diagnostic records for this mobile number. Please select your report:
                     </p>
                   </div>
                 </div>
@@ -807,7 +807,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             <form onSubmit={handleSearchByReportIdOrToken} className="mt-5 space-y-3.5">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Token No. or Report ID (टोकन नं. या रिपोर्ट ID) <span className="text-rose-500">*</span>
+                  Token No. or Report ID <span className="text-rose-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
@@ -1036,7 +1036,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                 </span>
-                <span>Live Real-Time Sync Active (सभी डिवाइस पर लाइव कनेक्टेड • डॉक्टर या लैब में कोई भी बदलाव तुरंत यहाँ दिखेगा)</span>
+                <span>Live Real-Time Sync Active (Connected across all devices • Updates made by doctor or lab appear here instantly)</span>
               </div>
               <a
                 href={`https://wa.me/91${(searchedReport.mobile || mobileNumber || '').replace(/\D/g, '')}?text=${encodeURIComponent(
@@ -1061,7 +1061,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                 <div className="flex-1 space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="bg-rose-600 text-white font-black px-2.5 py-0.5 rounded text-[11px] uppercase tracking-wide">
-                      REPORT CANCELLED / अस्वीकृत
+                      REPORT CANCELLED
                     </span>
                     <span className="text-[11px] text-rose-700 font-semibold">
                       Cancelled on {searchedReport.cancelledAt || 'Recently'} {searchedReport.cancelledBy ? `by ${searchedReport.cancelledBy}` : ''}
@@ -1622,7 +1622,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             {/* Payment Method Selector */}
             <div className="space-y-3">
               <label className="block text-xs font-bold text-slate-800">
-                Select Payment Mode / भुगतान का तरीका
+                Select Payment Mode
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button

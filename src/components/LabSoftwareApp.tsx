@@ -489,7 +489,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
               id="lab-app-btn-back"
               onClick={onBackToWebsite}
               className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-white/20 cursor-pointer shrink-0"
-              title="Back to Laboratory Website (वापस जाएं)"
+              title="Back to Laboratory Website"
             >
               <ArrowLeft className="w-4 h-4 text-amber-300" />
               <span>Back</span>

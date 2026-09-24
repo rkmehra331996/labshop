@@ -26,7 +26,7 @@ export const VendorLabSearchFooter: React.FC<VendorLabSearchFooterProps> = ({
     setHasSearched(true);
 
     if (cleanDigits.length < 10) {
-      setSearchError('कृपया 10-अंकों का मान्य रजिस्टर्ड मोबाइल नंबर दर्ज करें (Please enter 10-digit mobile number)');
+      setSearchError('Please enter a valid 10-digit registered mobile number.');
       setSearchedLab(null);
       return;
     }
@@ -43,7 +43,7 @@ export const VendorLabSearchFooter: React.FC<VendorLabSearchFooterProps> = ({
     } else {
       setSearchedLab(null);
       setSearchError(
-        `मोबाइल नंबर +91 ${cleanDigits} से कोई लैब पंजीकृत नहीं मिली। एक मोबाइल नंबर से केवल एक ही लैब रजिस्टर होती है।`
+        `No registered laboratory found for mobile number +91 ${cleanDigits}. Only 1 lab is registered per mobile number.`
       );
     }
   };
@@ -92,10 +92,10 @@ export const VendorLabSearchFooter: React.FC<VendorLabSearchFooterProps> = ({
             </div>
             <h3 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
               <Building2 className="w-5 h-5 text-teal-400 shrink-0" />
-              <span>वेंडर अपनी लैब वेबसाइट खोजें (Search & Visit Your Lab Website)</span>
+              <span>Search & Visit Your Laboratory Website</span>
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-              अपना रजिस्टर्ड 10-अंकों का मोबाइल नंबर दर्ज करें और अपनी लैब की व्यक्तिगत वेबसाइट पर सीधे जाएं। प्रत्येक मोबाइल नंबर से केवल एक ही लैब रजिस्टर होती है।
+              Enter your registered 10-digit mobile number to directly access your laboratory's dedicated website. Each mobile number corresponds to exactly one laboratory.
             </p>
           </div>
         </div>
@@ -118,7 +118,7 @@ export const VendorLabSearchFooter: React.FC<VendorLabSearchFooterProps> = ({
                   setPhoneNumber(e.target.value);
                   if (hasSearched) setHasSearched(false);
                 }}
-                placeholder="Enter 10-digit registered mobile (उदा. 7087033009)"
+                placeholder="Enter 10-digit registered mobile (e.g. 7087033009)"
                 maxLength={14}
                 className="w-full pl-20 pr-10 py-3 rounded-xl bg-slate-800/90 border border-slate-700 hover:border-teal-500/50 focus:border-teal-400 focus:ring-2 focus:ring-teal-400/30 text-white placeholder-slate-400 text-xs sm:text-sm font-medium tracking-wide focus:outline-none transition shadow-inner"
               />
@@ -139,7 +139,7 @@ export const VendorLabSearchFooter: React.FC<VendorLabSearchFooterProps> = ({
               className="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-black px-6 py-3 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-teal-500/20 active:scale-98 whitespace-nowrap"
             >
               <Search className="w-4 h-4 stroke-[2.5]" />
-              <span>Search My Lab (वेबसाइट खोजें)</span>
+              <span>Search My Lab</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -199,7 +199,7 @@ export const VendorLabSearchFooter: React.FC<VendorLabSearchFooterProps> = ({
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                      <span>Verified Registered Laboratory (पंजीकृत लैब)</span>
+                      <span>Verified Registered Laboratory</span>
                     </span>
                     {searchedLab.nablCode && (
                       <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
@@ -290,7 +290,7 @@ export const VendorLabSearchFooter: React.FC<VendorLabSearchFooterProps> = ({
                     className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-teal-500/30 active:scale-98"
                   >
                     <Globe className="w-4 h-4" />
-                    <span>Visit Lab Website (वेबसाइट खोलें)</span>
+                    <span>Visit Lab Website</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
 
@@ -315,7 +315,7 @@ export const VendorLabSearchFooter: React.FC<VendorLabSearchFooterProps> = ({
                       {searchError || 'No laboratory registered with this mobile number.'}
                     </p>
                     <p className="text-xs text-rose-300/80 leading-relaxed">
-                      एक मोबाइल नंबर से केवल एक ही लैब रजिस्टर हो सकती है। यदि आपने अभी तक अपनी लैब रजिस्टर नहीं की है, तो तुरंत रजिस्टर करें और अपनी समर्पित वेबसाइट प्राप्त करें।
+                      Only one laboratory is registered per mobile number. If you haven't registered your laboratory yet, register now to get your dedicated live website.
                     </p>
                   </div>
                 </div>
@@ -326,7 +326,7 @@ export const VendorLabSearchFooter: React.FC<VendorLabSearchFooterProps> = ({
                     onClick={onOpenDemo}
                     className="bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-md active:scale-98"
                   >
-                    <span>Register New Lab (नई लैब रजिस्टर करें)</span>
+                    <span>Register New Lab</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 )}

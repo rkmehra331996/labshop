@@ -32,6 +32,7 @@ import {
   Wifi,
   Activity,
   Server,
+  RotateCcw,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { AppView, PricingPlan, CompanyFeature, CompanyFaq, CompanyStat } from '../types';
@@ -52,6 +53,9 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     pricingPlans,
     addPricingPlan,
     updatePricingPlan,
+    updatePlanPrice,
+    resetPricingPlansToDefault,
+    syncFeaturesToAllPlans,
     deletePricingPlan,
     companyFeatures,
     addCompanyFeature,
@@ -157,21 +161,50 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
   };
 
   // Handlers for Pricing Plans
+  const [quickPrices, setQuickPrices] = useState<Record<string, number>>({});
+  const [applyFeaturesToAll, setApplyFeaturesToAll] = useState(true);
+
+  const handleQuickPriceChange = (planId: string, val: number) => {
+    setQuickPrices((prev) => ({ ...prev, [planId]: val }));
+  };
+
+  const handleSaveQuickPrice = (planId: string, planName: string) => {
+    const existing = pricingPlans.find((p) => p.id === planId);
+    const fallback = existing?.priceINR ?? existing?.monthlyPriceINR ?? 0;
+    const priceToSet = quickPrices[planId] !== undefined ? quickPrices[planId] : fallback;
+    if (isNaN(priceToSet) || priceToSet < 0) {
+      showToast('Please enter a valid price in ₹ INR');
+      return;
+    }
+    updatePlanPrice(planId, priceToSet);
+    showToast(`Price for "${planName}" updated to ₹${priceToSet.toLocaleString('en-IN')}!`);
+  };
+
+  const handleSyncFeaturesToAllPlans = (features: string[]) => {
+    syncFeaturesToAllPlans(features);
+    showToast('Identical features applied across all 3 packages!');
+  };
+
+  const handleResetToStandard3Packages = () => {
+    resetPricingPlansToDefault();
+    showToast('Reset to 3 standard packages: 1 Month, 3 Month, 1 Year!');
+  };
+
   const handleOpenAddPlan = () => {
     setPlanForm({
-      name: 'Diagnostic Pro Plan',
-      target: 'Growing Diagnostic Centers',
-      monthlyPriceINR: 2499,
-      yearlyPriceINR: 1999,
-      description: 'Ideal for medium-sized diagnostic centers with barcode scanners & multiple workstations.',
+      name: '1 Month Plan',
+      target: 'Flexible Monthly Access',
+      monthlyPriceINR: 1499,
+      yearlyPriceINR: 1499,
+      description: 'Full software access with all features included.',
       isPopular: false,
-      features: [
-        'Unlimited Patient Registrations',
-        'Offline Desktop Sync',
-        'Automatic WhatsApp PDF Reports',
-        'Thermal Barcode Printing',
-        'NABL Compliant Reports with Digital Sign',
-        'Priority Phone Support',
+      features: pricingPlans[0]?.features || [
+        'Unlimited Patients, Bills & Test Entries',
+        'WhatsApp PDF Reports with QR Code Verification',
+        '500+ Pre-Configured Tests Library',
+        'Instant Dynamic UPI QR Payment Billing',
+        'Doctor Commissions & B2B Referral Tracker',
+        'Multi-Role Staff & Digital Signatures',
       ],
     });
     setIsNewPlanModal(true);
@@ -180,7 +213,13 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
   const handleSaveNewPlan = (e: React.FormEvent) => {
     e.preventDefault();
     if (!planForm.name) return;
-    addPricingPlan(planForm);
+    const price = planForm.priceINR || planForm.monthlyPriceINR;
+    addPricingPlan({
+      ...planForm,
+      priceINR: price,
+      monthlyPriceINR: price,
+      yearlyPriceINR: price,
+    });
     setIsNewPlanModal(false);
     showToast('New pricing plan added successfully!');
   };
@@ -190,20 +229,35 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     setPlanForm({
       name: plan.name,
       target: plan.target,
+      priceINR: plan.priceINR ?? plan.monthlyPriceINR,
       monthlyPriceINR: plan.monthlyPriceINR,
       yearlyPriceINR: plan.yearlyPriceINR,
       description: plan.description,
       isPopular: plan.isPopular,
       features: [...plan.features],
     });
+    setApplyFeaturesToAll(true);
   };
 
   const handleSaveEditPlan = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPlan) return;
-    updatePricingPlan(editingPlan.id, planForm);
+    const price = planForm.priceINR || planForm.monthlyPriceINR;
+    updatePricingPlan(editingPlan.id, {
+      ...planForm,
+      priceINR: price,
+      monthlyPriceINR: price,
+      yearlyPriceINR: price,
+    });
+    if (applyFeaturesToAll) {
+      syncFeaturesToAllPlans(planForm.features);
+    }
     setEditingPlan(null);
-    showToast('Pricing plan updated successfully!');
+    showToast(
+      applyFeaturesToAll
+        ? 'Plan updated & features synchronized across all 3 packages!'
+        : 'Pricing plan updated successfully!'
+    );
   };
 
   const handleDeletePlan = (id: string, name: string) => {
@@ -339,7 +393,7 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
               id="admin-btn-back"
               onClick={() => onNavigateView('website')}
               className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-white/20 cursor-pointer shrink-0"
-              title="Back to Home Portal (वापस जाएं)"
+              title="Back to Home Portal"
             >
               <ArrowLeft className="w-4 h-4 text-amber-300" />
               <span>Back</span>
@@ -636,7 +690,7 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                 <h4 className="font-extrabold text-sm flex items-center gap-2">
                   <span>{draftLabsCount} Laboratory Website(s) in DRAFT Mode</span>
                   <span className="text-[10px] bg-amber-200 text-amber-900 font-black px-2 py-0.5 rounded-full border border-amber-300">
-                    Awaiting Admin Approval (अप्रूवल पेंडिंग)
+                    Awaiting Admin Approval
                   </span>
                 </h4>
                 <p className="text-xs text-amber-800 mt-0.5">
@@ -665,99 +719,216 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
 
         {/* 1. PRICING PLANS TAB */}
         {activeTab === 'pricing' && (
-          <div className="space-y-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between">
+          <div className="space-y-6">
+            {/* Header & Quick Sync Actions */}
+            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-base font-extrabold text-[#123B6D]">
-                  Manage Subscription Plans (INR Pricing)
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-[#123B6D] text-[11px] font-bold">
+                    SaaS Pricing Engine
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium">• 3 Standard Packages</span>
+                </div>
+                <h2 className="text-lg font-extrabold text-[#123B6D] mt-1">
+                  Manage Subscription Plans (1 Month, 3 Month, 1 Year)
                 </h2>
-                <p className="text-xs text-slate-500">
-                  Add, edit, or delete software subscription tiers shown on the pricing table of the company website.
+                <p className="text-xs text-slate-500 mt-0.5">
+                  All 3 packages have identical full features. Change prices directly below in 1-click — updates apply immediately on the website and database.
                 </p>
               </div>
-              <button
-                onClick={handleOpenAddPlan}
-                className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
-              >
-                <Plus className="w-4 h-4 text-amber-400" />
-                <span>Add New Plan</span>
-              </button>
+
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <button
+                  onClick={() => {
+                    if (pricingPlans[0]?.features) {
+                      handleSyncFeaturesToAllPlans(pricingPlans[0].features);
+                    }
+                  }}
+                  title="Make features across all 3 packages 100% identical"
+                  className="px-3 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-800 text-xs font-bold transition flex items-center gap-1.5 border border-teal-200 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Sync Features Across All</span>
+                </button>
+                <button
+                  onClick={handleResetToStandard3Packages}
+                  title="Reset to standard 1 Month, 3 Month, 1 Year packages"
+                  className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 border border-slate-200 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Restore Standard 3 Packages</span>
+                </button>
+                <button
+                  onClick={handleOpenAddPlan}
+                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-amber-400" />
+                  <span>Add Plan</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {pricingPlans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className={`bg-white rounded-2xl border ${
-                    plan.isPopular ? 'border-amber-400 ring-2 ring-amber-400/20' : 'border-slate-200'
-                  } p-5 shadow-2xs flex flex-col justify-between`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#123B6D] border border-blue-200">
-                        {plan.target}
-                      </span>
-                      {plan.isPopular && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
-                          Most Popular
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="font-extrabold text-base text-slate-900">{plan.name}</h3>
-                    <p className="text-xs text-slate-500 mt-1 mb-3">{plan.description}</p>
-
-                    <div className="py-2.5 px-3 rounded-xl bg-slate-50 border border-slate-100 mb-4">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-black text-[#123B6D]">
-                          ₹{plan.monthlyPriceINR.toLocaleString('en-IN')}
-                        </span>
-                        <span className="text-xs text-slate-500">/ month</span>
-                      </div>
-                      <div className="text-[11px] text-emerald-700 font-medium">
-                        ₹{plan.yearlyPriceINR.toLocaleString('en-IN')}/mo when billed yearly
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        Included Features ({plan.features.length}):
-                      </span>
-                      {plan.features.slice(0, 5).map((f, i) => (
-                        <div key={i} className="text-xs text-slate-600 flex items-start gap-1.5">
-                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                          <span>{f}</span>
-                        </div>
-                      ))}
-                      {plan.features.length > 5 && (
-                        <span className="text-[11px] text-slate-400 italic">
-                          + {plan.features.length - 5} more features
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleOpenEditPlan(plan)}
-                        className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1"
-                      >
-                        <Edit2 className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeletePlan(plan.id, plan.name)}
-                        className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                        <span>Delete</span>
-                      </button>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-400">ID: {plan.id}</span>
-                  </div>
+            {/* Quick Price Editor Box - Direct Change from Dashboard */}
+            <div className="bg-linear-to-r from-blue-900 to-indigo-950 rounded-2xl p-5 sm:p-6 text-white shadow-md">
+              <div className="flex items-center justify-between gap-4 mb-4 pb-3 border-b border-blue-800/60">
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base text-amber-300 flex items-center gap-2">
+                    <IndianRupee className="w-4 h-4" />
+                    <span>Quick Price Editor • Direct Change from Dashboard</span>
+                  </h3>
+                  <p className="text-xs text-blue-200 mt-0.5">
+                    Enter new price and click "Update Price" to change it instantly on the live website.
+                  </p>
                 </div>
-              ))}
+                <span className="hidden sm:inline-block text-[11px] bg-blue-800/80 px-2.5 py-1 rounded-full text-blue-200 border border-blue-700 font-mono">
+                  Instant Sync Active
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {pricingPlans.map((plan) => {
+                  const currentPrice = plan.priceINR ?? plan.monthlyPriceINR;
+                  const inputValue = quickPrices[plan.id] !== undefined ? quickPrices[plan.id] : currentPrice;
+
+                  return (
+                    <div
+                      key={plan.id}
+                      className="bg-white/10 backdrop-blur-xs rounded-xl p-4 border border-white/15 flex flex-col justify-between"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-extrabold text-sm text-white">{plan.name}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white">
+                          Live: ₹{currentPrice.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+
+                      <div className="text-[11px] text-blue-200 mb-3 truncate">
+                        {plan.target || 'Software Package'}
+                      </div>
+
+                      <div className="space-y-2 mt-auto">
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-blue-200 block">
+                          Change Price (₹ INR):
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                              ₹
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={inputValue}
+                              onChange={(e) => handleQuickPriceChange(plan.id, Number(e.target.value))}
+                              className="w-full pl-6 pr-2 py-2 rounded-lg bg-white text-slate-900 font-black text-sm border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                            />
+                          </div>
+                          <button
+                            onClick={() => handleSaveQuickPrice(plan.id, plan.name)}
+                            className="px-3 py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition shadow-xs cursor-pointer shrink-0 flex items-center gap-1"
+                          >
+                            <Save className="w-3.5 h-3.5" />
+                            <span>Update</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Detailed Plan Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {pricingPlans.map((plan) => {
+                const currentPrice = plan.priceINR ?? plan.monthlyPriceINR;
+                return (
+                  <div
+                    key={plan.id}
+                    className={`bg-white rounded-2xl border ${
+                      plan.isPopular ? 'border-amber-400 ring-2 ring-amber-400/20' : 'border-slate-200'
+                    } p-5 shadow-2xs flex flex-col justify-between`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#123B6D] border border-blue-200">
+                          {plan.target}
+                        </span>
+                        {plan.isPopular && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
+                            Most Popular
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="font-extrabold text-base text-slate-900">{plan.name}</h3>
+                      <p className="text-xs text-slate-500 mt-1 mb-3">{plan.description}</p>
+
+                      <div className="py-3 px-3.5 rounded-xl bg-slate-50 border border-slate-100 mb-4">
+                        <div className="flex items-baseline justify-between">
+                          <div>
+                            <span className="text-2xl font-black text-[#123B6D]">
+                              ₹{currentPrice.toLocaleString('en-IN')}
+                            </span>
+                            <span className="text-xs text-slate-500 ml-1 font-medium">
+                              / {plan.name.toLowerCase().includes('year') ? 'year' : plan.name.toLowerCase().includes('3 month') ? '3 months' : 'month'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleOpenEditPlan(plan)}
+                            className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            <span>Edit Full</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                            Included Features ({plan.features.length}):
+                          </span>
+                          <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                            Same Features
+                          </span>
+                        </div>
+                        {plan.features.slice(0, 6).map((f, i) => (
+                          <div key={i} className="text-xs text-slate-600 flex items-start gap-1.5">
+                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                            <span>{f}</span>
+                          </div>
+                        ))}
+                        {plan.features.length > 6 && (
+                          <span className="text-[11px] text-slate-400 italic block pt-0.5">
+                            + {plan.features.length - 6} more standard features
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenEditPlan(plan)}
+                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeletePlan(plan.id, plan.name)}
+                          className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">ID: {plan.id}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -1306,25 +1477,20 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Monthly Fee (₹ INR)</label>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Package Price (₹ INR)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
                   <input
                     type="number"
                     required
-                    value={planForm.monthlyPriceINR}
-                    onChange={(e) => setPlanForm({ ...planForm, monthlyPriceINR: Number(e.target.value) })}
-                    className="w-full p-2 rounded-lg border border-slate-300 font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">Yearly Discounted (₹/mo)</label>
-                  <input
-                    type="number"
-                    required
-                    value={planForm.yearlyPriceINR}
-                    onChange={(e) => setPlanForm({ ...planForm, yearlyPriceINR: Number(e.target.value) })}
-                    className="w-full p-2 rounded-lg border border-slate-300 font-bold"
+                    min="0"
+                    value={planForm.priceINR ?? planForm.monthlyPriceINR}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setPlanForm({ ...planForm, priceINR: val, monthlyPriceINR: val, yearlyPriceINR: val });
+                    }}
+                    className="w-full pl-7 p-2 rounded-lg border border-slate-300 font-bold"
                   />
                 </div>
               </div>
@@ -1344,7 +1510,7 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                   Features (One per line)
                 </label>
                 <textarea
-                  rows={4}
+                  rows={5}
                   value={planForm.features.join('\n')}
                   onChange={(e) =>
                     setPlanForm({
@@ -1356,17 +1522,32 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                 />
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="isPopular"
-                  checked={planForm.isPopular}
-                  onChange={(e) => setPlanForm({ ...planForm, isPopular: e.target.checked })}
-                  className="rounded text-[#123B6D]"
-                />
-                <label htmlFor="isPopular" className="font-semibold text-slate-700">
-                  Highlight as "Most Popular" Plan
-                </label>
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="applyFeaturesToAll"
+                    checked={applyFeaturesToAll}
+                    onChange={(e) => setApplyFeaturesToAll(e.target.checked)}
+                    className="rounded text-[#123B6D]"
+                  />
+                  <label htmlFor="applyFeaturesToAll" className="font-semibold text-slate-800">
+                    Apply these features to all 3 packages (Keep features identical)
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isPopular"
+                    checked={planForm.isPopular}
+                    onChange={(e) => setPlanForm({ ...planForm, isPopular: e.target.checked })}
+                    className="rounded text-[#123B6D]"
+                  />
+                  <label htmlFor="isPopular" className="font-semibold text-slate-700">
+                    Highlight as "Most Popular" Plan
+                  </label>
+                </div>
               </div>
 
               <div className="pt-3 flex justify-end gap-2 border-t border-slate-200">

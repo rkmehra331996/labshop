@@ -29,7 +29,8 @@ export const VendorWebsitesShowcaseSection: React.FC<VendorWebsitesShowcaseSecti
   onSelectView,
   onOpenDemo,
 }) => {
-  const { vendorLabsList, selectVendorLab, selectedVendorLabId, currentUser } = useCms();
+  const { vendorLabsList, selectVendorLab, selectedVendorLabId, currentUser, companySettings } = useCms();
+  const displayBrand = companySettings?.companyName || 'INDIANLALAJI.COM';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCity, setSelectedCity] = useState<string>('All');
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'nabl' | 'emergency' | 'home'>('all');
@@ -75,18 +76,19 @@ export const VendorWebsitesShowcaseSection: React.FC<VendorWebsitesShowcaseSecti
 
       // Search term
       if (searchTerm.trim()) {
-        const query = searchTerm.toLowerCase();
+        const query = searchTerm.toLowerCase().trim();
         const matchesName = lab.name.toLowerCase().includes(query);
         const matchesCity = lab.city.toLowerCase().includes(query);
         const matchesTagline = lab.tagline.toLowerCase().includes(query);
         const matchesBadge = lab.badge.toLowerCase().includes(query);
+        const matchesPhone = (lab.phone || '').replace(/\s+/g, '').includes(query.replace(/\s+/g, ''));
         const matchesFeatures = lab.features?.some((f) => f.toLowerCase().includes(query));
-        return matchesName || matchesCity || matchesTagline || matchesBadge || matchesFeatures;
+        return matchesName || matchesCity || matchesTagline || matchesBadge || matchesPhone || matchesFeatures;
       }
 
       return true;
     });
-  }, [vendorLabsList, selectedCity, selectedFilter, searchTerm]);
+  }, [baseLabs, selectedCity, selectedFilter, searchTerm]);
 
   const handleVisitWebsite = (labId: string) => {
     selectVendorLab(labId);
@@ -96,25 +98,27 @@ export const VendorWebsitesShowcaseSection: React.FC<VendorWebsitesShowcaseSecti
 
   return (
     <section
-      id="vendor-showcase-section"
-      className="py-16 sm:py-24 bg-gradient-to-b from-slate-50 via-white to-slate-50 border-t border-b border-slate-200 scroll-mt-16"
+      id="lab-search-section"
+      className="py-16 sm:py-24 bg-gradient-to-b from-slate-50 via-white to-slate-50 border-t border-b border-slate-200 scroll-mt-16 relative"
     >
+      {/* Anchor for backward compatibility */}
+      <span id="vendor-showcase-section" className="absolute -top-16 left-0 invisible" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold tracking-wide uppercase shadow-2xs mb-4">
-            <Building2 className="w-3.5 h-3.5 text-amber-700" />
-            <span>Vendor Lab Showcase • Partner Websites</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse"></span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-teal-100 text-teal-900 border border-teal-200 text-xs font-bold tracking-wide uppercase shadow-2xs mb-4">
+            <Search className="w-3.5 h-3.5 text-teal-700" />
+            <span>Lab Search • Partner Laboratory Directory</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-600 animate-pulse"></span>
           </div>
 
           <h2 className="text-2xl sm:text-4xl font-extrabold text-[#123B6D] tracking-tight leading-tight mb-4">
-            Explore Partner Laboratory Websites in Cards
+            Lab Search — Find Verified Diagnostic Centers
           </h2>
 
           <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-            Every diagnostic laboratory powered by <span className="font-bold text-[#123B6D]">LABNAME.COM</span> receives
-            its own high-speed, branded patient portal. Explore our partner lab websites below — complete with home collection booking, 500+ test catalog, and passwordless WhatsApp report retrieval.
+            Search certified partner pathology laboratories powered by <span className="font-bold text-[#123B6D]">{displayBrand}</span>. Explore test packages, compare rates, or visit individual laboratory websites directly for home collection and instant WhatsApp reports.
           </p>
         </div>
 
@@ -128,7 +132,7 @@ export const VendorWebsitesShowcaseSection: React.FC<VendorWebsitesShowcaseSecti
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search lab by name, city, test package, or accreditation..."
+                placeholder="Search lab by name, city, test package, or mobile number..."
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#123B6D] focus:bg-white transition"
               />
               {searchTerm && (

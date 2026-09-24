@@ -92,13 +92,13 @@ export const DEFAULT_PORTAL_SECTIONS: PortalWebsiteSections = {
   pricing: true,
   faq: false,
   finalCta: true,
-  footer: true,
+  footer: false,
   // Kept off from main home page by default for a simple, fast & clean experience:
   problemSection: false,
   solutionSection: false,
   offline: false,
   patientPortal: false,
-  vendorWebsitesShowcase: false,
+  vendorWebsitesShowcase: true,
   reportPreview: false,
   whatsapp: false,
   testLibrary: false,
@@ -126,42 +126,57 @@ export const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
   platformDomain: 'indianlalaji.com',
 };
 
+export const STANDARD_PLAN_FEATURES = [
+  'Unlimited Patients, Bills & Test Entries',
+  'WhatsApp PDF Reports with QR Code Verification',
+  '500+ Pre-Configured Pathology & Radiology Tests',
+  'Instant Dynamic UPI QR Payment Billing',
+  'Doctor Commissions & B2B Referral Tracker',
+  'Multi-Role Staff & Pathologist Digital Signatures',
+  'Patient Online Report Download Portal',
+  'Automatic Cloud Backup & Real-Time Sync',
+  'Dedicated Indian WhatsApp & Phone Support',
+];
+
 export const DEFAULT_PRICING_PLANS: PricingPlan[] = [
   {
-    id: 'plan-single',
-    name: 'Single Laboratory',
-    target: 'Independent Diagnostic & Pathology Centers',
+    id: 'plan-1month',
+    name: '1 Month',
+    target: 'Starter & Flexible',
+    duration: '1 Month',
+    priceINR: 1499,
     monthlyPriceINR: 1499,
-    yearlyPriceINR: 1199,
-    description: 'Everything needed to digitize an independent pathology collection & testing lab.',
+    yearlyPriceINR: 1499,
+    billingCycle: 'Per Month',
+    description: 'Full software access with complete features for 1 month. No long-term commitment.',
     isPopular: false,
-    features: [
-      'Unlimited Patients & Test Entries',
-      'Offline Desktop App (Syncs when connected)',
-      'WhatsApp PDF Reports with QR Code',
-      '500+ Pre-Configured Test Library',
-      'UPI QR Dynamic Payment Billing',
-      'Patient Online Report Portal (No Login)',
-      'NABL Formatted Header & Signatures',
-    ],
+    features: [...STANDARD_PLAN_FEATURES],
   },
   {
-    id: 'plan-multi',
-    name: 'Enterprise Diagnostic Network',
-    target: 'Central Reference Labs & Collection Centers',
-    monthlyPriceINR: 2999,
-    yearlyPriceINR: 2399,
-    description: 'Designed for diagnostic chains with central processing hubs and multiple sample collection desks.',
+    id: 'plan-3months',
+    name: '3 Month',
+    target: 'Quarterly • Most Popular',
+    duration: '3 Months',
+    priceINR: 3999,
+    monthlyPriceINR: 3999,
+    yearlyPriceINR: 3999,
+    billingCycle: 'Per 3 Months',
+    description: 'Quarterly access with complete features. Best for steady diagnostic workflow.',
     isPopular: true,
-    features: [
-      'Up to 5 Testing Desks / Collection Hubs',
-      'Centralized Real-Time HQ Analytics',
-      'Role-Based Staff Access (Phlebo, Reception, MD)',
-      'B2B Referral Doctor Commission Tracker',
-      'Analyzer Interfacing Protocol Support',
-      'Emergency High-Priority Sample Alerts',
-      'Dedicated Indian Phone & WhatsApp Support',
-    ],
+    features: [...STANDARD_PLAN_FEATURES],
+  },
+  {
+    id: 'plan-1year',
+    name: '1 Year',
+    target: 'Annual • Best Value',
+    duration: '1 Year',
+    priceINR: 11999,
+    monthlyPriceINR: 11999,
+    yearlyPriceINR: 11999,
+    billingCycle: 'Per Year',
+    description: 'Full 1-year license with all features, maximum savings, and priority onboarding.',
+    isPopular: false,
+    features: [...STANDARD_PLAN_FEATURES],
   },
 ];
 
@@ -1492,6 +1507,9 @@ interface CmsContextType {
   pricingPlans: PricingPlan[];
   addPricingPlan: (plan: Omit<PricingPlan, 'id'>) => void;
   updatePricingPlan: (id: string, plan: Partial<PricingPlan>) => void;
+  updatePlanPrice: (id: string, newPrice: number) => void;
+  resetPricingPlansToDefault: () => void;
+  syncFeaturesToAllPlans: (features: string[]) => void;
   deletePricingPlan: (id: string) => void;
   companyFeatures: CompanyFeature[];
   addCompanyFeature: (feature: Omit<CompanyFeature, 'id'>) => void;
@@ -1705,7 +1723,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>(() => {
     try {
       const saved = localStorage.getItem('cms_pricing_plans');
-      return saved ? JSON.parse(saved) : DEFAULT_PRICING_PLANS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (
+          Array.isArray(parsed) &&
+          parsed.length === 3 &&
+          parsed.some((p) => p.id === 'plan-1month' || p.name?.includes('1 Month'))
+        ) {
+          return parsed;
+        }
+      }
+      return DEFAULT_PRICING_PLANS;
     } catch {
       return DEFAULT_PRICING_PLANS;
     }
@@ -2209,8 +2237,20 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 13. Subscribe to Pricing Plans
     const unsubscribePricing = subscribeToPricingPlans((cloudPlans) => {
-      if (cloudPlans) {
-        setPricingPlans(cloudPlans);
+      if (cloudPlans && cloudPlans.length > 0) {
+        const has3Packages = cloudPlans.some(
+          (p) => p.id === 'plan-1month' || p.name?.includes('1 Month') || p.duration === '1 Month'
+        );
+        if (has3Packages) {
+          const sortOrder: Record<string, number> = { 'plan-1month': 1, 'plan-3months': 2, 'plan-1year': 3 };
+          const sorted = [...cloudPlans].sort((a, b) => (sortOrder[a.id] || 99) - (sortOrder[b.id] || 99));
+          setPricingPlans(sorted);
+        } else {
+          for (const plan of DEFAULT_PRICING_PLANS) {
+            syncPricingPlanToCloud(plan);
+          }
+          setPricingPlans(DEFAULT_PRICING_PLANS);
+        }
       }
     });
 
@@ -3454,6 +3494,41 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deletePricingPlanFromCloud(id);
   };
 
+  const updatePlanPrice = (id: string, newPrice: number) => {
+    setPricingPlans((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          const updated = {
+            ...p,
+            priceINR: newPrice,
+            monthlyPriceINR: newPrice,
+            yearlyPriceINR: newPrice,
+          };
+          syncPricingPlanToCloud(updated);
+          return updated;
+        }
+        return p;
+      })
+    );
+  };
+
+  const resetPricingPlansToDefault = () => {
+    setPricingPlans(DEFAULT_PRICING_PLANS);
+    for (const plan of DEFAULT_PRICING_PLANS) {
+      syncPricingPlanToCloud(plan);
+    }
+  };
+
+  const syncFeaturesToAllPlans = (features: string[]) => {
+    setPricingPlans((prev) =>
+      prev.map((p) => {
+        const updated = { ...p, features: [...features] };
+        syncPricingPlanToCloud(updated);
+        return updated;
+      })
+    );
+  };
+
   const addCompanyFeature = (feature: Omit<CompanyFeature, 'id'>) => {
     const newFeat: CompanyFeature = {
       ...feature,
@@ -4302,6 +4377,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         pricingPlans,
         addPricingPlan,
         updatePricingPlan,
+        updatePlanPrice,
+        resetPricingPlansToDefault,
+        syncFeaturesToAllPlans,
         deletePricingPlan,
         companyFeatures,
         addCompanyFeature,

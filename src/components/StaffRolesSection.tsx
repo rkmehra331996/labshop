@@ -39,7 +39,7 @@ export const StaffRolesSection: React.FC<StaffRolesSectionProps> = ({ onNavigate
       id: 'dept-reception',
       number: 'DEPT 01',
       title: 'Reception & Billing Panel',
-      subTitle: 'रिसेप्शन विभाग (Counter #1)',
+      subTitle: 'Reception Department (Counter #1)',
       desc: 'Dedicated front-desk panel: fast patient registration, UHID assignment, billing discount, token receipt slip & due collection.',
       icon: Receipt,
       view: 'reception_dashboard' as AppView,
@@ -60,7 +60,7 @@ export const StaffRolesSection: React.FC<StaffRolesSectionProps> = ({ onNavigate
       id: 'dept-technician',
       number: 'DEPT 02',
       title: 'Technician & Lab Workstation',
-      subTitle: 'टेक्नीशियन विभाग (Analyzer Room)',
+      subTitle: 'Technician Department (Analyzer Room)',
       desc: 'Clinical testing workstation: receive blood/urine samples from reception, enter test findings, verify critical flags & print verified reports.',
       icon: FlaskConical,
       view: 'technician_dashboard' as AppView,
@@ -81,7 +81,7 @@ export const StaffRolesSection: React.FC<StaffRolesSectionProps> = ({ onNavigate
       id: 'dept-admin',
       number: 'DEPT 03',
       title: 'Lab Owner & Admin Panel',
-      subTitle: 'लैब ओनर / केंद्रीय एडमिन (Master Control)',
+      subTitle: 'Lab Owner / Central Admin (Master Control)',
       desc: 'Comprehensive supervisory master panel: test catalog pricing, doctor commissions, revenue audit, and direct monitoring of both departments.',
       icon: Shield,
       view: 'vendor_dashboard' as AppView,
@@ -174,13 +174,13 @@ export const StaffRolesSection: React.FC<StaffRolesSectionProps> = ({ onNavigate
         <div className="text-center max-w-3xl mx-auto mb-10">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#123B6D]/10 text-[#123B6D] text-xs font-semibold mb-3">
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>3 Department Panels (3 अलग-अलग विभाग पैनल)</span>
+            <span>3 Department Panels</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#172033] tracking-tight">
             3 Independent Department Panels
           </h2>
           <p className="text-sm text-[#64748B] mt-2">
-            Har department ka alag panel hai — Reception Counter, Technician Analyzer Workstation, aur Central Lab Owner / Admin Control Panel.
+            Each department has a dedicated workspace: Reception Counter, Technician Analyzer Workstation, and Central Lab Owner / Admin Control Panel.
           </p>
         </div>
 

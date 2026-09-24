@@ -812,7 +812,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
               id="reception-btn-back"
               onClick={() => onNavigateView(currentUser?.role === 'vendor' ? 'vendor_dashboard' : 'vendor_website')}
               className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-white/20 cursor-pointer shrink-0"
-              title="Back (वापस जाएं)"
+              title="Back"
             >
               <ArrowLeft className="w-4 h-4 text-amber-300" />
               <span>Back</span>

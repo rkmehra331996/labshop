@@ -2,11 +2,10 @@ import React from 'react';
 import { MessageSquare, Phone, MapPin, Heart, Shield } from 'lucide-react';
 import { AppView } from '../types';
 import { useCms } from '../context/CmsContext';
-import { VendorLabSearchFooter } from './VendorLabSearchFooter';
 
 interface FooterProps {
   onSelectView: (view: AppView) => void;
-  onOpenDemo: () => void;
+  onOpenDemo?: () => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
@@ -25,12 +24,6 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
   return (
     <footer className="bg-[#0b1c33] text-slate-300 text-xs border-t border-slate-800 pb-20 sm:pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12">
-        {/* Vendor Lab Website Search Box (1 Mobile = 1 Lab Website) */}
-        <VendorLabSearchFooter
-          onSelectView={onSelectView}
-          onOpenDemo={onOpenDemo}
-        />
-
         <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           {/* Brand Column */}
           <div className="col-span-2 space-y-4">
@@ -56,68 +49,71 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
             </div>
           </div>
 
-          {/* Product */}
+          {/* Quick Links */}
           <div>
             <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">
-              Product
+              Navigation
             </h4>
             <ul className="space-y-2">
               <li>
-                <button onClick={() => scrollTo('features-section')} className="hover:text-white transition">
-                  Features
+                <button onClick={() => scrollTo('hero-section')} className="hover:text-white transition cursor-pointer">
+                  Home
                 </button>
               </li>
               <li>
-                <button onClick={() => scrollTo('pricing-section')} className="hover:text-white transition">
+                <button onClick={() => scrollTo('features-section')} className="hover:text-white transition cursor-pointer">
+                  Feature
+                </button>
+              </li>
+              <li>
+                <button onClick={() => scrollTo('lab-search-section')} className="hover:text-white transition cursor-pointer">
+                  Lab Search
+                </button>
+              </li>
+              <li>
+                <button onClick={() => scrollTo('pricing-section')} className="hover:text-white transition cursor-pointer">
                   Pricing
                 </button>
               </li>
               <li>
-                <button onClick={() => scrollTo('demo-section')} className="hover:text-white transition">
-                  Demo
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => onSelectView('patient_portal')}
-                  className="hover:text-white transition text-amber-300"
-                >
-                  Patient Portal
-                </button>
-              </li>
-              <li>
-                <button onClick={() => scrollTo('security-section')} className="hover:text-white transition">
-                  Security
+                <button onClick={() => scrollTo('contact-section')} className="hover:text-white transition cursor-pointer">
+                  Contact Us
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Solutions */}
+          {/* Quick Actions */}
           <div>
             <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">
-              Solutions
+              Laboratory Portal
             </h4>
             <ul className="space-y-2">
               <li>
-                <button onClick={() => scrollTo('pricing-section')} className="hover:text-white transition">
-                  Diagnostic Center
+                <button
+                  onClick={() => scrollTo('contact-section')}
+                  className="hover:text-white transition text-amber-300 font-semibold cursor-pointer"
+                >
+                  Create Lab
                 </button>
               </li>
               <li>
-                <button onClick={() => scrollTo('solution-section')} className="hover:text-white transition">
-                  Pathology Labs
+                <button
+                  onClick={() => scrollTo('contact-section')}
+                  className="hover:text-white transition cursor-pointer"
+                >
+                  Lab Login
                 </button>
               </li>
               <li>
-                <button onClick={() => scrollTo('solution-section')} className="hover:text-white transition">
-                  Diagnostic Labs
-                </button>
-              </li>
-              <li>
-                <button onClick={() => scrollTo('solution-section')} className="hover:text-white transition">
-                  Pathology Labs
-                </button>
+                <a
+                  href="https://wa.me/917087033009"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition text-emerald-400 font-semibold flex items-center gap-1"
+                >
+                  <span>WhatsApp Help</span>
+                </a>
               </li>
             </ul>
           </div>
@@ -125,18 +121,22 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
           {/* Resources & Support */}
           <div>
             <h4 className="text-white font-bold text-xs uppercase tracking-wider mb-3">
-              Resources & Support
+              Support & Helpline
             </h4>
             <ul className="space-y-2">
               <li>
-                <span className="text-slate-400">Help & Docs</span>
+                <a href="tel:+917087033009" className="text-slate-300 hover:text-white transition">
+                  +91 7087033009
+                </a>
               </li>
               <li>
-                <span className="text-slate-400">Documentation</span>
+                <a href="mailto:rkmehra331996@gmail.com" className="text-slate-300 hover:text-white transition break-all">
+                  rkmehra331996@gmail.com
+                </a>
               </li>
               <li>
-                <button onClick={onOpenDemo} className="hover:text-white transition">
-                  Contact
+                <button onClick={() => scrollTo('contact-section')} className="hover:text-white transition cursor-pointer">
+                  Contact Form
                 </button>
               </li>
             </ul>
@@ -144,9 +144,9 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
             <div className="mt-4 pt-4 border-t border-slate-800 text-[11px] space-y-1">
               <div className="text-emerald-400 font-bold flex items-center gap-1.5">
                 <MessageSquare className="w-3.5 h-3.5" />
-                <span>7087033009</span>
+                <span>+91 7087033009</span>
               </div>
-              <div className="text-slate-400">Mon–Fri, 10 AM–6 PM</div>
+              <div className="text-slate-400">All India Diagnostic Support</div>
             </div>
           </div>
         </div>

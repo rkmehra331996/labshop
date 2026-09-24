@@ -286,12 +286,12 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             {currentLabItem?.status === 'Draft' ? (
               <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
                 <Clock className="w-3 h-3 text-amber-400" />
-                <span>Status: DRAFT (ड्राफ्ट - पेंडिंग अप्रूवल)</span>
+                <span>Status: DRAFT (Pending Approval)</span>
               </span>
             ) : (
               <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                <span>Status: LIVE (स्वीकृत व लाइव)</span>
+                <span>Status: LIVE (Approved & Active)</span>
               </span>
             )}
           </div>
@@ -306,7 +306,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Approve Website (लाइव करें)</span>
+                <span>Approve Website (Make Live)</span>
               </button>
             )}
 
@@ -319,7 +319,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
               >
                 <Clock className="w-3.5 h-3.5" />
-                <span>Move to Draft (ड्राफ्ट बनाएं)</span>
+                <span>Move to Draft</span>
               </button>
             )}
 

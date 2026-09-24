@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2, Users, FlaskConical, Clock, CheckCheck, IndianRupee, AlertCircle, Laptop, ShieldCheck, WifiOff } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Users, FlaskConical, Clock, CheckCheck, IndianRupee, AlertCircle, ShieldCheck, WifiOff } from 'lucide-react';
 import { Language } from '../types';
 import { TRANSLATIONS } from '../data/mockData';
 import { useCms } from '../context/CmsContext';
@@ -51,15 +51,6 @@ export const Hero: React.FC<HeroProps> = ({
               >
                 <span>{t.getStarted}</span>
                 <ArrowRight className="w-4 h-4 text-amber-400" />
-              </button>
-
-              <button
-                id="hero-btn-launch-app"
-                onClick={onLaunchApp}
-                className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3.5 rounded-xl font-bold text-sm transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-              >
-                <Laptop className="w-4 h-4 text-white" />
-                <span>Try Live Software</span>
               </button>
             </div>
 
@@ -141,26 +132,6 @@ export const Hero: React.FC<HeroProps> = ({
               <div className="bg-slate-50 px-5 py-2.5 border-t border-slate-200 flex items-center justify-between text-[11px] text-[#64748B]">
                 <span className="font-medium">NABL & ISO 15189 Workflow Ready</span>
                 <span className="font-bold text-[#123B6D]">₹42,850 INR Today</span>
-              </div>
-            </div>
-
-            {/* Floating Offline Mode Badge Card (Clean Minimalism Spec) */}
-            <div className="mt-4 sm:mt-0 sm:absolute sm:-bottom-4 sm:-left-6 w-full sm:w-[280px] bg-[#0F766E] text-white p-5 rounded-2xl shadow-xl z-20 border border-teal-600/30">
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center font-bold text-xs">
-                  !
-                </div>
-                <div className="text-xs font-bold uppercase tracking-wide">Offline Mode</div>
-              </div>
-              <p className="text-xs opacity-95 leading-normal mb-3 font-medium">
-                Internet Gaya? Lab Ka Kaam Nahi Rukega. Automatic Sync When Back.
-              </p>
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-tight">
-                <span className="px-2 py-0.5 bg-rose-500 text-white rounded">Offline</span>
-                <span className="text-white/70">→</span>
-                <span className="px-2 py-0.5 bg-amber-400 text-slate-950 rounded">Queue</span>
-                <span className="text-white/70">→</span>
-                <span className="px-2 py-0.5 bg-emerald-400 text-slate-950 rounded">Cloud</span>
               </div>
             </div>
           </div>

@@ -37,7 +37,7 @@ export const OfflineSection: React.FC<OfflineSectionProps> = ({ onLaunchApp }) =
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-            Internet Gaya? Laboratory Ka Kaam Nahi Rukega.
+            Internet Down? Your Laboratory Operations Never Stop.
           </h2>
 
           <p className="text-sm sm:text-base text-slate-300 mt-3 leading-relaxed">
