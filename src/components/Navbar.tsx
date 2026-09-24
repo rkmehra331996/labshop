@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Menu, X, ArrowRight, Building2, KeyRound, Globe, LogOut, UserCheck, LayoutDashboard, FileText } from 'lucide-react';
+import { Menu, X, Building2, KeyRound, Globe, LogOut, UserCheck, LayoutDashboard, FileText } from 'lucide-react';
 import { AppView, Language, UserRole } from '../types';
 import { useCms } from '../context/CmsContext';
 
 interface NavbarProps {
-  onOpenDemo: () => void;
+  onOpenDemo?: () => void;
   onSelectView: (view: AppView) => void;
   currentView: AppView;
   language?: Language;
@@ -207,7 +207,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <>
                 <button
                   onClick={() => openLoginModal(undefined, 'login')}
-                  className="text-xs font-bold text-[#123B6D] hover:text-[#0e2c52] px-3 py-2 rounded-lg hover:bg-slate-100 transition flex items-center gap-1.5 cursor-pointer"
+                  className="text-xs font-bold text-slate-700 hover:text-[#123B6D] px-3.5 py-2 rounded-xl hover:bg-slate-100 transition flex items-center gap-1.5 cursor-pointer"
                   id="navbar-btn-login"
                 >
                   <KeyRound className="w-3.5 h-3.5 text-amber-500" />
@@ -216,10 +216,10 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 <button
                   onClick={() => openRegisterLabModal()}
-                  className="text-xs font-bold text-slate-700 hover:text-slate-950 px-3 py-2 border border-slate-200 hover:border-slate-300 rounded-lg transition flex items-center gap-1.5 cursor-pointer bg-slate-50 hover:bg-slate-100"
+                  className="text-xs font-bold bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-98"
                   id="navbar-btn-register-lab"
                 >
-                  <Building2 className="w-3.5 h-3.5 text-[#123B6D]" />
+                  <Building2 className="w-3.5 h-3.5 text-amber-300" />
                   <span>Create Lab</span>
                 </button>
               </>
@@ -228,26 +228,16 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Track Report by Mobile Button */}
             <button
               onClick={() => onSelectView('patient_portal')}
-              className="text-xs font-bold text-emerald-700 hover:text-emerald-900 px-3 py-2 border border-emerald-300 hover:bg-emerald-50 rounded-lg transition flex items-center gap-1.5 cursor-pointer bg-emerald-50/60 shadow-2xs"
+              className="text-xs font-bold text-emerald-800 hover:text-emerald-950 px-3.5 py-2 border border-emerald-300 hover:bg-emerald-100/70 rounded-xl transition flex items-center gap-1.5 cursor-pointer bg-emerald-50 shadow-2xs active:scale-98"
               title="Track Lab Report by Mobile Number / मोबाइल नंबर से रिपोर्ट देखें"
               id="navbar-btn-track-report"
             >
               <FileText className="w-3.5 h-3.5 text-emerald-600" />
               <span>Track Report</span>
             </button>
-
-            {/* Book Demo CTA */}
-            <button
-              onClick={onOpenDemo}
-              className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2 rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1 cursor-pointer"
-              id="navbar-btn-demo"
-            >
-              <span>Book Demo</span>
-              <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-            </button>
           </div>
 
-          {/* Mobile Hamburger Button */}
+          {/* Mobile Actions & Hamburger Button */}
           <div className="flex sm:hidden items-center gap-2">
             {onSelectLanguage && (
               <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs">
@@ -265,14 +255,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
             <button
-              onClick={onOpenDemo}
-              className="bg-[#123B6D] text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs"
+              onClick={() => onSelectView('patient_portal')}
+              className="bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-2xs flex items-center gap-1 active:scale-95"
+              title="Track Report"
             >
-              Demo
+              <FileText className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Report</span>
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-700 hover:text-[#123B6D] focus:outline-none"
+              className="p-2 text-slate-700 hover:text-[#123B6D] focus:outline-none rounded-lg hover:bg-slate-100 transition"
               aria-label="Toggle navigation menu"
               id="navbar-mobile-toggle"
             >
@@ -419,17 +411,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               </div>
             )}
-
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenDemo();
-              }}
-              className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
-            >
-              <span>Book a Demo</span>
-              <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-            </button>
           </div>
         </div>
       )}

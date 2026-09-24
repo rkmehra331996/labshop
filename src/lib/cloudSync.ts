@@ -345,6 +345,61 @@ export function subscribeToDoctors(
 }
 
 /* ==========================================================================
+   4B. VENDOR BRANCHES & BILLING COUNTERS (Real-time Cross-Device Sync)
+   ========================================================================== */
+
+export async function syncBranchToCloud(branch: VendorBranch): Promise<void> {
+  try {
+    if (!db || !branch.id) return;
+    const cleanBranch = sanitizeForFirestore({
+      ...branch,
+      _updatedAt: new Date().toISOString(),
+    });
+    const ref = doc(db, COLLECTIONS.BRANCHES, branch.id);
+    await setDoc(ref, cleanBranch, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `${COLLECTIONS.BRANCHES}/${branch.id}`);
+  }
+}
+
+export async function deleteBranchFromCloud(branchId: string): Promise<void> {
+  try {
+    if (!db || !branchId) return;
+    const ref = doc(db, COLLECTIONS.BRANCHES, branchId);
+    await deleteDoc(ref);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `${COLLECTIONS.BRANCHES}/${branchId}`);
+  }
+}
+
+export function subscribeToBranches(
+  onData: (branches: VendorBranch[]) => void,
+  onError?: (err: any) => void
+): () => void {
+  try {
+    if (!db) return () => {};
+    const colRef = collection(db, COLLECTIONS.BRANCHES);
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        const list: VendorBranch[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as VendorBranch);
+        });
+        onData(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, COLLECTIONS.BRANCHES);
+        if (onError) onError(error);
+      }
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, COLLECTIONS.BRANCHES);
+    return () => {};
+  }
+}
+
+/* ==========================================================================
    5. RECEPTION PATIENTS & TOKENS (Real-time Cross-Device Sync)
    ========================================================================== */
 
@@ -559,120 +614,165 @@ export async function seedInitialFirestoreData(
   initialPortalSections?: PortalWebsiteSections,
   initialVendorLabs?: VendorLabDirectoryItem[],
   initialPricingPlans?: PricingPlan[],
-  initialStaff?: LabStaffAccount[]
+  initialStaff?: LabStaffAccount[],
+  initialBranches?: VendorBranch[]
 ): Promise<void> {
   try {
     if (!db) return;
 
-    // 1. Seed Lab Settings if empty
-    if (initialSettingsMap) {
-      const settingsCol = collection(db, COLLECTIONS.LAB_SETTINGS);
-      const settingsSnap = await getDocs(settingsCol);
-      if (settingsSnap.empty) {
-        const batch = writeBatch(db);
-        Object.entries(initialSettingsMap).forEach(([labId, settings]) => {
-          const ref = doc(db, COLLECTIONS.LAB_SETTINGS, labId);
-          batch.set(ref, sanitizeForFirestore({ ...settings, labId, _updatedAt: new Date().toISOString() }));
-        });
-        await batch.commit().catch(() => {});
-      }
+    // Guard: Check if cloud database was already seeded once.
+    // If already seeded, NEVER re-seed so user-deleted labs/tests/staff stay permanently deleted!
+    const seedLockRef = doc(db, 'system_metadata', 'seed_lock');
+    const lockSnap = await getDoc(seedLockRef).catch(() => null);
+    if (lockSnap && lockSnap.exists()) {
+      return;
     }
 
-    // 2. Seed Reception Entries if empty
-    const receptionCol = collection(db, COLLECTIONS.RECEPTION_ENTRIES);
-    const receptionSnap = await getDocs(receptionCol);
-    if (receptionSnap.empty && initialEntries.length > 0) {
-      const batch = writeBatch(db);
-      initialEntries.forEach((entry) => {
-        const ref = doc(db, COLLECTIONS.RECEPTION_ENTRIES, entry.id);
-        batch.set(ref, sanitizeForFirestore({ ...entry, _updatedAt: new Date().toISOString() }));
-      });
-      await batch.commit().catch(() => {});
-    }
+    // 1. Ensure Super Admin (rkmehra331996@gmail.com) is in lab_staff
+    const superAdminDocRef = doc(db, COLLECTIONS.STAFF, 'staff-rkmehra-admin');
+    await setDoc(superAdminDocRef, sanitizeForFirestore({
+      id: 'staff-rkmehra-admin',
+      name: 'R. K. Mehra',
+      role: 'admin',
+      username: 'rkmehra331996@gmail.com',
+      email: 'rkmehra331996@gmail.com',
+      phone: '+91 7087033009',
+      password: 'admin123',
+      status: 'active',
+      labId: 'all',
+      labName: 'Central Diagnostic & Multi-Lab Global Network',
+      branchId: 'branch-1',
+      branchName: 'Main Diagnostic Hub',
+      lastPasswordReset: '24 Sep 2026, 10:00 AM',
+      shift: '24x7 Master Administrator',
+      notes: 'Primary Account Owner & Super Admin (rkmehra331996@gmail.com)',
+      _updatedAt: new Date().toISOString()
+    }), { merge: true });
 
-    // 3. Seed Lab Reports if empty
-    const reportsCol = collection(db, COLLECTIONS.LAB_REPORTS);
-    const reportsSnap = await getDocs(reportsCol);
-    if (reportsSnap.empty && initialReports.length > 0) {
-      const batch = writeBatch(db);
-      initialReports.forEach((rep) => {
-        const ref = doc(db, COLLECTIONS.LAB_REPORTS, rep.reportId);
-        batch.set(ref, sanitizeForFirestore({ ...rep, _updatedAt: new Date().toISOString() }));
-      });
-      await batch.commit().catch(() => {});
-    }
-
-    // 4. Seed Tests if empty
-    if (initialTests && initialTests.length > 0) {
-      const testsCol = collection(db, COLLECTIONS.TESTS);
-      const testsSnap = await getDocs(testsCol);
-      if (testsSnap.empty) {
-        const batch = writeBatch(db);
-        initialTests.slice(0, 50).forEach((t) => {
-          const ref = doc(db, COLLECTIONS.TESTS, t.id);
-          batch.set(ref, sanitizeForFirestore({ ...t, _updatedAt: new Date().toISOString() }));
-        });
-        await batch.commit().catch(() => {});
-      }
-    }
-
-    // 5. Seed Company Settings if empty
-    if (initialCompanySettings) {
-      const compDocRef = doc(db, COLLECTIONS.COMPANY_SETTINGS, 'main');
-      const compSnap = await getDoc(compDocRef);
-      if (!compSnap.exists()) {
-        await setDoc(compDocRef, sanitizeForFirestore({ ...initialCompanySettings, _updatedAt: new Date().toISOString() }));
-      }
-    }
-
-    // 6. Seed Portal Sections if empty
-    if (initialPortalSections) {
-      const secDocRef = doc(db, COLLECTIONS.PORTAL_SECTIONS, 'main');
-      const secSnap = await getDoc(secDocRef);
-      if (!secSnap.exists()) {
-        await setDoc(secDocRef, sanitizeForFirestore({ ...initialPortalSections, _updatedAt: new Date().toISOString() }));
-      }
-    }
-
-    // 7. Seed Vendor Labs Directory if empty
+    // 2. Seed Vendor Labs only if collection is empty
     if (initialVendorLabs && initialVendorLabs.length > 0) {
       const labsCol = collection(db, COLLECTIONS.VENDOR_LABS);
-      const labsSnap = await getDocs(labsCol);
-      if (labsSnap.empty) {
-        const batch = writeBatch(db);
-        initialVendorLabs.forEach((lab) => {
+      const labsSnap = await getDocs(labsCol).catch(() => null);
+      if (!labsSnap || labsSnap.empty) {
+        for (const lab of initialVendorLabs) {
           const ref = doc(db, COLLECTIONS.VENDOR_LABS, lab.id);
-          batch.set(ref, sanitizeForFirestore({ ...lab, _updatedAt: new Date().toISOString() }));
-        });
-        await batch.commit().catch(() => {});
+          await setDoc(ref, sanitizeForFirestore({ ...lab, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
+        }
       }
     }
 
-    // 8. Seed Pricing Plans if empty
-    if (initialPricingPlans && initialPricingPlans.length > 0) {
-      const plansCol = collection(db, COLLECTIONS.PRICING_PLANS);
-      const plansSnap = await getDocs(plansCol);
-      if (plansSnap.empty) {
-        const batch = writeBatch(db);
-        initialPricingPlans.forEach((plan) => {
-          const ref = doc(db, COLLECTIONS.PRICING_PLANS, plan.id);
-          batch.set(ref, sanitizeForFirestore({ ...plan, _updatedAt: new Date().toISOString() }));
-        });
-        await batch.commit().catch(() => {});
+    // 3. Upsert Lab Settings only if collection is empty
+    if (initialSettingsMap) {
+      const settingsCol = collection(db, COLLECTIONS.LAB_SETTINGS);
+      const settingsSnap = await getDocs(settingsCol).catch(() => null);
+      if (!settingsSnap || settingsSnap.empty) {
+        for (const [labId, settings] of Object.entries(initialSettingsMap)) {
+          const ref = doc(db, COLLECTIONS.LAB_SETTINGS, labId);
+          await setDoc(ref, sanitizeForFirestore({ ...settings, labId, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
+        }
       }
     }
 
-    // 9. Seed Staff Accounts if empty
+    // 4. Seed Packages if collection has 0 items
+    if (initialPackages && initialPackages.length > 0) {
+      const pkgCol = collection(db, COLLECTIONS.PACKAGES);
+      const pkgSnap = await getDocs(pkgCol).catch(() => null);
+      if (!pkgSnap || pkgSnap.empty) {
+        for (const pkg of initialPackages) {
+          const ref = doc(db, COLLECTIONS.PACKAGES, pkg.id);
+          await setDoc(ref, sanitizeForFirestore({ ...pkg, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
+        }
+      }
+    }
+
+    // 5. Seed Doctors if collection has 0 items
+    if (initialDoctors && initialDoctors.length > 0) {
+      const docCol = collection(db, COLLECTIONS.DOCTORS);
+      const docSnap = await getDocs(docCol).catch(() => null);
+      if (!docSnap || docSnap.empty) {
+        for (const d of initialDoctors) {
+          const ref = doc(db, COLLECTIONS.DOCTORS, d.id);
+          await setDoc(ref, sanitizeForFirestore({ ...d, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
+        }
+      }
+    }
+
+    // 6. Seed Branches if collection has 0 items
+    if (initialBranches && initialBranches.length > 0) {
+      const branchCol = collection(db, COLLECTIONS.BRANCHES);
+      const branchSnap = await getDocs(branchCol).catch(() => null);
+      if (!branchSnap || branchSnap.empty) {
+        for (const b of initialBranches) {
+          const ref = doc(db, COLLECTIONS.BRANCHES, b.id);
+          await setDoc(ref, sanitizeForFirestore({ ...b, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
+        }
+      }
+    }
+
+    // 7. Seed Staff Accounts only if collection is empty
     if (initialStaff && initialStaff.length > 0) {
       const staffCol = collection(db, COLLECTIONS.STAFF);
-      const staffSnap = await getDocs(staffCol);
-      if (staffSnap.empty) {
-        const batch = writeBatch(db);
-        initialStaff.forEach((s) => {
+      const staffSnap = await getDocs(staffCol).catch(() => null);
+      if (!staffSnap || staffSnap.empty) {
+        for (const s of initialStaff) {
           const ref = doc(db, COLLECTIONS.STAFF, s.id);
-          batch.set(ref, sanitizeForFirestore({ ...s, _updatedAt: new Date().toISOString() }));
-        });
-        await batch.commit().catch(() => {});
+          await setDoc(ref, sanitizeForFirestore({ ...s, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
+        }
+      }
+    }
+
+    // 8. Seed Reception Entries if collection is empty
+    const receptionCol = collection(db, COLLECTIONS.RECEPTION_ENTRIES);
+    const receptionSnap = await getDocs(receptionCol).catch(() => null);
+    if ((!receptionSnap || receptionSnap.empty) && initialEntries.length > 0) {
+      for (const entry of initialEntries) {
+        const ref = doc(db, COLLECTIONS.RECEPTION_ENTRIES, entry.id);
+        await setDoc(ref, sanitizeForFirestore({ ...entry, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
+      }
+    }
+
+    // 9. Seed Lab Reports if collection is empty
+    const reportsCol = collection(db, COLLECTIONS.LAB_REPORTS);
+    const reportsSnap = await getDocs(reportsCol).catch(() => null);
+    if ((!reportsSnap || reportsSnap.empty) && initialReports.length > 0) {
+      for (const rep of initialReports) {
+        const ref = doc(db, COLLECTIONS.LAB_REPORTS, rep.reportId);
+        await setDoc(ref, sanitizeForFirestore({ ...rep, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
+      }
+    }
+
+    // 10. Seed Tests if collection is empty
+    if (initialTests && initialTests.length > 0) {
+      const testsCol = collection(db, COLLECTIONS.TESTS);
+      const testsSnap = await getDocs(testsCol).catch(() => null);
+      if (!testsSnap || testsSnap.empty) {
+        for (const t of initialTests.slice(0, 50)) {
+          const ref = doc(db, COLLECTIONS.TESTS, t.id);
+          await setDoc(ref, sanitizeForFirestore({ ...t, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
+        }
+      }
+    }
+
+    // 11. Seed Company Settings
+    if (initialCompanySettings) {
+      const compDocRef = doc(db, COLLECTIONS.COMPANY_SETTINGS, 'main');
+      await setDoc(compDocRef, sanitizeForFirestore({ ...initialCompanySettings, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
+    }
+
+    // Lock seeding permanently so future app visits never overwrite deletions
+    await setDoc(seedLockRef, { seededAt: new Date().toISOString(), version: 2 }, { merge: true }).catch(() => {});
+
+    // 12. Seed Portal Sections
+    if (initialPortalSections) {
+      const secDocRef = doc(db, COLLECTIONS.PORTAL_SECTIONS, 'main');
+      await setDoc(secDocRef, sanitizeForFirestore({ ...initialPortalSections, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
+    }
+
+    // 13. Seed Pricing Plans
+    if (initialPricingPlans && initialPricingPlans.length > 0) {
+      for (const plan of initialPricingPlans) {
+        const ref = doc(db, COLLECTIONS.PRICING_PLANS, plan.id);
+        await setDoc(ref, sanitizeForFirestore({ ...plan, _updatedAt: new Date().toISOString() }), { merge: true }).catch(() => {});
       }
     }
   } catch (err) {

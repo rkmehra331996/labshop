@@ -61,14 +61,6 @@ export const Hero: React.FC<HeroProps> = ({
                 <Laptop className="w-4 h-4 text-white" />
                 <span>Try Live Software</span>
               </button>
-
-              <button
-                id="hero-btn-book-demo"
-                onClick={onOpenDemo}
-                className="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 hover:text-[#123B6D] px-6 py-3.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>{t.bookDemo}</span>
-              </button>
             </div>
 
             {/* Trust Points */}

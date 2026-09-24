@@ -603,8 +603,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             </div>
           </div>
 
-          {/* TWO SEARCH OPTIONS TABS */}
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-xl">
+          {/* CLEAN TWO SEARCH OPTIONS SEGMENTED SWITCH */}
+          <div className="mt-4 flex bg-slate-100 p-1 rounded-xl max-w-md mx-auto">
             <button
               type="button"
               onClick={() => {
@@ -612,30 +612,17 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                 setErrorMessage(null);
                 setErrorDetails(null);
               }}
-              className={`p-3 rounded-lg text-left transition flex items-start gap-2.5 cursor-pointer ${
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 searchMethod === 'name_mobile'
-                  ? 'bg-white text-[#123B6D] shadow-xs font-bold border border-slate-200/80'
-                  : 'text-slate-600 hover:text-slate-900 font-medium'
+                  ? 'bg-white text-[#123B6D] shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <div
-                className={`p-1.5 rounded-lg mt-0.5 ${
-                  searchMethod === 'name_mobile' ? 'bg-[#123B6D] text-white' : 'bg-slate-200 text-slate-600'
-                }`}
-              >
-                <User className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold flex items-center gap-1.5">
-                  <span>Option 1: Mobile Number</span>
-                  <span className="text-[10px] px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded font-semibold">
-                    10 Digits • Real-Time Sync
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Enter registered 10-digit mobile number to view report instantly (Name optional)
-                </p>
-              </div>
+              <Phone className="w-3.5 h-3.5 text-[#123B6D]" />
+              <span>Mobile Number</span>
+              <span className="text-[10px] px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded-full font-semibold hidden sm:inline">
+                Instant
+              </span>
             </button>
 
             <button
@@ -645,61 +632,38 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                 setErrorMessage(null);
                 setErrorDetails(null);
               }}
-              className={`p-3 rounded-lg text-left transition flex items-start gap-2.5 cursor-pointer ${
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 searchMethod === 'report_id'
-                  ? 'bg-white text-[#123B6D] shadow-xs font-bold border border-slate-200/80'
-                  : 'text-slate-600 hover:text-slate-900 font-medium'
+                  ? 'bg-white text-[#123B6D] shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <div
-                className={`p-1.5 rounded-lg mt-0.5 ${
-                  searchMethod === 'report_id' ? 'bg-[#123B6D] text-white' : 'bg-slate-200 text-slate-600'
-                }`}
-              >
-                <Hash className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs font-bold flex items-center gap-1.5">
-                  <span>Option 2: Token / Report ID</span>
-                  <span className="text-[10px] px-1.5 py-0.2 bg-blue-100 text-[#123B6D] rounded font-semibold">
-                    टोकन या ID
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  Enter Token No. (e.g. 101, TK-101) or Report ID (e.g. RPT-2026-8812) from receipt
-                </p>
-              </div>
+              <Hash className="w-3.5 h-3.5 text-[#123B6D]" />
+              <span>Token / Report ID</span>
             </button>
           </div>
 
           {/* ERROR ALERT BANNER */}
           {errorMessage && (
-            <div className="mt-4 p-4 rounded-xl bg-rose-50 border-2 border-rose-200 text-rose-900 flex items-start gap-3 animate-in fade-in duration-150">
-              <div className="w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
+            <div className="mt-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-3 animate-in fade-in duration-150">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <div className="flex-1 text-xs">
-                <div className="font-extrabold text-sm text-rose-800 mb-0.5 flex items-center gap-2">
-                  <span>{errorMessage}</span>
-                </div>
-                {errorDetails && <p className="text-rose-700 leading-relaxed">{errorDetails}</p>}
-                <div className="mt-2 text-[11px] text-rose-600 font-medium">
-                  Tip: Please check your lab payment slip or SMS, or click one of the quick demo buttons below.
-                </div>
+                <div className="font-bold text-rose-800">{errorMessage}</div>
+                {errorDetails && <p className="text-rose-700 text-[11px] mt-0.5">{errorDetails}</p>}
               </div>
             </div>
           )}
 
-          {/* OPTION 1 FORM: 10-DIGIT MOBILE NUMBER (+ OPTIONAL PATIENT NAME) */}
+          {/* OPTION 1: 10-DIGIT MOBILE NUMBER (+ OPTIONAL PATIENT NAME) */}
           {searchMethod === 'name_mobile' && (
-            <form onSubmit={handleSearchByNameAndMobile} className="mt-5 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <form onSubmit={handleSearchByNameAndMobile} className="mt-5 space-y-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    1. Registered Mobile No. (10 Digits / मोबाइल नंबर) <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Mobile Number (मोबाइल नंबर) <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2 text-xs text-slate-500 font-bold">+91</span>
+                    <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">+91</span>
                     <input
                       type="tel"
                       required
@@ -710,18 +674,17 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                         if (errorMessage) setErrorMessage(null);
                       }}
                       placeholder="10 Digits (e.g. 9876543210)"
-                      className="w-full pl-11 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono"
+                      className="w-full pl-11 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-[#123B6D]/20 focus:border-[#123B6D] focus:outline-none font-mono"
                     />
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">Enter 10-digit mobile number given at lab reception</p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    2. Patient Full Name (मरीज का नाम) <span className="text-slate-400 font-normal">(Optional / वैकल्पिक)</span>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Patient Name <span className="text-slate-400 font-normal">(Optional)</span>
                   </label>
                   <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     <input
                       type="text"
                       value={patientName}
@@ -729,25 +692,24 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                         setPatientName(e.target.value);
                         if (errorMessage) setErrorMessage(null);
                       }}
-                      placeholder="e.g. Ramesh Kumar Verma (Optional)"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
+                      placeholder="e.g. Ramesh Kumar (Optional)"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-[#123B6D]/20 focus:border-[#123B6D] focus:outline-none"
                     />
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">Leave empty to view all reports under this mobile number</p>
                 </div>
               </div>
 
-              <div className="pt-2 flex items-center justify-between gap-3">
-                <div className="text-[11px] text-slate-500 flex items-center gap-1 font-medium">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#0F766E]" />
+              <div className="pt-1 flex items-center justify-between gap-3 flex-wrap">
+                <span className="text-[11px] text-slate-500 flex items-center gap-1 font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
                   <span>Real-time cross-device cloud sync enabled</span>
-                </div>
+                </span>
                 <button
                   type="submit"
-                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer"
+                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer active:scale-98"
                 >
                   <Search className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Search Reports / रिपोर्ट खोजें</span>
+                  <span>Search Reports</span>
                 </button>
               </div>
             </form>
@@ -840,16 +802,16 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             </div>
           )}
 
-          {/* OPTION 2 FORM: TOKEN NUMBER OR REPORT ID */}
+          {/* OPTION 2: TOKEN NUMBER OR REPORT ID */}
           {searchMethod === 'report_id' && (
-            <form onSubmit={handleSearchByReportIdOrToken} className="mt-5 space-y-4">
+            <form onSubmit={handleSearchByReportIdOrToken} className="mt-5 space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-800 mb-1">
-                  Token Number or Report ID (टोकन नं. या रिपोर्ट ID) <span className="text-rose-500">*</span>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Token No. or Report ID (टोकन नं. या रिपोर्ट ID) <span className="text-rose-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
-                    <Hash className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <Hash className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     <input
                       type="text"
                       required
@@ -859,29 +821,26 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                         if (errorMessage) setErrorMessage(null);
                       }}
                       placeholder="e.g. 101, TK-101, or RPT-2026-8812"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-mono font-bold focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold focus:ring-2 focus:ring-[#123B6D]/20 focus:border-[#123B6D] focus:outline-none"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-5 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+                    className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
                   >
                     <Search className="w-3.5 h-3.5 text-amber-300" />
                     <span>View Report</span>
                   </button>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-1">
-                  Enter Token Number (e.g. 101 or TK-101) or Report ID (e.g. RPT-2026-8812) from your receipt slip
-                </p>
               </div>
             </form>
           )}
 
-          {/* DEMO QUICK FILL PILLS FOR EASY TESTING */}
-          <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs">
-            <span className="text-slate-500 font-medium flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Quick Test Scenarios:</span>
+          {/* CLEAN DEMO QUICK-FILL PRESETS */}
+          <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-slate-400 text-[11px] font-semibold flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              <span>Quick Demo:</span>
             </span>
             <div className="flex flex-wrap gap-1.5">
               <button
@@ -890,11 +849,9 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   setSearchMethod('name_mobile');
                   handleQuickFill('Ramesh Kumar Verma', '9876543210', 'RPT-2026-8812');
                 }}
-                className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold transition cursor-pointer border border-emerald-200 flex items-center gap-1"
-                title="Ramesh Kumar Verma (Fully Paid & Unlocked Report)"
+                className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold transition cursor-pointer border border-emerald-200"
               >
-                <Check className="w-3 h-3 text-emerald-600" />
-                <span>Ramesh (Paid • Unlocked)</span>
+                Ramesh (Paid)
               </button>
               <button
                 type="button"
@@ -904,11 +861,9 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   setErrorMessage(null);
                   setErrorDetails(null);
                 }}
-                className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-semibold transition cursor-pointer border border-amber-200 flex items-center gap-1"
-                title="Sunita Devi (TK-104 / RPT-2026-8815) - Report Ready but Due ₹300 (Locked/Blurred)"
+                className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-semibold transition cursor-pointer border border-amber-200"
               >
-                <Lock className="w-3 h-3 text-amber-700" />
-                <span>TK-104 (Sunita • Due ₹300 Locked)</span>
+                TK-104 (Due ₹300)
               </button>
               <button
                 type="button"
@@ -918,24 +873,9 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   setErrorMessage(null);
                   setErrorDetails(null);
                 }}
-                className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#123B6D] text-[11px] font-semibold transition cursor-pointer border border-blue-200 flex items-center gap-1"
-                title="Rajesh Sharma (TK-103) - Sample In Lab Processing"
+                className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#123B6D] text-[11px] font-semibold transition cursor-pointer border border-blue-200"
               >
-                <Clock className="w-3 h-3 text-blue-600" />
-                <span>TK-103 (Rajesh • In Lab Processing)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchMethod('report_id');
-                  setReportIdInput('RPT-2026-8812');
-                  setErrorMessage(null);
-                  setErrorDetails(null);
-                }}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition cursor-pointer"
-                title="Direct Report ID RPT-2026-8812"
-              >
-                📄 #RPT-2026-8812
+                TK-103 (In Testing)
               </button>
             </div>
           </div>
@@ -943,130 +883,116 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
         {/* LIVE SAMPLE PROGRESS STATE (When Token or Patient is registered but lab testing is still in progress) */}
         {pendingSampleStatus && !searchedReport && (
-          <div className="bg-white rounded-2xl border-2 border-blue-300 shadow-md p-6 sm:p-7 space-y-5 text-xs animate-in fade-in duration-200 no-print">
-            {/* Live Real-Time Multi-Device Sync Indicator */}
-            <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-emerald-950 shadow-2xs">
-              <div className="flex items-center gap-2.5 font-bold">
-                <span className="relative flex h-2.5 w-2.5 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                </span>
-                <span>Live Real-Time Sync Active (सभी डिवाइस पर लाइव कनेक्टेड • लैब में अपडेट होते ही यहाँ दिखेगा)</span>
-              </div>
-              <a
-                href={`https://wa.me/91${(matchedEntry?.mobile || mobileNumber || '').replace(/\D/g, '')}?text=${encodeURIComponent(
-                  `Apex Diagnostic Lab Status Update:\nPatient: ${pendingSampleStatus.patientName}\nToken: ${pendingSampleStatus.tokenNumber}\nStatus: Sample in Lab Processing\nBranch: ${pendingSampleStatus.branchName || 'Apex Central Lab'}\nPhone: ${pendingSampleStatus.branchPhone || labPhone}`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-[#25D366] hover:bg-[#1ebd5a] text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition shrink-0 self-start sm:self-auto cursor-pointer shadow-2xs"
-                title="Send status update to WhatsApp"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>WhatsApp to Client</span>
-              </a>
-            </div>
-
-            {/* Primary Hindi Notification Banner requested by user */}
-            <div className="p-4 sm:p-5 bg-blue-50 border-2 border-blue-200 rounded-xl text-blue-950 space-y-2">
-              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-blue-900">
-                <span className="w-3 h-3 rounded-full bg-blue-600 animate-ping shrink-0" />
-                <span>Lab Processing Status / लैब स्थिति</span>
-              </div>
-              <div className="text-base sm:text-lg font-black text-slate-900 leading-snug">
-                “Aapki report abhi lab mein process ho rahi hai, please wait.”
-              </div>
-              <p className="text-xs text-blue-800 leading-relaxed">
-                Your biological sample is currently undergoing scientific testing and biochemical analyzer processing. Once verified and authorized by our Pathologist, it will be published here.
-              </p>
-            </div>
-
-            {/* Lab & Branch Contact Information Box */}
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">
-                  Diagnostic Centre & Branch
-                </span>
-                <span className="font-black text-slate-900 text-xs sm:text-sm block mt-0.5">
-                  {labName}
-                </span>
-                <span className="text-[11px] text-teal-800 font-bold flex items-center gap-1 mt-0.5">
-                  <Building className="w-3 h-3 text-teal-600 shrink-0" />
-                  <span>{pendingSampleStatus.branchName || 'Main Diagnostic & Testing Hub'}</span>
-                </span>
-              </div>
-
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">
-                  Helpline / Contact Number
-                </span>
-                <span className="font-black text-[#123B6D] text-xs sm:text-sm flex items-center gap-1 font-mono mt-0.5">
-                  <Phone className="w-3.5 h-3.5 text-[#123B6D] shrink-0" />
-                  <span>+91 {labPhone}</span>
-                </span>
-                <div className="flex items-center gap-2 pt-1.5">
-                  <a
-                    href={`tel:${labPhone}`}
-                    className="px-2.5 py-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <Phone className="w-3 h-3" />
-                    <span>Call Lab</span>
-                  </a>
-                  <a
-                    href={`https://wa.me/91${labPhone.replace(/\D/g, '')}?text=Hello,%20checking%20status%20of%20Token%20${pendingSampleStatus.tokenNumber}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <MessageSquare className="w-3 h-3" />
-                    <span>WhatsApp</span>
-                  </a>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6 text-xs animate-in fade-in duration-200 no-print">
+            {/* Header Strip with Live Status */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#123B6D] flex items-center justify-center font-bold">
+                  <Clock className="w-5 h-5 text-blue-600 animate-spin" style={{ animationDuration: '4s' }} />
+                </div>
+                <div>
+                  <div className="font-extrabold text-sm sm:text-base text-slate-900 flex items-center gap-2">
+                    <span>{pendingSampleStatus.patientName}</span>
+                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-blue-50 text-[#123B6D] font-bold border border-blue-200">
+                      {pendingSampleStatus.tokenNumber}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {pendingSampleStatus.ageGender} • Registered: {pendingSampleStatus.registeredAt}
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">
-                  Centre Address & Hours
-                </span>
-                <span className="text-[11px] text-slate-700 block mt-0.5 leading-snug">
-                  {labAddress}
-                </span>
-                <span className="text-[10px] text-slate-500 block mt-1">
-                  Sample Processing: 24x7 Emergency Services
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  <span>Sample in Lab Testing</span>
                 </span>
               </div>
             </div>
 
-            {/* Token & Patient Demographics Summary */}
-            <div className="bg-white border border-slate-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Patient Name</span>
-                <span className="font-bold text-slate-800 text-xs sm:text-sm">{pendingSampleStatus.patientName}</span>
+            {/* 4-Step Visual Progress Tracker */}
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+              <div className="grid grid-cols-4 gap-2 text-center">
+                <div className="space-y-1.5">
+                  <div className="w-7 h-7 mx-auto rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">
+                    ✓
+                  </div>
+                  <div className="font-bold text-[11px] text-emerald-800">1. Reception</div>
+                  <div className="text-[10px] text-slate-400">Registered</div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="w-7 h-7 mx-auto rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">
+                    ✓
+                  </div>
+                  <div className="font-bold text-[11px] text-emerald-800">2. Sample</div>
+                  <div className="text-[10px] text-slate-400">Collected</div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="w-7 h-7 mx-auto rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-xs ring-4 ring-blue-100">
+                    <Clock className="w-3.5 h-3.5 animate-spin" />
+                  </div>
+                  <div className="font-bold text-[11px] text-blue-900">3. Lab Testing</div>
+                  <div className="text-[10px] text-blue-600 font-semibold">In Progress</div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="w-7 h-7 mx-auto rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-bold">
+                    4
+                  </div>
+                  <div className="font-bold text-[11px] text-slate-400">4. Report PDF</div>
+                  <div className="text-[10px] text-slate-400">Authorization</div>
+                </div>
               </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Age / Gender</span>
-                <span className="font-semibold text-slate-700">{pendingSampleStatus.ageGender}</span>
+            </div>
+
+            {/* Notification message */}
+            <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-100 text-blue-950 flex items-start gap-3">
+              <Clock className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+              <div className="text-xs space-y-1">
+                <div className="font-bold text-slate-900">
+                  “Aapki report abhi lab mein process ho rahi hai, please wait.”
+                </div>
+                <p className="text-slate-600 text-[11px] leading-relaxed">
+                  Your biological sample is undergoing biochemical testing. Once verified and digitally signed by our Pathologist, the complete report PDF will be available right here.
+                </p>
               </div>
+            </div>
+
+            {/* Investigations list & Lab contact */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Token Number</span>
-                <span className="font-mono font-black text-sm text-[#123B6D]">{pendingSampleStatus.tokenNumber}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Current Stage</span>
-                <span className="inline-flex items-center gap-1 text-blue-700 font-bold text-[11px] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
-                  <span>{pendingSampleStatus.status}</span>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider mb-1">
+                  Tests in Process:
                 </span>
-              </div>
-              <div className="col-span-2 sm:col-span-4 pt-1">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Investigations in Laboratory</span>
-                <div className="flex flex-wrap gap-1.5 mt-1">
+                <div className="flex flex-wrap gap-1.5">
                   {pendingSampleStatus.tests.map((t, idx) => (
-                    <span key={idx} className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 font-semibold text-slate-800 text-[11px]">
+                    <span key={idx} className="px-2.5 py-1 rounded-lg bg-slate-100 font-semibold text-slate-800 text-[11px]">
                       {t}
                     </span>
                   ))}
                 </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={`tel:${labPhone}`}
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Phone className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Call Lab</span>
+                </a>
+                <a
+                  href={`https://wa.me/91${labPhone.replace(/\D/g, '')}?text=Hello,%20checking%20status%20of%20Token%20${pendingSampleStatus.tokenNumber}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-2 bg-[#25D366] hover:bg-[#1ebd5a] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>WhatsApp</span>
+                </a>
               </div>
             </div>
           </div>
@@ -1153,64 +1079,46 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
             {/* MANDATORY PAYMENT PENDING NOTIFICATION BANNER (When Report is Ready but Payment is Due) */}
             {isPaymentPending && (
-              <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-5 text-xs text-amber-950 shadow-md space-y-3.5 no-print">
-                <div className="flex items-start gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-amber-100 border-2 border-amber-300 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
-                    <Lock className="w-6 h-6 text-amber-700" />
-                  </div>
-                  <div className="flex-1 space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="bg-amber-600 text-white font-black px-2.5 py-0.5 rounded text-[11px] uppercase tracking-wide">
-                        REPORT READY • PAYMENT PENDING / भुगतान बकाया
-                      </span>
-                      <span className="text-[11px] text-amber-900 font-bold bg-amber-200/80 px-2 py-0.5 rounded">
-                        Pending Amount: ₹{activeDueAmount}
-                      </span>
+              <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5 text-xs text-amber-950 shadow-xs space-y-3.5 no-print">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+                      <Lock className="w-5 h-5 text-amber-700" />
                     </div>
-                    <div className="text-sm sm:text-base font-black text-slate-900 leading-snug">
-                      “Aapki report ready hai, lekin payment clear na hone ki wajah se report abhi view nahi ki ja sakti. Payment clear karne ke baad aap complete report dekh sakte hain.”
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-sm text-slate-900">
+                          Report Ready • Payment Due: ₹{activeDueAmount}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-200 text-amber-900 rounded-full">
+                          Action Required
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-800 font-semibold mt-1 max-w-xl leading-relaxed">
+                        “Aapki report ready hai, lekin payment clear na hone ki wajah se report abhi view nahi ki ja sakti. Payment clear karne ke baad aap complete report dekh sakte hain.”
+                      </p>
+                      <p className="text-[11px] text-amber-800 mt-0.5">
+                        Please clear the pending balance to view investigations and download official signed PDF.
+                      </p>
                     </div>
-                    <p className="text-[11px] text-amber-900 leading-relaxed">
-                      Pathologist has verified and certified your lab report. As per clinic billing protocol, investigation parameter results and official PDF download are locked until the outstanding dues of ₹{activeDueAmount} are cleared.
-                    </p>
                   </div>
-                </div>
 
-                {/* Lab & Branch Contact Information Strip */}
-                <div className="bg-white/90 border border-amber-200 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                  <div className="space-y-1">
-                    <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <Building className="w-3.5 h-3.5 text-[#123B6D]" />
-                      <span>{labName}</span>
-                      <span className="text-slate-400">•</span>
-                      <span className="text-teal-800 font-bold">
-                        Branch: {matchedEntry?.branchName || searchedReport.branchName || 'Apex Central Diagnostic Hub'}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-600 flex items-center gap-2 flex-wrap">
-                      <span className="flex items-center gap-1 text-[#123B6D] font-mono font-bold">
-                        <Phone className="w-3 h-3" />
-                        <span>Helpline: +91 {labPhone}</span>
-                      </span>
-                      <span className="text-slate-400">•</span>
-                      <span>{labAddress}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
                     <button
                       type="button"
                       onClick={() => setShowPayOnlineModal(true)}
-                      className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2 rounded-xl text-xs font-black transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer active:scale-98"
                     >
                       <CreditCard className="w-3.5 h-3.5 text-amber-300" />
-                      <span>Pay ₹{activeDueAmount} Online</span>
+                      <span>Pay ₹{activeDueAmount} & Unlock</span>
                     </button>
                     <a
                       href={`tel:${labPhone}`}
-                      className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                      className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-3 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                      title="Call Lab Reception"
                     >
-                      <Phone className="w-3 h-3 text-slate-600" />
-                      <span>Call Lab</span>
+                      <Phone className="w-3.5 h-3.5 text-slate-500" />
+                      <span className="hidden sm:inline">Call Lab</span>
                     </a>
                   </div>
                 </div>

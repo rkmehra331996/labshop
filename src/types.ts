@@ -54,8 +54,9 @@ export interface CmsUser {
 export interface LabStaffAccount {
   id: string;
   name: string;
-  role: 'branch_manager' | 'reception' | 'technician' | 'pathologist';
+  role: 'admin' | 'vendor' | 'branch_manager' | 'reception' | 'technician' | 'pathologist';
   username: string; // or email / phone
+  email?: string;
   phone?: string;
   password: string;
   pin?: string;

@@ -37,6 +37,7 @@ import { useCms } from '../context/CmsContext';
 import { AppView, PricingPlan, CompanyFeature, CompanyFaq, CompanyStat } from '../types';
 import { VendorManagementTab } from './admin/VendorManagementTab';
 import { WebsiteSectionsTab } from './admin/WebsiteSectionsTab';
+import { HostingerDatabaseCard } from './admin/HostingerDatabaseCard';
 
 interface CompanyAdminDashboardProps {
   onNavigateView: (view: AppView) => void;
@@ -1072,6 +1073,9 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
         {/* 6. LIVE CLOUD DB & SYNC INSPECTOR */}
         {activeTab === 'cloud_sync' && (
           <div className="space-y-6 animate-in fade-in-50 duration-200">
+            {/* Hostinger MySQL Database Card */}
+            <HostingerDatabaseCard showToast={showToast} />
+
             {/* Top Status Card */}
             <div className="bg-gradient-to-br from-slate-900 via-[#123B6D] to-slate-900 text-white rounded-2xl p-6 border border-slate-700 shadow-md">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

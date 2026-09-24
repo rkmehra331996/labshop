@@ -3,12 +3,12 @@ import { Check, ArrowRight, ShieldCheck, Sparkles, Building } from 'lucide-react
 import { useCms } from '../context/CmsContext';
 
 interface PricingSectionProps {
-  onOpenDemo: () => void;
+  onOpenDemo?: () => void;
 }
 
-export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) => {
+export const PricingSection: React.FC<PricingSectionProps> = () => {
   const [isYearly, setIsYearly] = useState(true);
-  const { pricingPlans } = useCms();
+  const { pricingPlans, openRegisterLabModal } = useCms();
 
   return (
     <section id="pricing-section" className="py-16 bg-white border-b border-slate-200">
@@ -112,7 +112,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenDemo }) =>
 
                 <div className="mt-8 pt-6 border-t border-slate-200 space-y-2">
                   <button
-                    onClick={onOpenDemo}
+                    onClick={() => openRegisterLabModal()}
                     className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-3 rounded-xl font-semibold text-xs transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <span>Choose Plan • Get Started</span>

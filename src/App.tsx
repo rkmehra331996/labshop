@@ -621,7 +621,7 @@ export default function App() {
       )}
 
       {/* 33. Mobile Fixed CTA */}
-      <MobileFixedCTA onOpenDemo={handleOpenDemo} />
+      <MobileFixedCTA onOpenReport={() => handleViewPatientPortal()} />
 
       {/* Interactive Modals */}
       <BookDemoModal isOpen={isDemoModalOpen} onClose={() => setIsDemoModalOpen(false)} />

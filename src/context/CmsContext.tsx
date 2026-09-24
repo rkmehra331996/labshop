@@ -24,6 +24,7 @@ import {
   Patient,
 } from '../types';
 import { MOCK_TESTS, FAQ_LIST, SAMPLE_REPORT, INITIAL_REPORTS, VENDOR_LABS_DIRECTORY, INITIAL_RECEPTION_ENTRIES } from '../data/mockData';
+export { VENDOR_LABS_DIRECTORY };
 import { getPermissionsForRole, LAB_OPTIONS } from '../utils/rbac';
 import { isTenantMatch, verifyTenantOwnership, stampTenant } from '../utils/tenantSecurity';
 import {
@@ -64,6 +65,9 @@ import {
   syncStaffAccountToCloud,
   deleteStaffAccountFromCloud,
   subscribeToStaffAccounts,
+  syncBranchToCloud,
+  deleteBranchFromCloud,
+  subscribeToBranches,
 } from '../lib/cloudSync';
 
 export const DEFAULT_VENDOR_SECTIONS: VendorWebsiteSections = {
@@ -108,7 +112,7 @@ export const DEFAULT_PORTAL_SECTIONS: PortalWebsiteSections = {
 };
 
 // --- INITIAL DEFAULTS ---
-const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
+export const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
   companyName: 'INDIANLALAJI.COM',
   tagline: 'Modern Pathology Laboratory & Diagnostic Operating System',
   heroBadge: 'NABL ISO 15189 Ready • Made for India',
@@ -122,7 +126,7 @@ const DEFAULT_COMPANY_SETTINGS: CompanySettings = {
   platformDomain: 'indianlalaji.com',
 };
 
-const DEFAULT_PRICING_PLANS: PricingPlan[] = [
+export const DEFAULT_PRICING_PLANS: PricingPlan[] = [
   {
     id: 'plan-single',
     name: 'Single Laboratory',
@@ -238,7 +242,7 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
   sections: DEFAULT_VENDOR_SECTIONS,
 };
 
-const DEFAULT_ALL_VENDOR_PACKAGES: VendorPackage[] = [
+export const DEFAULT_ALL_VENDOR_PACKAGES: VendorPackage[] = [
   // Apex packages
   {
     id: 'pkg-apex-1',
@@ -521,7 +525,7 @@ const DEFAULT_ALL_VENDOR_PACKAGES: VendorPackage[] = [
 
 const DEFAULT_VENDOR_PACKAGES = DEFAULT_ALL_VENDOR_PACKAGES;
 
-const DEFAULT_ALL_VENDOR_DOCTORS: VendorDoctor[] = [
+export const DEFAULT_ALL_VENDOR_DOCTORS: VendorDoctor[] = [
   // Apex Doctors
   {
     id: 'doc-apex-1',
@@ -782,7 +786,7 @@ export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
   };
 }
 
-const DEFAULT_VENDOR_SETTINGS_MAP: Record<string, VendorLabSettings> = {
+export const DEFAULT_VENDOR_SETTINGS_MAP: Record<string, VendorLabSettings> = {
   'lab-apex': { ...DEFAULT_VENDOR_LAB_SETTINGS, labId: 'lab-apex' },
 };
 VENDOR_LABS_DIRECTORY.forEach((lab) => {
@@ -791,7 +795,7 @@ VENDOR_LABS_DIRECTORY.forEach((lab) => {
   }
 });
 
-const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
+export const DEFAULT_VENDOR_BRANCHES: VendorBranch[] = [
   {
     id: 'branch-1',
     labId: 'lab-apex',
@@ -1033,6 +1037,24 @@ const DEFAULT_VENDOR_BOOKINGS: HomeCollectionBooking[] = [
 ];
 
 export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
+  // --- SUPER ADMIN & GLOBAL PORTAL OWNER (rkmehra331996@gmail.com) ---
+  {
+    id: 'staff-rkmehra-admin',
+    name: 'R. K. Mehra',
+    role: 'admin',
+    username: 'rkmehra331996@gmail.com',
+    email: 'rkmehra331996@gmail.com',
+    phone: '+91 7087033009',
+    password: 'admin123',
+    status: 'active',
+    labId: 'all',
+    labName: 'Central Diagnostic & Multi-Lab Global Network',
+    branchId: 'branch-1',
+    branchName: 'Main Diagnostic Hub',
+    lastPasswordReset: '24 Sep 2026, 10:00 AM',
+    shift: '24x7 Master Administrator',
+    notes: 'Primary Account Owner & Super Admin (rkmehra331996@gmail.com)',
+  },
   // --- APEX DIAGNOSTICS STAFF (lab-apex) ---
   {
     id: 'staff-reception-1',
@@ -2042,17 +2064,21 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       portalSections,
       vendorLabsList,
       pricingPlans,
-      allStaffAccounts
+      allStaffAccounts,
+      allVendorBranches
     );
 
     // 2. Subscribe to Lab Settings (Name, Phone, Address, QR Codes, Branding across all mobile & desktop devices)
     const unsubscribeSettings = subscribeToLabSettings(
       (cloudSettingsMap) => {
         if (cloudSettingsMap && Object.keys(cloudSettingsMap).length > 0) {
-          setVendorLabSettingsMap((prev) => ({
-            ...prev,
-            ...cloudSettingsMap,
-          }));
+          setVendorLabSettingsMap((prev) => {
+            const next = { ...prev, ...cloudSettingsMap };
+            try {
+              localStorage.setItem('cms_vendor_lab_settings_map', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
           setIsCloudConnected(true);
           setCloudSyncStatus('synced');
           setLastCloudSyncTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
@@ -2067,8 +2093,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 3. Subscribe to Tests Catalog & Pricing
     const unsubscribeTests = subscribeToTests(
       (cloudTests) => {
-        if (cloudTests && cloudTests.length > 0) {
+        if (cloudTests) {
           setAllVendorTests(cloudTests);
+          try {
+            localStorage.setItem('cms_vendor_tests', JSON.stringify(cloudTests));
+          } catch {}
         }
       }
     );
@@ -2076,8 +2105,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 4. Subscribe to Health Packages
     const unsubscribePackages = subscribeToPackages(
       (cloudPackages) => {
-        if (cloudPackages && cloudPackages.length > 0) {
+        if (cloudPackages) {
           setAllVendorPackages(cloudPackages);
+          try {
+            localStorage.setItem('cms_vendor_packages', JSON.stringify(cloudPackages));
+          } catch {}
         }
       }
     );
@@ -2085,8 +2117,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 5. Subscribe to Doctors & Pathologists
     const unsubscribeDoctors = subscribeToDoctors(
       (cloudDoctors) => {
-        if (cloudDoctors && cloudDoctors.length > 0) {
+        if (cloudDoctors) {
           setAllVendorDoctors(cloudDoctors);
+          try {
+            localStorage.setItem('cms_vendor_doctors', JSON.stringify(cloudDoctors));
+          } catch {}
         }
       }
     );
@@ -2094,8 +2129,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 6. Subscribe to live reception patients
     const unsubscribeReception = subscribeToReceptionEntries(
       (cloudEntries) => {
-        if (cloudEntries && cloudEntries.length > 0) {
+        if (cloudEntries) {
           setAllReceptionEntries(cloudEntries);
+          try {
+            localStorage.setItem('cms_reception_entries', JSON.stringify(cloudEntries));
+          } catch {}
           setIsCloudConnected(true);
           setCloudSyncStatus('synced');
           setLastCloudSyncTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
@@ -2110,8 +2148,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 7. Subscribe to live lab reports
     const unsubscribeReports = subscribeToLabReports(
       (cloudReports) => {
-        if (cloudReports && cloudReports.length > 0) {
+        if (cloudReports) {
           setAllReports(cloudReports);
+          try {
+            localStorage.setItem('cms_lab_reports', JSON.stringify(cloudReports));
+          } catch {}
           setIsCloudConnected(true);
           setCloudSyncStatus('synced');
           setLastCloudSyncTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
@@ -2126,7 +2167,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // 8. Subscribe to home collection bookings
     const unsubscribeBookings = subscribeToBookings(
       (cloudBookings) => {
-        if (cloudBookings && cloudBookings.length > 0) {
+        if (cloudBookings) {
           setAllVendorBookings(cloudBookings);
         }
       }
@@ -2148,22 +2189,38 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 11. Subscribe to Vendor Labs Directory
     const unsubscribeVendorLabs = subscribeToVendorLabs((cloudLabs) => {
-      if (cloudLabs && cloudLabs.length > 0) {
+      if (cloudLabs) {
         setVendorLabsList(cloudLabs);
+        try {
+          localStorage.setItem('cms_vendor_labs_list', JSON.stringify(cloudLabs));
+        } catch {}
       }
     });
 
-    // 12. Subscribe to Pricing Plans
+    // 12. Subscribe to Branches & Counters (Device A, B, Reception, etc.)
+    const unsubscribeBranches = subscribeToBranches((cloudBranches) => {
+      if (cloudBranches) {
+        setAllVendorBranches(cloudBranches);
+        try {
+          localStorage.setItem('cms_vendor_branches', JSON.stringify(cloudBranches));
+        } catch {}
+      }
+    });
+
+    // 13. Subscribe to Pricing Plans
     const unsubscribePricing = subscribeToPricingPlans((cloudPlans) => {
-      if (cloudPlans && cloudPlans.length > 0) {
+      if (cloudPlans) {
         setPricingPlans(cloudPlans);
       }
     });
 
-    // 13. Subscribe to Staff Accounts
+    // 14. Subscribe to Staff Accounts
     const unsubscribeStaff = subscribeToStaffAccounts((cloudStaff) => {
-      if (cloudStaff && cloudStaff.length > 0) {
+      if (cloudStaff) {
         setAllStaffAccounts(cloudStaff);
+        try {
+          localStorage.setItem('cms_lab_staff_accounts', JSON.stringify(cloudStaff));
+        } catch {}
       }
     });
 
@@ -2178,6 +2235,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       unsubscribeCompany();
       unsubscribeSections();
       unsubscribeVendorLabs();
+      unsubscribeBranches();
       unsubscribePricing();
       unsubscribeStaff();
     };
@@ -3648,9 +3706,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `branch-${Date.now()}`,
     };
     setAllVendorBranches((prev) => [...prev, newBranch]);
+    syncBranchToCloud(newBranch);
   };
 
   const updateVendorBranch = (id: string, branch: Partial<VendorBranch>) => {
+    let syncedBranch: VendorBranch | null = null;
     setAllVendorBranches((prev) =>
       prev.map((b) => {
         if (b.id === id) {
@@ -3658,11 +3718,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.warn(`[SECURITY] Blocked unauthorized cross-tenant branch update for ${id}`);
             return b;
           }
-          return { ...b, ...branch };
+          const updated = { ...b, ...branch };
+          syncedBranch = updated;
+          return updated;
         }
         return b;
       })
     );
+    if (syncedBranch) {
+      syncBranchToCloud(syncedBranch);
+    }
   };
 
   const deleteVendorBranch = (id: string) => {
@@ -3678,6 +3743,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return true;
       })
     );
+    deleteBranchFromCloud(id);
   };
 
   const addHomeCollectionBooking = (
@@ -3873,13 +3939,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Sync with vendorLabSettingsMap
     setVendorLabSettingsMap((prev) => {
       if (prev[id]) {
+        const updatedSetting = {
+          ...prev[id],
+          status,
+          isWebsiteApproved: isApproved,
+        };
+        syncLabSettingsToCloud(id, updatedSetting);
         return {
           ...prev,
-          [id]: {
-            ...prev[id],
-            status,
-            isWebsiteApproved: isApproved,
-          },
+          [id]: updatedSetting,
         };
       }
       return prev;
@@ -4118,6 +4186,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       },
     ];
     setAllVendorTests((prev) => [...starterTests, ...prev]);
+
+    // Sync newly registered lab and all its starter entities to Firestore for live cross-device sync
+    syncVendorLabToCloud(newLab);
+    syncLabSettingsToCloud(newLabId, settings);
+    syncBranchToCloud(newBranch);
+    syncStaffAccountToCloud(newReception);
+    syncStaffAccountToCloud(newTech);
+    starterTests.forEach((t) => syncTestToCloud(t));
 
     // 6. Set active tenant to this new lab
     setSelectedVendorLabId(newLabId);
