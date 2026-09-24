@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Home,
   Building,
   Plus,
   Edit2,
@@ -80,8 +81,13 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     reports,
   } = useCms();
 
-  type AdminTab = 'vendors' | 'sections' | 'settings' | 'pricing' | 'features' | 'faqs' | 'stats' | 'cloud_sync';
-  const [activeTab, setActiveTab] = useState<AdminTab>('vendors');
+  type SuperAdminMenu = 'home' | 'labs' | 'clients' | 'website_edit';
+  const [activeMenu, setActiveMenu] = useState<SuperAdminMenu>('home');
+
+  type HomeSubTab = 'pricing' | 'cloud_sync' | 'settings' | 'features' | 'faqs' | 'stats';
+  const [homeSubTab, setHomeSubTab] = useState<HomeSubTab>('pricing');
+  const activeTab = homeSubTab;
+
   const [toastMessage, setToastMessage] = useState('');
   const [pingResult, setPingResult] = useState<{ status: 'idle' | 'testing' | 'success'; latencyMs?: number; message?: string }>({ status: 'idle' });
 
@@ -104,6 +110,14 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
       });
     }
   };
+
+  const pendingCount = vendorLabsList.filter(
+    (v) => v.status !== 'Active'
+  ).length;
+
+  const liveClientsCount = vendorLabsList.filter(
+    (v) => v.status === 'Active'
+  ).length;
 
   const pendingPaymentCount = vendorLabsList.filter(
     (v) => v.status === 'Processing due to payment confirmation'
@@ -383,92 +397,154 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800">
-      {/* Top Header */}
+      {/* Top Header & Menu Bar: Brand Name | Home | Labs | Our Clients | Website Edit | Logout */}
       <header className="bg-[#123B6D] text-white sticky top-0 z-40 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          {/* Brand Name */}
           <div className="flex items-center gap-3">
-            {/* Back Button */}
             <button
               type="button"
               id="admin-btn-back"
               onClick={() => onNavigateView('website')}
-              className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm border border-white/20 cursor-pointer shrink-0"
-              title="Back to Home Portal"
+              className="bg-white/15 hover:bg-white/25 active:scale-95 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm border border-white/20 cursor-pointer shrink-0"
+              title="Back to Public Home Portal"
             >
               <ArrowLeft className="w-4 h-4 text-amber-300" />
-              <span>Back</span>
+              <span className="hidden sm:inline">Portal</span>
             </button>
 
-            <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-sm">
-              HQ
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-black text-base tracking-tight text-white">
-                  {companySettings.companyName} Super Admin CMS
-                </h1>
-                <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-bold">
-                  Live Management
-                </span>
+            <div
+              onClick={() => setActiveMenu('home')}
+              className="flex items-center gap-2.5 cursor-pointer"
+              title="Super Admin Dashboard Home"
+            >
+              <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-sm shadow-sm shrink-0">
+                HQ
               </div>
-              <p className="text-xs text-slate-300">
-                Logged in as: <strong>{currentUser?.name || 'Company Super Admin'}</strong> ({currentUser?.email || `admin@${companySettings.superAdminDomain || 'indianlalaji.com'}`})
-                <span className="ml-2 inline-flex items-center gap-1 bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-md text-[11px] font-mono font-bold border border-amber-400/30">
-                  <Globe className="w-3 h-3 text-amber-400" />
-                  {companySettings.superAdminDomain || 'indianlalaji.com'}
-                </span>
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-sm sm:text-base tracking-tight text-white">
+                    {companySettings.companyName || 'INDIANLALAJI.COM'}
+                  </span>
+                  <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-black uppercase tracking-wider hidden sm:inline-block">
+                    Super Admin
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 hidden md:block">
+                  {companySettings.superAdminDomain || 'indianlalaji.com'} • Central Control
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Menu Bar Items: Home | Labs | Our Clients | Website Edit | Logout */}
+          <nav className="flex items-center gap-1 sm:gap-2">
+            {/* Home */}
             <button
-              onClick={() => onNavigateView('website')}
-              className="bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
-              title="Open Company Public Website (indianlalaji.com Home Portal)"
+              type="button"
+              id="menu-btn-home"
+              onClick={() => setActiveMenu('home')}
+              className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-1.5 cursor-pointer ${
+                activeMenu === 'home'
+                  ? 'bg-amber-400 text-slate-950 shadow-md scale-102'
+                  : 'text-slate-200 hover:text-white hover:bg-white/10'
+              }`}
             >
-              <span>🏠 Main Home Portal</span>
+              <Home className="w-4 h-4" />
+              <span>Home</span>
+              {activeMenu === 'home' && (
+                <span className="bg-slate-950 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5 shadow-2xs">
+                  ✓ Active
+                </span>
+              )}
             </button>
 
-            {/* Direct jump to Reception Counter */}
+            {/* Labs (Pending Labs) */}
             <button
-              onClick={() => onNavigateView('reception_dashboard')}
-              className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer border border-teal-400/50"
-              title="Open Reception Entry & Billing Counter"
+              type="button"
+              id="menu-btn-labs"
+              onClick={() => setActiveMenu('labs')}
+              className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-1.5 cursor-pointer relative ${
+                activeMenu === 'labs'
+                  ? 'bg-amber-400 text-slate-950 shadow-md scale-102'
+                  : 'text-slate-200 hover:text-white hover:bg-white/10'
+              }`}
             >
-              <span>🖥️ Reception Counter</span>
+              <Clock className="w-4 h-4" />
+              <span>Labs</span>
+              {pendingCount > 0 && (
+                <span className="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full shadow-2xs">
+                  {pendingCount}
+                </span>
+              )}
+              {activeMenu === 'labs' && (
+                <span className="bg-slate-950 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5 shadow-2xs">
+                  ✓ Active
+                </span>
+              )}
             </button>
 
-            {/* Direct jump to Technician Department Dashboard */}
+            {/* Our Clients (Published / Live Clients) */}
             <button
-              onClick={() => onNavigateView('technician_dashboard')}
-              className="bg-purple-700 hover:bg-purple-800 text-white px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer border border-purple-400/50"
-              title="Open Technician Department Dashboard"
+              type="button"
+              id="menu-btn-clients"
+              onClick={() => setActiveMenu('clients')}
+              className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-1.5 cursor-pointer ${
+                activeMenu === 'clients'
+                  ? 'bg-amber-400 text-slate-950 shadow-md scale-102'
+                  : 'text-slate-200 hover:text-white hover:bg-white/10'
+              }`}
             >
-              <FlaskConical className="w-3.5 h-3.5 text-amber-300" />
-              <span>🔬 Technician Dept</span>
+              <Building2 className="w-4 h-4" />
+              <span>Our Clients</span>
+              <span className="bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full hidden sm:inline-block">
+                {liveClientsCount}
+              </span>
+              {activeMenu === 'clients' && (
+                <span className="bg-slate-950 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5 shadow-2xs">
+                  ✓ Active
+                </span>
+              )}
             </button>
 
+            {/* Website Edit (Website Sections) */}
             <button
-              onClick={() => onNavigateView('vendor_dashboard')}
-              className="bg-amber-400 hover:bg-amber-500 text-slate-950 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs"
-              title="Open Lab Vendor Portal"
+              type="button"
+              id="menu-btn-website-edit"
+              onClick={() => setActiveMenu('website_edit')}
+              className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-1.5 cursor-pointer ${
+                activeMenu === 'website_edit'
+                  ? 'bg-amber-400 text-slate-950 shadow-md scale-102'
+                  : 'text-slate-200 hover:text-white hover:bg-white/10'
+              }`}
             >
-              <span>Switch to Lab Vendor CMS</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <SlidersHorizontal className="w-4 h-4" />
+              <span>Website Edit</span>
+              {activeMenu === 'website_edit' && (
+                <span className="bg-slate-950 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5 shadow-2xs">
+                  ✓ Active
+                </span>
+              )}
             </button>
 
+            {/* Separator */}
+            <div className="h-6 w-px bg-white/20 mx-1 hidden sm:block"></div>
+
+            {/* Logout */}
             <button
+              type="button"
+              id="menu-btn-logout"
               onClick={() => {
                 logout();
                 onNavigateView('website');
               }}
-              className="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-white/10 transition"
-              title="Log Out"
+              className="px-3 py-2 rounded-xl text-xs sm:text-sm font-black text-rose-200 hover:text-white hover:bg-rose-600/30 transition flex items-center gap-1.5 cursor-pointer border border-rose-400/30"
+              title="Logout from Super Admin Dashboard"
             >
               <LogOut className="w-4 h-4" />
+              <span>Logout</span>
             </button>
-          </div>
+          </nav>
         </div>
       </header>
 
@@ -482,240 +558,292 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
 
       {/* Main Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
-        {/* Multi-Lab Data Isolation & Tenant Scope Bar */}
-        <div className="bg-gradient-to-r from-slate-900 via-[#123B6D] to-slate-900 rounded-2xl p-4 text-white shadow-sm border border-slate-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-white/10 rounded-xl border border-white/20">
-              <ShieldCheck className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black text-sm text-white tracking-wide">
-                  Multi-Lab Data Isolation Engine
-                </span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/40">
-                  Strict Tenant Boundary Active
-                </span>
+        {/* VIEW 1: HOME DASHBOARD */}
+        {activeMenu === 'home' && (
+          <div className="space-y-6 animate-in fade-in-50 duration-200">
+            {/* Multi-Lab Data Isolation & Tenant Scope Bar */}
+            <div className="bg-gradient-to-r from-slate-900 via-[#123B6D] to-slate-900 rounded-2xl p-4 text-white shadow-sm border border-slate-700/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-white/10 rounded-xl border border-white/20">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-sm text-white tracking-wide">
+                      Multi-Lab Data Isolation Engine
+                    </span>
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/40">
+                      Strict Tenant Boundary Active
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Central Super Admin oversight with strict tenant database partitioning per Laboratory.
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Each laboratory's patients, reports, tests, staff & billing are strictly isolated by unique Lab ID.
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2 self-stretch md:self-auto bg-black/30 p-1.5 rounded-xl border border-white/15">
-            <span className="text-[11px] font-bold text-slate-300 pl-2">Super Admin Scope:</span>
-            <select
-              value={superAdminTenantScope}
-              onChange={(e) => {
-                setSuperAdminTenantScope(e.target.value);
-                const targetName =
-                  e.target.value === 'all'
-                    ? 'All Labs (Global)'
-                    : vendorLabsList.find((l) => l.id === e.target.value)?.name || e.target.value;
-                setToastMessage(`Switched Super Admin Data Scope to: ${targetName}`);
-                setTimeout(() => setToastMessage(''), 3000);
-              }}
-              className="bg-white text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg border-0 focus:ring-2 focus:ring-amber-400 focus:outline-none cursor-pointer"
-            >
-              <option value="all">🌐 All Labs (Global Unrestricted)</option>
-              {vendorLabsList.map((lab) => (
-                <option key={lab.id} value={lab.id}>
-                  🔬 {lab.name} ({lab.id})
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Quick Nav / Tabs Strip */}
-        <div className="bg-white rounded-2xl p-2 border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-1 flex-wrap">
-            {/* 1. Manage Vendors (Partner Labs) */}
-            <button
-              onClick={() => setActiveTab('vendors')}
-              id="tab-btn-vendors"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-                activeTab === 'vendors'
-                  ? 'bg-[#123B6D] text-white shadow-xs'
-                  : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <Building2 className={`w-3.5 h-3.5 ${activeTab === 'vendors' ? 'text-amber-400' : 'text-slate-500'}`} />
-              <span>Partner Labs & Vendors ({vendorLabsList.length})</span>
-              {draftLabsCount > 0 && (
-                <span className="bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-black" title={`${draftLabsCount} lab website(s) in Draft mode awaiting admin approval`}>
-                  {draftLabsCount} Draft
-                </span>
-              )}
-              {pendingPaymentCount > 0 && (
-                <span className="bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded-full text-[10px] font-black" title={`${pendingPaymentCount} labs awaiting payment confirmation`}>
-                  {pendingPaymentCount} Pay
-                </span>
-              )}
-            </button>
-
-            {/* 2. Website Sections ON / OFF */}
-            <button
-              onClick={() => setActiveTab('sections')}
-              id="tab-btn-sections"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-                activeTab === 'sections'
-                  ? 'bg-[#123B6D] text-white shadow-xs'
-                  : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <SlidersHorizontal className={`w-3.5 h-3.5 ${activeTab === 'sections' ? 'text-emerald-400' : 'text-slate-500'}`} />
-              <span>Website Sections ON/OFF ({activeSectionsCount}/24)</span>
-            </button>
-
-            {/* 3. Company Branding & Content */}
-            <button
-              onClick={() => setActiveTab('settings')}
-              id="tab-btn-settings"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-                activeTab === 'settings'
-                  ? 'bg-[#123B6D] text-white shadow-xs'
-                  : 'text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              <Building className="w-3.5 h-3.5" />
-              <span>Website Content & Branding</span>
-            </button>
-
-            {/* 4. Pricing Plans */}
-            <button
-              onClick={() => setActiveTab('pricing')}
-              id="tab-btn-pricing"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-                activeTab === 'pricing'
-                  ? 'bg-[#123B6D] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <IndianRupee className="w-3.5 h-3.5" />
-              <span>SaaS Pricing ({pricingPlans.length})</span>
-            </button>
-
-            {/* 5. Features & Modules */}
-            <button
-              onClick={() => setActiveTab('features')}
-              id="tab-btn-features"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-                activeTab === 'features'
-                  ? 'bg-[#123B6D] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Features ({companyFeatures.length})</span>
-            </button>
-
-            {/* 6. FAQs */}
-            <button
-              onClick={() => setActiveTab('faqs')}
-              id="tab-btn-faqs"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-                activeTab === 'faqs'
-                  ? 'bg-[#123B6D] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-              <span>FAQs ({companyFaqs.length})</span>
-            </button>
-
-            {/* 7. Stats & Trust Counters */}
-            <button
-              onClick={() => setActiveTab('stats')}
-              id="tab-btn-stats"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-                activeTab === 'stats'
-                  ? 'bg-[#123B6D] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Stats ({companyStats.length})</span>
-            </button>
-
-            {/* 8. Live Cloud DB & Real-Time Sync Inspector */}
-            <button
-              onClick={() => setActiveTab('cloud_sync')}
-              id="tab-btn-cloud-sync"
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer ${
-                activeTab === 'cloud_sync'
-                  ? 'bg-emerald-700 text-white shadow-xs'
-                  : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
-              }`}
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              <Database className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Cloud DB & Sync Monitor</span>
-            </button>
-          </div>
-
-          <button
-            onClick={() => {
-              setDeleteConfirm({
-                isOpen: true,
-                title: 'Reset Factory Demo Defaults',
-                message: 'Reset all Company & Vendor data back to initial demo defaults?',
-                confirmText: 'Yes, Reset Defaults',
-                onConfirm: () => {
-                  resetAllToDefaults();
-                  showToast('Reset back to factory demo defaults.');
-                  setDeleteConfirm(null);
-                },
-              });
-            }}
-            className="text-slate-500 hover:text-slate-800 text-xs px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition flex items-center gap-1 cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
-            <span>Reset Demo Defaults</span>
-          </button>
-        </div>
-
-        {/* Draft Mode Labs Awaiting Admin Approval Notice */}
-        {draftLabsCount > 0 && activeTab !== 'vendors' && (
-          <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-950 shadow-2xs">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 rounded-xl text-amber-800 shrink-0">
-                <Clock className="w-5 h-5" />
+              <div className="flex items-center gap-2 self-stretch md:self-auto bg-black/30 p-1.5 rounded-xl border border-white/15">
+                <span className="text-[11px] font-bold text-slate-300 pl-2">Super Admin Scope:</span>
+                <select
+                  value={superAdminTenantScope}
+                  onChange={(e) => {
+                    setSuperAdminTenantScope(e.target.value);
+                    const targetName =
+                      e.target.value === 'all'
+                        ? 'All Labs (Global)'
+                        : vendorLabsList.find((l) => l.id === e.target.value)?.name || e.target.value;
+                    setToastMessage(`Switched Super Admin Data Scope to: ${targetName}`);
+                    setTimeout(() => setToastMessage(''), 3000);
+                  }}
+                  className="bg-white text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg border-0 focus:ring-2 focus:ring-amber-400 focus:outline-none cursor-pointer"
+                >
+                  <option value="all">🌐 All Labs (Global Unrestricted)</option>
+                  {vendorLabsList.map((lab) => (
+                    <option key={lab.id} value={lab.id}>
+                      🔬 {lab.name} ({lab.id})
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div>
-                <h4 className="font-extrabold text-sm flex items-center gap-2">
-                  <span>{draftLabsCount} Laboratory Website(s) in DRAFT Mode</span>
-                  <span className="text-[10px] bg-amber-200 text-amber-900 font-black px-2 py-0.5 rounded-full border border-amber-300">
-                    Awaiting Admin Approval
+            </div>
+
+            {/* Quick KPI Overview Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Card 1: Pending Labs */}
+              <div
+                onClick={() => setActiveMenu('labs')}
+                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Pending Labs
                   </span>
-                </h4>
-                <p className="text-xs text-amber-800 mt-0.5">
-                  Lab websites remain in draft mode upon registration. Admin approval is required to publish them live for public access.
-                </p>
+                  <div className="p-2 rounded-xl bg-amber-50 text-amber-700 group-hover:scale-110 transition-transform">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-3xl font-black text-amber-700">{pendingCount}</div>
+                  <div className="text-xs text-slate-500 mt-1 flex items-center justify-between">
+                    <span>Awaiting Approval</span>
+                    <span className="font-bold text-amber-700 group-hover:underline">Review Labs →</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Our Clients */}
+              <div
+                onClick={() => setActiveMenu('clients')}
+                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs hover:border-emerald-500 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Our Clients
+                  </span>
+                  <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 group-hover:scale-110 transition-transform">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-3xl font-black text-emerald-700">{liveClientsCount}</div>
+                  <div className="text-xs text-slate-500 mt-1 flex items-center justify-between">
+                    <span>Published / Live Labs</span>
+                    <span className="font-bold text-emerald-700 group-hover:underline">View Clients →</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Website Sections */}
+              <div
+                onClick={() => setActiveMenu('website_edit')}
+                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs hover:border-[#123B6D] hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Website Edit
+                  </span>
+                  <div className="p-2 rounded-xl bg-blue-50 text-[#123B6D] group-hover:scale-110 transition-transform">
+                    <SlidersHorizontal className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="text-3xl font-black text-slate-900">{activeSectionsCount} / 24</div>
+                  <div className="text-xs text-slate-500 mt-1 flex items-center justify-between">
+                    <span>Website Sections Active</span>
+                    <span className="font-bold text-[#123B6D] group-hover:underline">Edit Sections →</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Cloud DB & Sync */}
+              <div
+                onClick={() => setHomeSubTab('cloud_sync')}
+                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs hover:border-teal-500 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Cloud Database
+                  </span>
+                  <div className="p-2 rounded-xl bg-teal-50 text-teal-700 group-hover:scale-110 transition-transform">
+                    <Database className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-sm font-black text-emerald-700">Real-Time Sync</span>
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1 flex items-center justify-between">
+                    <span>{pingResult.latencyMs ? `Ping: ${pingResult.latencyMs}ms` : 'Hostinger & Firestore'}</span>
+                    <span className="font-bold text-teal-700 group-hover:underline">Inspect →</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <button
-              onClick={() => setActiveTab('vendors')}
-              className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition shrink-0 cursor-pointer shadow-2xs"
-            >
-              Review & Approve ({draftLabsCount}) →
-            </button>
-          </div>
-        )}
 
-        {/* 1. PARTNER LABS & VENDORS MANAGEMENT TAB */}
-        {activeTab === 'vendors' && (
-          <VendorManagementTab onNavigateView={onNavigateView} showToast={showToast} />
-        )}
+            {/* Central Operations Bar */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                <div className="text-xs text-slate-600">
+                  Today's Central Operations: <strong>{receptionEntries.length} Patients</strong> registered • <strong>{reports.length} Reports</strong> issued
+                </div>
+                <button
+                  type="button"
+                  onClick={runCloudPingTest}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                >
+                  <Activity className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{pingResult.status === 'testing' ? 'Testing Ping...' : 'Test Cloud Ping'}</span>
+                </button>
+              </div>
 
-        {/* 2. WEBSITE SECTIONS ON / OFF TAB */}
-        {activeTab === 'sections' && (
-          <WebsiteSectionsTab onNavigateView={onNavigateView} showToast={showToast} />
-        )}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => onNavigateView('reception_dashboard')}
+                  className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                >
+                  <span>🖥️ Reception Counter</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigateView('technician_dashboard')}
+                  className="bg-purple-700 hover:bg-purple-800 text-white px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                >
+                  <FlaskConical className="w-3.5 h-3.5 text-amber-300" />
+                  <span>🔬 Technician Dept</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigateView('website')}
+                  className="bg-amber-400 hover:bg-amber-300 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                >
+                  <span>🏠 Preview Live Site</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Home Sub-Modules Strip */}
+            <div className="bg-white rounded-2xl p-2 border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1 flex-wrap">
+                <button
+                  onClick={() => setHomeSubTab('pricing')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    homeSubTab === 'pricing'
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <IndianRupee className="w-3.5 h-3.5" />
+                  <span>SaaS Pricing ({pricingPlans.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setHomeSubTab('cloud_sync')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    homeSubTab === 'cloud_sync'
+                      ? 'bg-emerald-700 text-white shadow-xs'
+                      : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
+                  }`}
+                >
+                  <Database className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Cloud DB & Hostinger Monitor</span>
+                </button>
+
+                <button
+                  onClick={() => setHomeSubTab('settings')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    homeSubTab === 'settings'
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Building className="w-3.5 h-3.5" />
+                  <span>Branding & Hero Content</span>
+                </button>
+
+                <button
+                  onClick={() => setHomeSubTab('features')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    homeSubTab === 'features'
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Features ({companyFeatures.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setHomeSubTab('faqs')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    homeSubTab === 'faqs'
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  <span>FAQs ({companyFaqs.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setHomeSubTab('stats')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    homeSubTab === 'stats'
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  <span>Stats ({companyStats.length})</span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  setDeleteConfirm({
+                    isOpen: true,
+                    title: 'Reset Factory Demo Defaults',
+                    message: 'Reset all Company & Vendor data back to initial demo defaults?',
+                    confirmText: 'Yes, Reset Defaults',
+                    onConfirm: () => {
+                      resetAllToDefaults();
+                      showToast('Reset back to factory demo defaults.');
+                      setDeleteConfirm(null);
+                    },
+                  });
+                }}
+                className="text-slate-500 hover:text-slate-800 text-xs px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+                <span>Reset Demo Defaults</span>
+              </button>
+            </div>
+
+            {/* Sub-tab content when activeMenu === 'home' */}
 
         {/* 1. PRICING PLANS TAB */}
         {activeTab === 'pricing' && (
@@ -1433,6 +1561,40 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
           </div>
         )}
       </div>
+    )}
+
+    {/* VIEW 2: LABS (Pending Labs) */}
+    {activeMenu === 'labs' && (
+      <div className="animate-in fade-in-50 duration-200">
+        <VendorManagementTab
+          viewMode="pending"
+          onNavigateView={onNavigateView}
+          showToast={showToast}
+        />
+      </div>
+    )}
+
+    {/* VIEW 3: OUR CLIENTS (Published / Live Clients) */}
+    {activeMenu === 'clients' && (
+      <div className="animate-in fade-in-50 duration-200">
+        <VendorManagementTab
+          viewMode="clients"
+          onNavigateView={onNavigateView}
+          showToast={showToast}
+        />
+      </div>
+    )}
+
+    {/* VIEW 4: WEBSITE EDIT (Website Sections) */}
+    {activeMenu === 'website_edit' && (
+      <div className="animate-in fade-in-50 duration-200">
+        <WebsiteSectionsTab
+          onNavigateView={onNavigateView}
+          showToast={showToast}
+        />
+      </div>
+    )}
+  </div>
 
       {/* MODAL: ADD / EDIT PRICING PLAN */}
       {(isNewPlanModal || editingPlan) && (

@@ -38,11 +38,13 @@ import { getTenantDirectUrl, getTenantSubdomain } from '../../constants/domains'
 interface VendorManagementTabProps {
   onNavigateView: (view: AppView) => void;
   showToast: (msg: string) => void;
+  viewMode?: 'pending' | 'clients' | 'all';
 }
 
 export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
   onNavigateView,
   showToast,
+  viewMode = 'all',
 }) => {
   const {
     vendorLabsList,
@@ -64,6 +66,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<VendorLabDirectoryItem | null>(null);
   const [deleteConfirmVendor, setDeleteConfirmVendor] = useState<VendorLabDirectoryItem | null>(null);
+  const [draftVisitVendor, setDraftVisitVendor] = useState<VendorLabDirectoryItem | null>(null);
   const [copiedLabId, setCopiedLabId] = useState<string | null>(null);
 
   // Change Password Modal State
@@ -135,7 +138,16 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
   // Filtered list
   const filteredVendors = useMemo(() => {
     return vendorLabsList.filter((v) => {
-      const matchesStatus = statusFilter === 'All' ? true : v.status === statusFilter;
+      if (viewMode === 'pending') {
+        // Pending Labs: Sirf wahi labs jo Active nahi hain (Pending, Draft, Processing due to payment confirmation)
+        if (v.status === 'Active') return false;
+      } else if (viewMode === 'clients') {
+        // Our Clients: Sirf Active users / Published labs hi dikhao (Strictly Active only)
+        if (v.status !== 'Active') return false;
+      } else if (statusFilter !== 'All' && v.status !== statusFilter) {
+        return false;
+      }
+
       const matchesCity = selectedCity === 'All' ? true : v.city === selectedCity;
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
@@ -147,9 +159,9 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
         (v.nablCode && v.nablCode.toLowerCase().includes(q)) ||
         (v.paymentReference && v.paymentReference.toLowerCase().includes(q));
 
-      return matchesStatus && matchesCity && matchesSearch;
+      return matchesCity && matchesSearch;
     });
-  }, [vendorLabsList, statusFilter, selectedCity, searchQuery]);
+  }, [vendorLabsList, statusFilter, selectedCity, searchQuery, viewMode]);
 
   // Handlers
   const handleOpenAddModal = () => {
@@ -255,17 +267,17 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       showToast(`Updated laboratory: ${formState.name} (${finalDomain})`);
       setEditingVendor(null);
     } else {
+      // When a new website is created, it ALWAYS starts in DRAFT mode
+      // Admin approval is strictly required before the website can be visited/live
       addVendorLab({
         ...formState,
         domainPreview: finalDomain,
-        status: formState.status || 'Draft',
-        isWebsiteApproved: isApproved,
-        badge: isApproved ? (formState.badge || 'Verified Lab') : 'Draft - Pending Admin Approval',
+        status: 'Draft',
+        isWebsiteApproved: false,
+        badge: 'Draft - Pending Admin Approval',
       });
       showToast(
-        isApproved
-          ? `Added laboratory and published LIVE: ${formState.name} (${finalDomain})`
-          : `Created lab "${formState.name}" in DRAFT mode (${finalDomain}). Admin approval required to go live.`
+        `Created lab "${formState.name}" in DRAFT mode. Admin approval is required before it can go live.`
       );
       setIsAddModalOpen(false);
     }
@@ -279,7 +291,13 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     }
   };
 
-  const handleOpenLabWebsite = (labId: string) => {
+  const handleOpenLabWebsite = (vendor: VendorLabDirectoryItem | string) => {
+    const labItem = typeof vendor === 'string' ? vendorLabsList.find((l) => l.id === vendor) : vendor;
+    if (labItem && (labItem.status !== 'Active' || !labItem.isWebsiteApproved)) {
+      setDraftVisitVendor(labItem);
+      return;
+    }
+    const labId = typeof vendor === 'string' ? vendor : vendor.id;
     selectVendorLab(labId);
     onNavigateView('vendor_website');
   };
@@ -294,11 +312,19 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
               <Building2 className="w-5 h-5" />
             </span>
             <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Partner Laboratories & Vendor Management
+              {viewMode === 'pending'
+                ? 'Labs Section — Pending Labs (अप्रूवल पेंडिंग लैब्स)'
+                : viewMode === 'clients'
+                ? 'Our Clients — Published / Live Labs List (पब्लिश्ड / लाइव क्लाइंट्स)'
+                : 'Partner Laboratories & Vendor Management'}
             </h2>
           </div>
           <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-            Control onboarding, approvals, payment confirmation status, and live websites of all diagnostic laboratories hosted on your portal.
+            {viewMode === 'pending'
+              ? 'Search Lab • Lab Status: Pending • Lab Actions: Approval, Live / Visit, Edit, Make Draft, Change Password, Delete (हटाएं)'
+              : viewMode === 'clients'
+              ? 'Search Client Labs • Lab Status: Published / Live • Actions: Live / Visit, Edit, Make Draft, Change Password, Delete (हटाएं)'
+              : 'Control onboarding, approvals, payment confirmation status, and live websites of all diagnostic laboratories hosted on your portal.'}
           </p>
         </div>
 
@@ -313,7 +339,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       </div>
 
       {/* Draft Labs Pending Approval Alert Banner (when newly created labs are in Draft mode) */}
-      {stats.draft > 0 && (
+      {viewMode !== 'clients' && stats.draft > 0 && (
         <div className="bg-amber-50 border-2 border-amber-400 p-4 sm:p-5 rounded-2xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
           <div className="flex items-start sm:items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-xs font-black">
@@ -343,7 +369,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       )}
 
       {/* Payment Confirmation Alert Banner (if any lab is in payment confirmation status) */}
-      {stats.processingPayment > 0 && (
+      {viewMode !== 'clients' && stats.processingPayment > 0 && (
         <div className="bg-amber-50 border-2 border-amber-300 p-4 sm:p-5 rounded-2xl shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
           <div className="flex items-start sm:items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-xs">
@@ -373,6 +399,7 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
       )}
 
       {/* KPI Cards Grid */}
+      {(!viewMode || viewMode === 'all') && (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         {/* Total */}
         <div
@@ -492,15 +519,22 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-3">
-        {/* Search */}
-        <div className="relative w-full md:w-80">
+        {/* Search Lab */}
+        <div className="relative w-full md:w-96">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search lab name, owner, phone, city..."
+            placeholder={
+              viewMode === 'pending'
+                ? 'Search Lab by Name, Owner, Phone, City, NABL...'
+                : viewMode === 'clients'
+                ? 'Search Client Lab by Name, Owner, Phone, City...'
+                : 'Search lab name, owner, phone, city...'
+            }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#123B6D] focus:border-transparent bg-slate-50 focus:bg-white transition"
@@ -508,35 +542,52 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
             >
               ×
             </button>
           )}
         </div>
 
-        {/* Status Filters */}
-        <div className="flex items-center gap-1 flex-wrap w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-          {(['All', 'Draft', 'Active', 'Processing due to payment confirmation', 'Pending', 'Suspended'] as const).map(
-            (status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
-                  statusFilter === status
-                    ? 'bg-[#123B6D] text-white shadow-2xs'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                }`}
-              >
-                {status === 'Processing due to payment confirmation'
-                  ? 'Payment Confirmation'
-                  : status === 'Draft'
-                  ? `Draft (${stats.draft})`
-                  : status}
-              </button>
-            )
-          )}
-        </div>
+        {/* Status Pill for Pending / Live modes */}
+        {viewMode === 'pending' && (
+          <div className="text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-amber-700" />
+            <span>Lab Status: <strong>Pending Approval ({filteredVendors.length})</strong></span>
+          </div>
+        )}
+
+        {viewMode === 'clients' && (
+          <div className="text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Lab Status: <strong>Published / Live ({filteredVendors.length})</strong></span>
+          </div>
+        )}
+
+        {/* Status Filters (for 'all' viewMode) */}
+        {viewMode === 'all' && (
+          <div className="flex items-center gap-1 flex-wrap w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+            {(['All', 'Draft', 'Active', 'Processing due to payment confirmation', 'Pending', 'Suspended'] as const).map(
+              (status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                    statusFilter === status
+                      ? 'bg-[#123B6D] text-white shadow-2xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {status === 'Processing due to payment confirmation'
+                    ? 'Payment Confirmation'
+                    : status === 'Draft'
+                    ? `Draft (${stats.draft})`
+                    : status}
+                </button>
+              )
+            )}
+          </div>
+        )}
 
         {/* City Filter */}
         {cities.length > 0 && (
@@ -634,35 +685,49 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
 
                     {/* Status Pill */}
                     <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-                      {isActive && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Active on Portal</span>
-                        </span>
-                      )}
-                      {vendor.status === 'Draft' && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                      {viewMode === 'pending' ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-900 border border-amber-300">
                           <Clock className="w-3.5 h-3.5 text-amber-700" />
-                          <span>Draft (Pending Admin Approval)</span>
+                          <span>Lab Status: Pending</span>
                         </span>
-                      )}
-                      {isProcessing && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
-                          <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
-                          <span>Processing due to payment confirmation</span>
+                      ) : viewMode === 'clients' ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Lab Status: Published / Live</span>
                         </span>
-                      )}
-                      {isPending && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200">
-                          <Clock className="w-3.5 h-3.5 text-sky-600" />
-                          <span>Pending Admin Approval</span>
-                        </span>
-                      )}
-                      {isSuspended && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
-                          <Ban className="w-3.5 h-3.5 text-rose-600" />
-                          <span>Suspended</span>
-                        </span>
+                      ) : (
+                        <>
+                          {isActive && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Active on Portal</span>
+                            </span>
+                          )}
+                          {vendor.status === 'Draft' && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                              <Clock className="w-3.5 h-3.5 text-amber-700" />
+                              <span>Draft (Pending Admin Approval)</span>
+                            </span>
+                          )}
+                          {isProcessing && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+                              <span>Processing due to payment confirmation</span>
+                            </span>
+                          )}
+                          {isPending && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                              <Clock className="w-3.5 h-3.5 text-sky-600" />
+                              <span>Pending Admin Approval</span>
+                            </span>
+                          )}
+                          {isSuspended && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                              <Ban className="w-3.5 h-3.5 text-rose-600" />
+                              <span>Suspended</span>
+                            </span>
+                          )}
+                        </>
                       )}
 
                       {/* Website Approval Status Indicator */}
@@ -821,131 +886,235 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
 
                   {/* Bottom Row: Actions & Status Controls */}
                   <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-                    {/* Status Changer Actions */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {/* 1. APPROVAL / MAKE LIVE BUTTON */}
-                      {vendor.status !== 'Active' || !vendor.isWebsiteApproved ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setVendorStatus(vendor.id, 'Active');
-                            showToast(`Approved & Published LIVE: ${vendor.name}! Website is now live.`);
-                          }}
-                          className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                          title="Approve laboratory website and make it live on dedicated URL"
-                        >
-                          <CheckCircle2 className="w-4 h-4 text-white" />
-                          <span>Approve (लाइव करें)</span>
-                        </button>
-                      ) : (
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-bold">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          <span>Approved & Live</span>
+                    {/* Action Buttons for Pending Labs */}
+                    {viewMode === 'pending' && (
+                      <div className="flex items-center gap-2 flex-wrap w-full justify-between">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* 1. APPROVAL */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setVendorStatus(vendor.id, 'Active');
+                              showToast(`Approved & Published LIVE: ${vendor.name}! Moved to Our Clients.`);
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                            title="Approve laboratory website and make it live on dedicated URL"
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-white" />
+                            <span>Approval (अप्रूवल)</span>
+                          </button>
+
+                          {/* 2. LIVE / VISIT */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenLabWebsite(vendor.id)}
+                            className="px-3 py-2 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                            title="Preview / visit dedicated lab website"
+                          >
+                            <Globe className="w-3.5 h-3.5 text-amber-300" />
+                            <span>Live / Visit</span>
+                            <ExternalLink className="w-3 h-3 text-slate-300" />
+                          </button>
+
+                          {/* 3. EDIT */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(vendor)}
+                            className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            title="Edit lab details, credentials, and NABL code"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Edit</span>
+                          </button>
+
+                          {/* 4. MAKE DRAFT */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setVendorStatus(vendor.id, 'Draft');
+                              showToast(`Set "${vendor.name}" to Draft status.`);
+                            }}
+                            className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            title="Keep or move to Draft status"
+                          >
+                            <Clock className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Make Draft</span>
+                          </button>
+
+                          {/* 5. CHANGE PASSWORD */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPasswordModal(vendor)}
+                            className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            title="Change owner password and security PIN"
+                          >
+                            <KeyRound className="w-3.5 h-3.5 text-purple-700" />
+                            <span>Change Password</span>
+                          </button>
                         </div>
-                      )}
 
-                      {/* 2. DRAFT BUTTON */}
-                      {vendor.status !== 'Draft' ? (
+                        {/* 6. DELETE (हटाएं) */}
                         <button
                           type="button"
-                          onClick={() => {
-                            setVendorStatus(vendor.id, 'Draft');
-                            showToast(`Moved "${vendor.name}" to Draft mode (Website hidden from public)`);
-                          }}
-                          className="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                          title="Move website back to Draft mode so it is hidden from public"
+                          onClick={() => setDeleteConfirmVendor(vendor)}
+                          className="px-3 py-2 text-rose-700 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs active:scale-95"
+                          title="Delete laboratory vendor"
                         >
-                          <Clock className="w-4 h-4 text-amber-700" />
-                          <span>Draft (ड्राफ्ट बनाएं)</span>
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete (हटाएं)</span>
                         </button>
-                      ) : (
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold">
-                          <Clock className="w-4 h-4 text-amber-700" />
-                          <span>In Draft Mode</span>
+                      </div>
+                    )}
+
+                    {/* Action Buttons for Our Clients */}
+                    {viewMode === 'clients' && (
+                      <div className="flex items-center gap-2 flex-wrap w-full justify-between">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* 1. LIVE / VISIT */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenLabWebsite(vendor.id)}
+                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
+                            title="Visit client live published website"
+                          >
+                            <Globe className="w-4 h-4 text-white" />
+                            <span>Live / Visit</span>
+                            <ExternalLink className="w-3 h-3 text-emerald-200" />
+                          </button>
+
+                          {/* 2. EDIT */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(vendor)}
+                            className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            title="Edit client lab details"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Edit</span>
+                          </button>
+
+                          {/* 3. MAKE DRAFT */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setVendorStatus(vendor.id, 'Draft');
+                              showToast(`Moved "${vendor.name}" back to Draft mode (Website unpublished).`);
+                            }}
+                            className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            title="Move website back to Draft mode to temporarily unpublish"
+                          >
+                            <Clock className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Make Draft</span>
+                          </button>
+
+                          {/* 4. CHANGE PASSWORD */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPasswordModal(vendor)}
+                            className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            title="Change password & security PIN for this client"
+                          >
+                            <KeyRound className="w-3.5 h-3.5 text-purple-700" />
+                            <span>Change Password</span>
+                          </button>
                         </div>
-                      )}
 
-                      {/* Payment Due shortcut */}
-                      {vendor.status !== 'Processing due to payment confirmation' && (
+                        {/* 5. DELETE (हटाएं) */}
                         <button
                           type="button"
-                          onClick={() => {
-                            setVendorStatus(vendor.id, 'Processing due to payment confirmation');
-                            showToast(`Marked ${vendor.name} as Payment Confirmation Pending`);
-                          }}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition flex items-center gap-1 cursor-pointer"
+                          onClick={() => setDeleteConfirmVendor(vendor)}
+                          className="px-3 py-2 text-rose-700 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs active:scale-95"
+                          title="Delete client lab"
                         >
-                          <Receipt className="w-3.5 h-3.5 text-slate-500" />
-                          <span>Payment Due</span>
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete (हटाएं)</span>
                         </button>
-                      )}
+                      </div>
+                    )}
 
-                      {/* Scope filter */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSuperAdminTenantScope(vendor.id);
-                          showToast(`Super Admin workspace scoped to: ${vendor.name}`);
-                        }}
-                        className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                          superAdminTenantScope === vendor.id
-                            ? 'bg-indigo-600 text-white shadow-2xs'
-                            : 'bg-indigo-50 text-indigo-800 hover:bg-indigo-100 border border-indigo-200'
-                        }`}
-                        title="Filter Super Admin data workspace exclusively for this lab"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        <span>{superAdminTenantScope === vendor.id ? 'Scoped' : 'Scope'}</span>
-                      </button>
-                    </div>
+                    {/* Standard Mode */}
+                    {viewMode === 'all' && (
+                      <>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {vendor.status !== 'Active' || !vendor.isWebsiteApproved ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setVendorStatus(vendor.id, 'Active');
+                                showToast(`Approved & Published LIVE: ${vendor.name}! Website is now live.`);
+                              }}
+                              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-white" />
+                              <span>Approval (अप्रूवल)</span>
+                            </button>
+                          ) : (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-300 text-xs font-bold">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                              <span>Approved & Live</span>
+                            </div>
+                          )}
 
-                    {/* Operational Action Buttons: PREVIEW, EDIT, CHANGE PASSWORD, DELETE */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {/* 3. PREVIEW WEBSITE BUTTON */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenLabWebsite(vendor.id)}
-                        className="px-3.5 py-2 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs group"
-                        title="Preview the complete patient-facing live website for this lab"
-                      >
-                        <Globe className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition-transform" />
-                        <span>Preview Website (वेबसाइट देखें)</span>
-                        <ExternalLink className="w-3 h-3 text-slate-300" />
-                      </button>
+                          {vendor.status !== 'Draft' ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setVendorStatus(vendor.id, 'Draft');
+                                showToast(`Moved "${vendor.name}" to Draft mode`);
+                              }}
+                              className="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                            >
+                              <Clock className="w-4 h-4 text-amber-700" />
+                              <span>Make Draft</span>
+                            </button>
+                          ) : (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold">
+                              <Clock className="w-4 h-4 text-amber-700" />
+                              <span>In Draft Mode</span>
+                            </div>
+                          )}
+                        </div>
 
-                      {/* 4. EDIT LAB DETAILS BUTTON */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditModal(vendor)}
-                        className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                        title="Edit lab name, domain, NABL, address, and credentials"
-                      >
-                        <Edit2 className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Edit Lab (एडिट करें)</span>
-                      </button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenLabWebsite(vendor.id)}
+                            className="px-3.5 py-2 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          >
+                            <Globe className="w-4 h-4 text-amber-300" />
+                            <span>Live / Visit</span>
+                            <ExternalLink className="w-3 h-3 text-slate-300" />
+                          </button>
 
-                      {/* 5. CHANGE PASSWORD BUTTON */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenPasswordModal(vendor)}
-                        className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                        title="Change login password and PIN for this laboratory owner"
-                      >
-                        <KeyRound className="w-3.5 h-3.5 text-purple-700" />
-                        <span>Change Password</span>
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(vendor)}
+                            className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Edit</span>
+                          </button>
 
-                      {/* 6. DELETE BUTTON */}
-                      <button
-                        type="button"
-                        onClick={() => setDeleteConfirmVendor(vendor)}
-                        className="px-2.5 py-2 text-rose-700 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
-                        title="Delete laboratory vendor and remove website"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Delete (हटाएं)</span>
-                      </button>
-                    </div>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPasswordModal(vendor)}
+                            className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                          >
+                            <KeyRound className="w-3.5 h-3.5 text-purple-700" />
+                            <span>Change Password</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmVendor(vendor)}
+                            className="px-2.5 py-2 text-rose-700 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete (हटाएं)</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1597,6 +1766,93 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Yes, Delete Laboratory</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Draft Website Visit / Preview Warning Modal */}
+      {draftVisitVendor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-amber-300 space-y-4 text-center animate-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mx-auto border-2 border-amber-300 shadow-inner">
+              <Lock className="w-7 h-7" />
+            </div>
+
+            <div>
+              <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                ⚠️ Website In Draft Mode • Pending Admin Approval
+              </span>
+              <h3 className="text-lg font-black text-slate-900 mt-2">
+                Website is currently in Draft Mode
+              </h3>
+              <p className="text-xs text-amber-800 font-bold mt-1">
+                This website will not be live or accessible for visit until the Admin publishes it.
+              </p>
+              <p className="text-xs text-slate-600 mt-2 leading-relaxed">
+                This laboratory website was created and is currently in <strong>Draft Status</strong>. Public visit, patient bookings, and diagnostic catalog are locked until Super Admin reviews and approves it.
+              </p>
+
+              {/* Contact Box */}
+              <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-2.5 mt-3 text-xs font-bold text-amber-950 flex items-center justify-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-amber-700" />
+                <span>Contact with 7087033009</span>
+              </div>
+
+              <div className="text-xs text-slate-600 mt-3 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-100 text-left space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Laboratory:</span>
+                  <span className="font-bold text-slate-800">{draftVisitVendor.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">City / State:</span>
+                  <span className="text-slate-700">{draftVisitVendor.city}, {draftVisitVendor.state || 'India'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Status:</span>
+                  <span className="text-amber-700 font-bold">{draftVisitVendor.status} (Unpublished)</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const target = draftVisitVendor;
+                  setVendorStatus(target.id, 'Active');
+                  setDraftVisitVendor(null);
+                  showToast(`Approved & Published LIVE: ${target.name}! Moved to Our Clients.`);
+                  selectVendorLab(target.id);
+                  onNavigateView('vendor_website');
+                }}
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+              >
+                <CheckCircle2 className="w-4 h-4 text-white" />
+                <span>Approve & Publish Live Now</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const target = draftVisitVendor;
+                  setDraftVisitVendor(null);
+                  selectVendorLab(target.id);
+                  onNavigateView('vendor_website');
+                }}
+                className="w-full py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Lock className="w-3.5 h-3.5 text-slate-500" />
+                <span>View Draft Notice Screen</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDraftVisitVendor(null)}
+                className="py-1 text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer"
+              >
+                Cancel
               </button>
             </div>
           </div>

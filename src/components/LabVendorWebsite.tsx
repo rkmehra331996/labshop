@@ -271,6 +271,165 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     window.open(`https://wa.me/917087033009?text=${text}`, '_blank');
   };
 
+  // Check if website is in Draft mode (Not Approved/Published by Admin)
+  // When a website is created, it starts in Draft mode; until Super Admin publishes it, visit/preview is locked.
+  const isDraftOrPending = currentLabItem ? currentLabItem.status !== 'Active' || !currentLabItem.isWebsiteApproved : false;
+
+  if (isDraftOrPending) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-amber-100 selection:text-amber-900">
+        {/* Top Navbar */}
+        <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-3.5 flex items-center justify-between sticky top-0 z-40 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xs shadow-xs">
+              HQ
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm text-slate-900">{currentLabItem?.name || labName}</span>
+                <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5" />
+                  <span>Draft Mode (Pending Approval)</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {currentUser?.role === 'admin' ? (
+              <button
+                type="button"
+                onClick={onOpenAdminDashboard}
+                className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <span>← Super Admin Dashboard</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenSoftwareWebsite}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>🏠 Main Portal</span>
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* Central Draft Lock Box - Light Theme Only */}
+        <main className="flex-1 flex items-center justify-center p-4 sm:p-6">
+          <div className="max-w-lg w-full bg-white border border-amber-300 rounded-3xl p-6 sm:p-8 shadow-xl text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+            {/* Lock Icon */}
+            <div className="relative inline-flex items-center justify-center">
+              <div className="w-18 h-18 rounded-3xl bg-amber-50 border-2 border-amber-300 flex items-center justify-center text-amber-600 shadow-inner">
+                <Lock className="w-9 h-9" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 bg-amber-400 text-slate-950 p-1.5 rounded-full shadow-sm">
+                <Clock className="w-3.5 h-3.5" />
+              </div>
+            </div>
+
+            {/* Titles & Message in English Only */}
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                <span>⚠️ Website In Draft Mode • Pending Admin Approval</span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Website In Draft Mode
+              </h1>
+              <p className="text-sm font-semibold text-amber-800">
+                This website will not be live or accessible for visit until the Admin publishes it.
+              </p>
+              <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed pt-1">
+                This laboratory website was created and is currently in <strong>Draft Status</strong>. Public visit, patient bookings, and diagnostic catalog are locked until Super Admin reviews and approves it.
+              </p>
+            </div>
+
+            {/* Contact Support Box */}
+            <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 text-xs space-y-2.5">
+              <div className="font-extrabold text-amber-950 flex items-center justify-center gap-1.5 text-sm">
+                <Phone className="w-4 h-4 text-amber-700" />
+                <span>Contact with 7087033009</span>
+              </div>
+              <p className="text-[11px] text-slate-600">
+                For approval, verification, or administrative queries, contact central support:
+              </p>
+              <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
+                <a
+                  href="tel:+917087033009"
+                  className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition"
+                >
+                  <Phone className="w-3.5 h-3.5 text-slate-600" />
+                  <span>Call: 7087033009</span>
+                </a>
+                <a
+                  href="https://wa.me/917087033009?text=Hello%20Admin,%20I%20need%20approval%20and%20activation%20for%20my%20laboratory%20website"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-white" />
+                  <span>WhatsApp: 7087033009</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Lab Info Card */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-left text-xs space-y-2">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span className="text-slate-500">Laboratory:</span>
+                <span className="font-bold text-slate-900 text-right">{currentLabItem?.name || labName}</span>
+              </div>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span className="text-slate-500">Owner / City:</span>
+                <span className="font-medium text-slate-700">{currentLabItem?.ownerName || 'Lab Owner'} • {currentLabItem?.city || 'India'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Current Status:</span>
+                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold">
+                  Draft (Pending Approval)
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2.5 pt-1">
+              {currentUser?.role === 'admin' ? (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (currentLabItem) {
+                        setVendorStatus(currentLabItem.id, 'Active');
+                      }
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 px-4 rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-white" />
+                    <span>Approve & Publish Live Now</span>
+                  </button>
+                  <p className="text-[11px] text-slate-500">
+                    Clicking "Approve" will make this website instantly live and move the laboratory to "Our Clients".
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={onOpenSoftwareWebsite}
+                    className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold px-4 py-2.5 rounded-xl text-xs transition cursor-pointer shadow-xs"
+                  >
+                    Return to Main Portal
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans selection:bg-[#123B6D]/15 selection:text-[#123B6D]">
       {/* Super Admin Website Live Control & Status Banner */}

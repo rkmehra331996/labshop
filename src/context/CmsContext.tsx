@@ -3877,7 +3877,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Vendor Lab Directory Management
   const addVendorLab = (vendor: Omit<VendorLabDirectoryItem, 'id'>): VendorLabDirectoryItem => {
-    const isExplicitActive = vendor.status === 'Active';
+    // New labs always start in Draft mode until Super Admin publishes/approves
+    const isExplicitActive = vendor.status === 'Active' && vendor.isWebsiteApproved === true;
     const initialStatus: VendorStatus = isExplicitActive ? 'Active' : 'Draft';
     const newLabId = `lab-${Date.now()}`;
     const newLab: VendorLabDirectoryItem = {
