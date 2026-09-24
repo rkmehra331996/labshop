@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MessageSquare, Phone, MapPin, Heart, Shield } from 'lucide-react';
 import { AppView } from '../types';
 import { useCms } from '../context/CmsContext';
+import { TermsConditionsModal } from './TermsConditionsModal';
 
 interface FooterProps {
   onSelectView: (view: AppView) => void;
@@ -10,6 +11,7 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
   const { companySettings } = useCms();
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const displayBrand = companySettings?.companyName || 'INDIANLALAJI.COM';
   const superAdminDomain = companySettings?.superAdminDomain || 'indianlalaji.com';
 
@@ -153,8 +155,18 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
 
         {/* Bottom Bar with Company Links and Copyright */}
         <div className="mt-12 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-[#64748B] gap-4">
-          <div>
-            © {superAdminDomain.toUpperCase()}. All Rights Reserved. Made for Indian Healthcare.
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-slate-400">
+            <span>© 2026 IndianLalaJi.com — LIMS</span>
+            <span className="text-slate-600">|</span>
+            <span>Powered by PageGuru.in</span>
+            <span className="text-slate-600">|</span>
+            <button
+              type="button"
+              onClick={() => setIsTermsModalOpen(true)}
+              className="text-slate-300 hover:text-amber-400 underline underline-offset-2 transition cursor-pointer font-medium"
+            >
+              Terms &amp; Conditions
+            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-6 text-[10px] font-bold text-slate-300 uppercase tracking-widest">
@@ -163,6 +175,13 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
             </button>
             <button onClick={() => scrollTo('data-safety-section')} className="hover:text-white transition">
               Privacy Policy
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsTermsModalOpen(true)}
+              className="hover:text-white transition cursor-pointer"
+            >
+              Terms &amp; Conditions
             </button>
             <a
               href="https://wa.me/917087033009"
@@ -174,6 +193,12 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
             </a>
           </div>
         </div>
+
+        {/* Terms & Conditions Modal */}
+        <TermsConditionsModal
+          isOpen={isTermsModalOpen}
+          onClose={() => setIsTermsModalOpen(false)}
+        />
       </div>
     </footer>
   );
