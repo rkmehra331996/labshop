@@ -530,7 +530,7 @@ export default function App() {
         onSelectLanguage={setLanguage}
       />
 
-      <main className="flex-1">
+      <main className="flex-1 pb-16 sm:pb-0">
         {/* 1. Home Section */}
         {portalSections.hero !== false && (
           <Hero

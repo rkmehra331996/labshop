@@ -243,21 +243,16 @@ export const FinalCTASection: React.FC<FinalCTASectionProps> = () => {
                   className="w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 >
                   <Send className="w-4 h-4 text-slate-950" />
-                  <span>Send Message & Connect on WhatsApp</span>
+                  <span>Send Message</span>
                 </button>
               </form>
             )}
           </div>
         </div>
 
-        {/* Clean Bottom Copyright Strip (Replacing Large Footer) */}
-        <div className="mt-16 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+        {/* Clean Bottom Copyright Strip */}
+        <div className="mt-16 pt-8 border-t border-white/10 text-center text-xs text-slate-400">
           <p>© {new Date().getFullYear()} {displayBrand}. All rights reserved. Built with ❤️ for Indian Pathology Laboratories.</p>
-          <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
-            <span>Call/WhatsApp: +91 7087033009</span>
-            <span>•</span>
-            <span>rkmehra331996@gmail.com</span>
-          </div>
         </div>
       </div>
     </section>
