@@ -71,7 +71,7 @@ export const DEFAULT_PORTAL_SECTIONS: PortalWebsiteSections = {
   workflow: true,
   features: true,
   pricing: true,
-  faq: true,
+  faq: false,
   finalCta: true,
   footer: true,
   // Kept off from main home page by default for a simple, fast & clean experience:
@@ -1632,7 +1632,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const saved = localStorage.getItem('cms_portal_sections_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return { ...DEFAULT_PORTAL_SECTIONS, ...parsed, vendorWebsitesShowcase: false };
+        return { ...DEFAULT_PORTAL_SECTIONS, ...parsed, vendorWebsitesShowcase: false, faq: false };
       }
       return DEFAULT_PORTAL_SECTIONS;
     } catch {
@@ -2043,16 +2043,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribeTests = subscribeToTests(
       (cloudTests) => {
         if (cloudTests && cloudTests.length > 0) {
-          setAllVendorTests((prevLocal) => {
-            const cloudMap = new Map(cloudTests.map((t) => [t.id, t]));
-            const merged = [...cloudTests];
-            prevLocal.forEach((loc) => {
-              if (!cloudMap.has(loc.id)) {
-                merged.push(loc);
-              }
-            });
-            return merged;
-          });
+          setAllVendorTests(cloudTests);
         }
       }
     );
@@ -2061,16 +2052,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribePackages = subscribeToPackages(
       (cloudPackages) => {
         if (cloudPackages && cloudPackages.length > 0) {
-          setAllVendorPackages((prevLocal) => {
-            const cloudMap = new Map(cloudPackages.map((p) => [p.id, p]));
-            const merged = [...cloudPackages];
-            prevLocal.forEach((loc) => {
-              if (!cloudMap.has(loc.id)) {
-                merged.push(loc);
-              }
-            });
-            return merged;
-          });
+          setAllVendorPackages(cloudPackages);
         }
       }
     );
@@ -2079,16 +2061,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribeDoctors = subscribeToDoctors(
       (cloudDoctors) => {
         if (cloudDoctors && cloudDoctors.length > 0) {
-          setAllVendorDoctors((prevLocal) => {
-            const cloudMap = new Map(cloudDoctors.map((d) => [d.id, d]));
-            const merged = [...cloudDoctors];
-            prevLocal.forEach((loc) => {
-              if (!cloudMap.has(loc.id)) {
-                merged.push(loc);
-              }
-            });
-            return merged;
-          });
+          setAllVendorDoctors(cloudDoctors);
         }
       }
     );
@@ -2097,16 +2070,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribeReception = subscribeToReceptionEntries(
       (cloudEntries) => {
         if (cloudEntries && cloudEntries.length > 0) {
-          setAllReceptionEntries((prevLocal) => {
-            const cloudMap = new Map(cloudEntries.map((item) => [item.id, item]));
-            const merged = [...cloudEntries];
-            prevLocal.forEach((localItem) => {
-              if (!cloudMap.has(localItem.id)) {
-                merged.push(localItem);
-              }
-            });
-            return merged;
-          });
+          setAllReceptionEntries(cloudEntries);
           setIsCloudConnected(true);
           setCloudSyncStatus('synced');
           setLastCloudSyncTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
@@ -2122,16 +2086,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribeReports = subscribeToLabReports(
       (cloudReports) => {
         if (cloudReports && cloudReports.length > 0) {
-          setAllReports((prevLocal) => {
-            const cloudMap = new Map(cloudReports.map((item) => [item.reportId.toLowerCase(), item]));
-            const merged = [...cloudReports];
-            prevLocal.forEach((localItem) => {
-              if (!cloudMap.has(localItem.reportId.toLowerCase())) {
-                merged.push(localItem);
-              }
-            });
-            return merged;
-          });
+          setAllReports(cloudReports);
           setIsCloudConnected(true);
           setCloudSyncStatus('synced');
           setLastCloudSyncTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
@@ -2147,16 +2102,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubscribeBookings = subscribeToBookings(
       (cloudBookings) => {
         if (cloudBookings && cloudBookings.length > 0) {
-          setAllVendorBookings((prevLocal) => {
-            const cloudMap = new Map(cloudBookings.map((item) => [item.id, item]));
-            const merged = [...cloudBookings];
-            prevLocal.forEach((localItem) => {
-              if (!cloudMap.has(localItem.id)) {
-                merged.push(localItem);
-              }
-            });
-            return merged;
-          });
+          setAllVendorBookings(cloudBookings);
         }
       }
     );

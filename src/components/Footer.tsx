@@ -129,11 +129,6 @@ export const Footer: React.FC<FooterProps> = ({ onSelectView, onOpenDemo }) => {
             </h4>
             <ul className="space-y-2">
               <li>
-                <button onClick={() => scrollTo('faq-section')} className="hover:text-white transition">
-                  FAQ
-                </button>
-              </li>
-              <li>
                 <span className="text-slate-400">Help & Docs</span>
               </li>
               <li>

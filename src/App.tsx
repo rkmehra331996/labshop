@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { AppView, Language } from './types';
-import { TopBar } from './components/TopBar';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { TrustStrip } from './components/TrustStrip';
@@ -22,7 +21,6 @@ import { IndianMarketSection } from './components/IndianMarketSection';
 import { PricingSection } from './components/PricingSection';
 import { DemoSection } from './components/DemoSection';
 import { FinalCTASection } from './components/FinalCTASection';
-import { FAQSection } from './components/FAQSection';
 import { Footer } from './components/Footer';
 import { MobileFixedCTA } from './components/MobileFixedCTA';
 import { BookDemoModal } from './components/Modals';
@@ -232,12 +230,6 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <TopBar
-          currentView={currentView}
-          onSelectView={setCurrentView}
-          language={language}
-          onSelectLanguage={setLanguage}
-        />
         <CompanyAdminDashboard
           onNavigateView={(view) => {
             setCurrentView(view);
@@ -508,12 +500,6 @@ export default function App() {
   if (currentView === 'patient_portal') {
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <TopBar
-          currentView={currentView}
-          onSelectView={setCurrentView}
-          language={language}
-          onSelectLanguage={setLanguage}
-        />
         <PatientPortalApp
           onBackToWebsite={handleBackToWebsite}
           initialReportId={selectedReportId}
@@ -535,19 +521,13 @@ export default function App() {
   // Section 37: HOMEPAGE FINAL ORDER
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans selection:bg-[#123B6D]/15 selection:text-[#123B6D]">
-      {/* 1. Top Bar */}
-      <TopBar
-        currentView={currentView}
-        onSelectView={setCurrentView}
-        language={language}
-        onSelectLanguage={setLanguage}
-      />
-
-      {/* 2. Navigation Bar */}
+      {/* Navigation Bar with Language Selector */}
       <Navbar
         currentView={currentView}
         onSelectView={setCurrentView}
         onOpenDemo={handleOpenDemo}
+        language={language}
+        onSelectLanguage={setLanguage}
       />
 
       <main className="flex-1">
@@ -630,9 +610,6 @@ export default function App() {
         {portalSections.finalCta && (
           <FinalCTASection onOpenDemo={handleOpenDemo} />
         )}
-
-        {/* 24. FAQ */}
-        {portalSections.faq && <FAQSection />}
       </main>
 
       {/* 25. Footer */}

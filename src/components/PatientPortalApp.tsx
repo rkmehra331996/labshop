@@ -26,6 +26,8 @@ import {
   IndianRupee,
   Clock,
   ExternalLink,
+  X,
+  ArrowRight,
 } from 'lucide-react';
 import { QRVerifyModal } from './Modals';
 import { useCms } from '../context/CmsContext';
@@ -88,6 +90,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
   // QR Modal
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [matchedList, setMatchedList] = useState<Array<{ type: 'report' | 'entry'; report?: LabReport; entry?: ReceptionPatientEntry }>>([]);
 
   // Lab details for contact
   const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory';
@@ -104,6 +107,53 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
       : 0;
 
   const isPaymentPending = activeDueAmount > 0;
+
+  // Real-time Firestore auto-sync for patient screen (Instant updates on client phone when lab changes anything)
+  useEffect(() => {
+    if (searchedReport) {
+      const liveReport = reports.find(
+        (r) => r.reportId.toLowerCase() === searchedReport.reportId.toLowerCase()
+      );
+      if (liveReport) {
+        if (
+          liveReport.status !== searchedReport.status ||
+          liveReport.verified !== searchedReport.verified ||
+          liveReport.dueAmount !== searchedReport.dueAmount ||
+          liveReport.paymentStatus !== searchedReport.paymentStatus ||
+          JSON.stringify(liveReport.items) !== JSON.stringify(searchedReport.items)
+        ) {
+          setSearchedReport(liveReport);
+        }
+      }
+    }
+  }, [reports, searchedReport]);
+
+  useEffect(() => {
+    if (matchedEntry) {
+      const liveEntry = (receptionEntries || []).find((e) => e.id === matchedEntry.id);
+      if (liveEntry) {
+        if (
+          liveEntry.status !== matchedEntry.status ||
+          liveEntry.technicianStatus !== matchedEntry.technicianStatus ||
+          liveEntry.dueAmount !== matchedEntry.dueAmount ||
+          liveEntry.reportId !== matchedEntry.reportId ||
+          liveEntry.isReportPublished !== matchedEntry.isReportPublished
+        ) {
+          setMatchedEntry(liveEntry);
+          // If lab technician finalized report and generated reportId, instantly switch to full report!
+          if (liveEntry.reportId) {
+            const foundReport = reports.find(
+              (r) => r.reportId.toLowerCase() === liveEntry.reportId?.toLowerCase()
+            );
+            if (foundReport) {
+              setSearchedReport(foundReport);
+              setPendingSampleStatus(null);
+            }
+          }
+        }
+      }
+    }
+  }, [receptionEntries, reports, matchedEntry]);
 
   // Initialize from props only if explicitly passed (e.g. from lab queue direct link)
   useEffect(() => {
@@ -145,113 +195,121 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     }
   }, [initialReportId, initialMobile, reports, receptionEntries]);
 
-  // Option 1: Search by Patient Name + Mobile Number (Both must match)
+  const handleSelectRecord = (match: { type: 'report' | 'entry'; report?: LabReport; entry?: ReceptionPatientEntry }) => {
+    setErrorMessage(null);
+    setErrorDetails(null);
+    setMatchedList([]);
+
+    if (match.type === 'report' && match.report) {
+      setSearchedReport(match.report);
+      setMatchedEntry(match.entry || null);
+      setPendingSampleStatus(null);
+    } else if (match.entry) {
+      setMatchedEntry(match.entry);
+      setSearchedReport(null);
+      setPendingSampleStatus({
+        tokenNumber: match.entry.tokenNumber,
+        patientName: match.entry.patientName,
+        ageGender: `${match.entry.age} Yrs / ${match.entry.gender}`,
+        tests: match.entry.tests || [],
+        registeredAt: match.entry.registeredAt || 'Today',
+        status: match.entry.status || 'Sample in Testing',
+        technicianStatus: match.entry.technicianStatus || 'Sent to Lab',
+        branchName: match.entry.branchName || 'Apex Central Diagnostic Hub',
+        branchPhone: labPhone,
+      });
+    }
+  };
+
+  // Option 1: Search by Mobile Number (Instant client lookup, Name optional)
   const handleSearchByNameAndMobile = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setErrorDetails(null);
     setSearchedReport(null);
     setPendingSampleStatus(null);
+    setMatchedEntry(null);
+    setMatchedList([]);
 
-    const inputName = patientName.trim().toLowerCase();
     const inputMobile = mobileNumber.replace(/\D/g, '');
-
-    if (!inputName) {
-      setErrorMessage('विवरण दर्ज करें (Please enter details)');
-      setErrorDetails('Please enter the patient full name.');
-      return;
-    }
+    const inputName = patientName.trim().toLowerCase();
 
     if (!inputMobile || inputMobile.length < 10) {
-      setErrorMessage('विवरण दर्ज करें (Please enter details)');
-      setErrorDetails('Please enter a valid 10-digit registered mobile number.');
+      setErrorMessage('मोबाइल नंबर दर्ज करें (Please enter mobile number)');
+      setErrorDetails('कृपया 10 अंकों का पंजीकृत मोबाइल नंबर दर्ज करें (e.g. 9876543210)।');
       return;
     }
 
-    const inputTokens = inputName.split(/\s+/).filter((t) => t.length > 1);
-
-    // 1. Check in completed reports
-    const matched = reports.find((r) => {
-      const rMob = r.mobile.replace(/\D/g, '');
-      const rName = r.patientName.trim().toLowerCase();
-
-      // Mobile check (exact 10 digits or match)
-      const isMobileMatch = rMob === inputMobile || rMob.endsWith(inputMobile) || inputMobile.endsWith(rMob);
-
-      // Name check (contains full name or key tokens match)
-      const isNameMatch =
-        rName === inputName ||
-        rName.includes(inputName) ||
-        inputName.includes(rName) ||
-        (inputTokens.length > 0 && inputTokens.every((token) => rName.includes(token)));
-
-      return isMobileMatch && isNameMatch;
+    // 1. Find all matching reports
+    const matchedReports = reports.filter((r) => {
+      const rMob = (r.mobile || '').replace(/\D/g, '');
+      return rMob === inputMobile || rMob.endsWith(inputMobile) || inputMobile.endsWith(rMob);
     });
 
-    if (matched) {
-      setSearchedReport(matched);
-      const match = (receptionEntries || []).find(
-        (e) =>
-          (e.reportId && e.reportId.toLowerCase() === matched.reportId.toLowerCase()) ||
-          (e.uhid && matched.uhid && e.uhid.toLowerCase() === matched.uhid.toLowerCase()) ||
-          (e.mobile && (e.mobile.replace(/\D/g, '') === inputMobile || inputMobile.endsWith(e.mobile.replace(/\D/g, ''))))
-      );
-      setMatchedEntry(match || null);
-      return;
-    }
-
-    // 2. Check in reception entries
-    const receptionMatch = (receptionEntries || []).find((entry) => {
+    // 2. Find all matching reception entries
+    const matchedReception = (receptionEntries || []).filter((entry) => {
       const eMob = (entry.mobile || '').replace(/\D/g, '');
-      const eName = (entry.patientName || '').trim().toLowerCase();
-      const isMobMatch = eMob === inputMobile || eMob.endsWith(inputMobile) || inputMobile.endsWith(eMob);
-      const isNameMatch =
-        eName === inputName ||
-        eName.includes(inputName) ||
-        inputName.includes(eName) ||
-        (inputTokens.length > 0 && inputTokens.every((t) => eName.includes(t)));
-      return isMobMatch && isNameMatch;
+      return eMob === inputMobile || eMob.endsWith(inputMobile) || inputMobile.endsWith(eMob);
     });
 
-    if (receptionMatch) {
-      setMatchedEntry(receptionMatch);
-      const hasReportReady =
-        receptionMatch.status === 'Report Ready' ||
-        receptionMatch.technicianStatus === 'Report Generated' ||
-        Boolean(receptionMatch.reportId);
+    // Combine matches
+    const allMatches: Array<{ type: 'report' | 'entry'; report?: LabReport; entry?: ReceptionPatientEntry }> = [];
 
-      if (hasReportReady && receptionMatch.reportId) {
-        const found = reports.find(
-          (r) =>
-            r.reportId.toLowerCase() === receptionMatch.reportId?.toLowerCase() ||
-            (r.uhid && r.uhid.toLowerCase() === receptionMatch.uhid.toLowerCase())
-        );
-        if (found) {
-          setSearchedReport(found);
-          return;
+    matchedReports.forEach((r) => {
+      const associatedEntry = (receptionEntries || []).find(
+        (e) =>
+          (e.reportId && e.reportId.toLowerCase() === r.reportId.toLowerCase()) ||
+          (e.uhid && r.uhid && e.uhid.toLowerCase() === r.uhid.toLowerCase())
+      );
+      allMatches.push({ type: 'report', report: r, entry: associatedEntry });
+    });
+
+    matchedReception.forEach((entry) => {
+      const alreadyIncluded = allMatches.some(
+        (m) =>
+          (m.report && entry.reportId && m.report.reportId.toLowerCase() === entry.reportId.toLowerCase()) ||
+          (m.entry && m.entry.id === entry.id)
+      );
+      if (!alreadyIncluded) {
+        if (entry.reportId) {
+          const rep = reports.find((r) => r.reportId.toLowerCase() === entry.reportId?.toLowerCase());
+          if (rep) {
+            allMatches.push({ type: 'report', report: rep, entry });
+            return;
+          }
         }
+        allMatches.push({ type: 'entry', entry });
       }
+    });
 
-      // If report is not yet finalized, show live sample progress status!
-      setPendingSampleStatus({
-        tokenNumber: receptionMatch.tokenNumber,
-        patientName: receptionMatch.patientName,
-        ageGender: `${receptionMatch.age} Yrs / ${receptionMatch.gender}`,
-        tests: receptionMatch.tests || [],
-        registeredAt: receptionMatch.registeredAt || 'Today',
-        status: receptionMatch.status || 'Sample in Testing',
-        technicianStatus: receptionMatch.technicianStatus || 'Sent to Lab',
-        branchName: receptionMatch.branchName || 'Apex Central Diagnostic Hub',
-        branchPhone: labPhone,
+    // Filter or prioritize if name was entered
+    let results = allMatches;
+    if (inputName) {
+      const byName = allMatches.filter((m) => {
+        const pName = (m.report?.patientName || m.entry?.patientName || '').toLowerCase();
+        return pName.includes(inputName) || inputName.includes(pName);
       });
+      if (byName.length > 0) {
+        results = byName;
+      }
+    }
+
+    if (results.length === 0) {
+      setErrorMessage('कोई रिकॉर्ड नहीं मिला (No Record Found)');
+      setErrorDetails(
+        `मोबाइल नंबर +91 ${inputMobile} ${inputName ? `(Name: ${patientName})` : ''} पर कोई सक्रिय जांच रिकॉर्ड नहीं मिला। कृपया रिसेप्शन से संपर्क करें या टोकन नंबर से खोजें।`
+      );
       return;
     }
 
-    // Not matched
-    setErrorMessage('विवरण मेल नहीं खाया (Details did not match)');
-    setErrorDetails(
-      `Name "${patientName}" and Mobile number "${mobileNumber}" did not match any active lab record. Both name and 10-digit mobile must match the reception entry slip.`
-    );
+    if (results.length === 1) {
+      const match = results[0];
+      handleSelectRecord(match);
+      return;
+    }
+
+    // Multiple records found for this mobile number
+    setMatchedList(results);
   };
 
   // Option 2: Search by Token Number OR Report ID
@@ -545,13 +603,13 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
               </div>
               <div>
                 <div className="text-xs font-bold flex items-center gap-1.5">
-                  <span>Option 1: Patient Name + Mobile</span>
+                  <span>Option 1: Mobile Number</span>
                   <span className="text-[10px] px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded font-semibold">
-                    Both Required
+                    10 Digits • Real-Time Sync
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Report unlocks when both patient name and registered mobile number match
+                  Enter registered 10-digit mobile number to view report instantly (Name optional)
                 </p>
               </div>
             </button>
@@ -608,34 +666,13 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             </div>
           )}
 
-          {/* OPTION 1 FORM: PATIENT NAME + 10-DIGIT MOBILE NUMBER */}
+          {/* OPTION 1 FORM: 10-DIGIT MOBILE NUMBER (+ OPTIONAL PATIENT NAME) */}
           {searchMethod === 'name_mobile' && (
             <form onSubmit={handleSearchByNameAndMobile} className="mt-5 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-800 mb-1">
-                    1. Patient Full Name (मरीज का नाम) <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      type="text"
-                      required
-                      value={patientName}
-                      onChange={(e) => {
-                        setPatientName(e.target.value);
-                        if (errorMessage) setErrorMessage(null);
-                      }}
-                      placeholder="e.g. Ramesh Kumar Verma"
-                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
-                    />
-                  </div>
-                  <p className="text-[10px] text-slate-500 mt-1">Enter patient name as registered at reception</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    2. Registered Mobile No. (10 Digits / मोबाइल नंबर) <span className="text-rose-500">*</span>
+                    1. Registered Mobile No. (10 Digits / मोबाइल नंबर) <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-xs text-slate-500 font-bold">+91</span>
@@ -652,24 +689,131 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                       className="w-full pl-11 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono"
                     />
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">10-digit registered telephone number</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Enter 10-digit mobile number given at lab reception</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    2. Patient Full Name (मरीज का नाम) <span className="text-slate-400 font-normal">(Optional / वैकल्पिक)</span>
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={patientName}
+                      onChange={(e) => {
+                        setPatientName(e.target.value);
+                        if (errorMessage) setErrorMessage(null);
+                      }}
+                      placeholder="e.g. Ramesh Kumar Verma (Optional)"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-1">Leave empty to view all reports under this mobile number</p>
                 </div>
               </div>
 
               <div className="pt-2 flex items-center justify-between gap-3">
                 <div className="text-[11px] text-slate-500 flex items-center gap-1 font-medium">
                   <ShieldCheck className="w-3.5 h-3.5 text-[#0F766E]" />
-                  <span>Report unlocks when both name and mobile match</span>
+                  <span>Real-time cross-device cloud sync enabled</span>
                 </div>
                 <button
                   type="submit"
                   className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer"
                 >
                   <Search className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Verify & View Report</span>
+                  <span>Search Reports / रिपोर्ट खोजें</span>
                 </button>
               </div>
             </form>
+          )}
+
+          {/* MULTI-RECORD RESULTS LIST FOR CLIENT MOBILE NUMBER */}
+          {matchedList.length > 0 && (
+            <div className="mt-5 p-4 sm:p-5 bg-blue-50/80 border-2 border-blue-200 rounded-2xl animate-in fade-in duration-200 shadow-xs">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-[#123B6D] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                    {matchedList.length}
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-xs text-[#123B6D]">
+                      {matchedList.length} Records Found for +91 {mobileNumber}
+                    </h3>
+                    <p className="text-[11px] text-slate-600">
+                      इस मोबाइल नंबर पर {matchedList.length} जांच रिकॉर्ड मिले हैं। कृपया अपनी जांच रिपोर्ट चुनें:
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMatchedList([])}
+                  className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                  title="Close list"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-2.5">
+                {matchedList.map((m, idx) => {
+                  const pName = m.report?.patientName || m.entry?.patientName || 'Patient';
+                  const testNames =
+                    m.report?.items?.map((p) => p.testName || p.parameter).slice(0, 3).join(', ') ||
+                    m.entry?.tests?.slice(0, 3).join(', ') ||
+                    'Diagnostic Profile';
+                  const tokenOrId = m.report?.reportId || m.entry?.tokenNumber || `Record #${idx + 1}`;
+                  const isReady = Boolean(m.report) || m.entry?.status === 'Report Ready';
+
+                  return (
+                    <div
+                      key={idx}
+                      className="p-3 bg-white rounded-xl border border-slate-200 hover:border-[#123B6D] transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs hover:shadow-xs"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                            isReady ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                          }`}
+                        >
+                          {isReady ? <FileText className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-slate-900 flex items-center gap-2">
+                            <span>{pName}</span>
+                            <span className="font-mono text-[10px] text-slate-600 px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 font-bold">
+                              {tokenOrId}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-600 truncate max-w-xs sm:max-w-md mt-0.5">
+                            {testNames}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-2.5">
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                            isReady ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {isReady ? 'Report Ready' : 'In Testing'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectRecord(m)}
+                          className="px-3.5 py-1.5 bg-[#123B6D] hover:bg-[#0e2c52] text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                        >
+                          <span>View Live Report</span>
+                          <ArrowRight className="w-3 h-3 text-amber-300" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
           {/* OPTION 2 FORM: TOKEN NUMBER OR REPORT ID */}
@@ -776,6 +920,29 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         {/* LIVE SAMPLE PROGRESS STATE (When Token or Patient is registered but lab testing is still in progress) */}
         {pendingSampleStatus && !searchedReport && (
           <div className="bg-white rounded-2xl border-2 border-blue-300 shadow-md p-6 sm:p-7 space-y-5 text-xs animate-in fade-in duration-200 no-print">
+            {/* Live Real-Time Multi-Device Sync Indicator */}
+            <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-emerald-950 shadow-2xs">
+              <div className="flex items-center gap-2.5 font-bold">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span>Live Real-Time Sync Active (सभी डिवाइस पर लाइव कनेक्टेड • लैब में अपडेट होते ही यहाँ दिखेगा)</span>
+              </div>
+              <a
+                href={`https://wa.me/91${(matchedEntry?.mobile || mobileNumber || '').replace(/\D/g, '')}?text=${encodeURIComponent(
+                  `Apex Diagnostic Lab Status Update:\nPatient: ${pendingSampleStatus.patientName}\nToken: ${pendingSampleStatus.tokenNumber}\nStatus: Sample in Lab Processing\nBranch: ${pendingSampleStatus.branchName || 'Apex Central Lab'}\nPhone: ${pendingSampleStatus.branchPhone || labPhone}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-[#25D366] hover:bg-[#1ebd5a] text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition shrink-0 self-start sm:self-auto cursor-pointer shadow-2xs"
+                title="Send status update to WhatsApp"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>WhatsApp to Client</span>
+              </a>
+            </div>
+
             {/* Primary Hindi Notification Banner requested by user */}
             <div className="p-4 sm:p-5 bg-blue-50 border-2 border-blue-200 rounded-xl text-blue-950 space-y-2">
               <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-blue-900">
@@ -912,6 +1079,29 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         {/* THE AUTHENTICATED REPORT VIEW: SHOWN ONLY WHEN MATCHED SUCCESSFULLY */}
         {searchedReport && (
           <div className="space-y-4 animate-in fade-in duration-200">
+            {/* Live Real-Time Multi-Device Sync Indicator & Client WhatsApp */}
+            <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-emerald-950 shadow-2xs no-print">
+              <div className="flex items-center gap-2.5 font-bold">
+                <span className="relative flex h-2.5 w-2.5 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span>Live Real-Time Sync Active (सभी डिवाइस पर लाइव कनेक्टेड • डॉक्टर या लैब में कोई भी बदलाव तुरंत यहाँ दिखेगा)</span>
+              </div>
+              <a
+                href={`https://wa.me/91${(searchedReport.mobile || mobileNumber || '').replace(/\D/g, '')}?text=${encodeURIComponent(
+                  `Apex Diagnostic Lab Report Ready:\nPatient: ${searchedReport.patientName}\nToken: ${searchedReport.tokenNumber || ''}\nReport ID: ${searchedReport.reportId}\nStatus: ${searchedReport.verified ? 'Verified & Final' : searchedReport.status}\nLab: ${labName}\nPhone: ${labPhone}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-[#25D366] hover:bg-[#1ebd5a] text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition shrink-0 self-start sm:self-auto cursor-pointer shadow-2xs"
+                title="Send official report summary to client WhatsApp"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>WhatsApp to Client</span>
+              </a>
+            </div>
+
             {/* Prominent Cancellation Banner if Report Was Cancelled */}
             {searchedReport.cancelled && (
               <div className="bg-rose-50 border-2 border-rose-400 rounded-2xl p-5 text-xs text-rose-950 shadow-sm flex items-start gap-4">
