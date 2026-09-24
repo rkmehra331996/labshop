@@ -7,7 +7,8 @@ import {
   getDocs,
   getDoc,
   writeBatch,
-  getDocFromServer
+  getDocFromServer,
+  getDocsFromServer
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { 
@@ -18,7 +19,12 @@ import {
   TestItem,
   VendorPackage,
   VendorDoctor,
-  VendorBranch
+  VendorBranch,
+  CompanySettings,
+  PortalWebsiteSections,
+  VendorLabDirectoryItem,
+  PricingPlan,
+  LabStaffAccount
 } from '../types';
 
 // Collection identifiers in Cloud Firestore
@@ -32,6 +38,10 @@ export const COLLECTIONS = {
   PACKAGES: 'lab_packages',
   DOCTORS: 'lab_doctors',
   BRANCHES: 'vendor_branches',
+  COMPANY_SETTINGS: 'company_settings',
+  PORTAL_SECTIONS: 'portal_sections',
+  VENDOR_LABS: 'vendor_labs',
+  PRICING_PLANS: 'pricing_plans',
 } as const;
 
 export enum OperationType {
@@ -444,6 +454,41 @@ export function subscribeToLabReports(
   }
 }
 
+/**
+ * Direct Server Fetch (Bypasses all client/browser caches, queries Google Cloud directly)
+ */
+export async function fetchReportsFromServer(): Promise<LabReport[]> {
+  try {
+    if (!db) return [];
+    const colRef = collection(db, COLLECTIONS.LAB_REPORTS);
+    const snap = await getDocsFromServer(colRef);
+    const list: LabReport[] = [];
+    snap.forEach((docSnap) => {
+      list.push(docSnap.data() as LabReport);
+    });
+    return list;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.GET, COLLECTIONS.LAB_REPORTS);
+    return [];
+  }
+}
+
+export async function fetchReceptionEntriesFromServer(): Promise<ReceptionPatientEntry[]> {
+  try {
+    if (!db) return [];
+    const colRef = collection(db, COLLECTIONS.RECEPTION_ENTRIES);
+    const snap = await getDocsFromServer(colRef);
+    const list: ReceptionPatientEntry[] = [];
+    snap.forEach((docSnap) => {
+      list.push(docSnap.data() as ReceptionPatientEntry);
+    });
+    return list;
+  } catch (err) {
+    handleFirestoreError(err, OperationType.GET, COLLECTIONS.RECEPTION_ENTRIES);
+    return [];
+  }
+}
+
 /* ==========================================================================
    7. HOME COLLECTION BOOKINGS (Real-time Cross-Device Sync)
    ========================================================================== */
@@ -509,7 +554,12 @@ export async function seedInitialFirestoreData(
   initialSettingsMap?: Record<string, VendorLabSettings>,
   initialTests?: TestItem[],
   initialPackages?: VendorPackage[],
-  initialDoctors?: VendorDoctor[]
+  initialDoctors?: VendorDoctor[],
+  initialCompanySettings?: CompanySettings,
+  initialPortalSections?: PortalWebsiteSections,
+  initialVendorLabs?: VendorLabDirectoryItem[],
+  initialPricingPlans?: PricingPlan[],
+  initialStaff?: LabStaffAccount[]
 ): Promise<void> {
   try {
     if (!db) return;
@@ -565,7 +615,318 @@ export async function seedInitialFirestoreData(
         await batch.commit().catch(() => {});
       }
     }
+
+    // 5. Seed Company Settings if empty
+    if (initialCompanySettings) {
+      const compDocRef = doc(db, COLLECTIONS.COMPANY_SETTINGS, 'main');
+      const compSnap = await getDoc(compDocRef);
+      if (!compSnap.exists()) {
+        await setDoc(compDocRef, sanitizeForFirestore({ ...initialCompanySettings, _updatedAt: new Date().toISOString() }));
+      }
+    }
+
+    // 6. Seed Portal Sections if empty
+    if (initialPortalSections) {
+      const secDocRef = doc(db, COLLECTIONS.PORTAL_SECTIONS, 'main');
+      const secSnap = await getDoc(secDocRef);
+      if (!secSnap.exists()) {
+        await setDoc(secDocRef, sanitizeForFirestore({ ...initialPortalSections, _updatedAt: new Date().toISOString() }));
+      }
+    }
+
+    // 7. Seed Vendor Labs Directory if empty
+    if (initialVendorLabs && initialVendorLabs.length > 0) {
+      const labsCol = collection(db, COLLECTIONS.VENDOR_LABS);
+      const labsSnap = await getDocs(labsCol);
+      if (labsSnap.empty) {
+        const batch = writeBatch(db);
+        initialVendorLabs.forEach((lab) => {
+          const ref = doc(db, COLLECTIONS.VENDOR_LABS, lab.id);
+          batch.set(ref, sanitizeForFirestore({ ...lab, _updatedAt: new Date().toISOString() }));
+        });
+        await batch.commit().catch(() => {});
+      }
+    }
+
+    // 8. Seed Pricing Plans if empty
+    if (initialPricingPlans && initialPricingPlans.length > 0) {
+      const plansCol = collection(db, COLLECTIONS.PRICING_PLANS);
+      const plansSnap = await getDocs(plansCol);
+      if (plansSnap.empty) {
+        const batch = writeBatch(db);
+        initialPricingPlans.forEach((plan) => {
+          const ref = doc(db, COLLECTIONS.PRICING_PLANS, plan.id);
+          batch.set(ref, sanitizeForFirestore({ ...plan, _updatedAt: new Date().toISOString() }));
+        });
+        await batch.commit().catch(() => {});
+      }
+    }
+
+    // 9. Seed Staff Accounts if empty
+    if (initialStaff && initialStaff.length > 0) {
+      const staffCol = collection(db, COLLECTIONS.STAFF);
+      const staffSnap = await getDocs(staffCol);
+      if (staffSnap.empty) {
+        const batch = writeBatch(db);
+        initialStaff.forEach((s) => {
+          const ref = doc(db, COLLECTIONS.STAFF, s.id);
+          batch.set(ref, sanitizeForFirestore({ ...s, _updatedAt: new Date().toISOString() }));
+        });
+        await batch.commit().catch(() => {});
+      }
+    }
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, 'seed_data');
+  }
+}
+
+/* ==========================================================================
+   9. COMPANY SETTINGS & GLOBAL BRANDING (Real-time Cross-Device Sync)
+   ========================================================================== */
+
+export async function syncCompanySettingsToCloud(settings: CompanySettings): Promise<void> {
+  try {
+    if (!db) return;
+    const clean = sanitizeForFirestore({
+      ...settings,
+      _updatedAt: new Date().toISOString(),
+    });
+    const ref = doc(db, COLLECTIONS.COMPANY_SETTINGS, 'main');
+    await setDoc(ref, clean, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `${COLLECTIONS.COMPANY_SETTINGS}/main`);
+  }
+}
+
+export function subscribeToCompanySettings(
+  onData: (settings: CompanySettings) => void,
+  onError?: (err: any) => void
+): () => void {
+  try {
+    if (!db) return () => {};
+    const docRef = doc(db, COLLECTIONS.COMPANY_SETTINGS, 'main');
+    return onSnapshot(
+      docRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          onData(docSnap.data() as CompanySettings);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, `${COLLECTIONS.COMPANY_SETTINGS}/main`);
+        if (onError) onError(error);
+      }
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.GET, `${COLLECTIONS.COMPANY_SETTINGS}/main`);
+    return () => {};
+  }
+}
+
+/* ==========================================================================
+   10. PORTAL WEBSITE SECTIONS ON/OFF (Real-time Cross-Device Sync)
+   ========================================================================== */
+
+export async function syncPortalSectionsToCloud(sections: PortalWebsiteSections): Promise<void> {
+  try {
+    if (!db) return;
+    const clean = sanitizeForFirestore({
+      ...sections,
+      _updatedAt: new Date().toISOString(),
+    });
+    const ref = doc(db, COLLECTIONS.PORTAL_SECTIONS, 'main');
+    await setDoc(ref, clean, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `${COLLECTIONS.PORTAL_SECTIONS}/main`);
+  }
+}
+
+export function subscribeToPortalSections(
+  onData: (sections: PortalWebsiteSections) => void,
+  onError?: (err: any) => void
+): () => void {
+  try {
+    if (!db) return () => {};
+    const docRef = doc(db, COLLECTIONS.PORTAL_SECTIONS, 'main');
+    return onSnapshot(
+      docRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          onData(docSnap.data() as PortalWebsiteSections);
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, `${COLLECTIONS.PORTAL_SECTIONS}/main`);
+        if (onError) onError(error);
+      }
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.GET, `${COLLECTIONS.PORTAL_SECTIONS}/main`);
+    return () => {};
+  }
+}
+
+/* ==========================================================================
+   11. VENDOR LABS DIRECTORY (Real-time Cross-Device Sync)
+   ========================================================================== */
+
+export async function syncVendorLabToCloud(lab: VendorLabDirectoryItem): Promise<void> {
+  try {
+    if (!db || !lab.id) return;
+    const clean = sanitizeForFirestore({
+      ...lab,
+      _updatedAt: new Date().toISOString(),
+    });
+    const ref = doc(db, COLLECTIONS.VENDOR_LABS, lab.id);
+    await setDoc(ref, clean, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `${COLLECTIONS.VENDOR_LABS}/${lab.id}`);
+  }
+}
+
+export async function deleteVendorLabFromCloud(labId: string): Promise<void> {
+  try {
+    if (!db || !labId) return;
+    const ref = doc(db, COLLECTIONS.VENDOR_LABS, labId);
+    await deleteDoc(ref);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `${COLLECTIONS.VENDOR_LABS}/${labId}`);
+  }
+}
+
+export function subscribeToVendorLabs(
+  onData: (labs: VendorLabDirectoryItem[]) => void,
+  onError?: (err: any) => void
+): () => void {
+  try {
+    if (!db) return () => {};
+    const colRef = collection(db, COLLECTIONS.VENDOR_LABS);
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        const list: VendorLabDirectoryItem[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as VendorLabDirectoryItem);
+        });
+        onData(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, COLLECTIONS.VENDOR_LABS);
+        if (onError) onError(error);
+      }
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, COLLECTIONS.VENDOR_LABS);
+    return () => {};
+  }
+}
+
+/* ==========================================================================
+   12. PRICING PLANS (Real-time Cross-Device Sync)
+   ========================================================================== */
+
+export async function syncPricingPlanToCloud(plan: PricingPlan): Promise<void> {
+  try {
+    if (!db || !plan.id) return;
+    const clean = sanitizeForFirestore({
+      ...plan,
+      _updatedAt: new Date().toISOString(),
+    });
+    const ref = doc(db, COLLECTIONS.PRICING_PLANS, plan.id);
+    await setDoc(ref, clean, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `${COLLECTIONS.PRICING_PLANS}/${plan.id}`);
+  }
+}
+
+export async function deletePricingPlanFromCloud(planId: string): Promise<void> {
+  try {
+    if (!db || !planId) return;
+    const ref = doc(db, COLLECTIONS.PRICING_PLANS, planId);
+    await deleteDoc(ref);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `${COLLECTIONS.PRICING_PLANS}/${planId}`);
+  }
+}
+
+export function subscribeToPricingPlans(
+  onData: (plans: PricingPlan[]) => void,
+  onError?: (err: any) => void
+): () => void {
+  try {
+    if (!db) return () => {};
+    const colRef = collection(db, COLLECTIONS.PRICING_PLANS);
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        const list: PricingPlan[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as PricingPlan);
+        });
+        onData(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, COLLECTIONS.PRICING_PLANS);
+        if (onError) onError(error);
+      }
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, COLLECTIONS.PRICING_PLANS);
+    return () => {};
+  }
+}
+
+/* ==========================================================================
+   13. LAB STAFF ACCOUNTS (Real-time Cross-Device Sync)
+   ========================================================================== */
+
+export async function syncStaffAccountToCloud(staff: LabStaffAccount): Promise<void> {
+  try {
+    if (!db || !staff.id) return;
+    const clean = sanitizeForFirestore({
+      ...staff,
+      _updatedAt: new Date().toISOString(),
+    });
+    const ref = doc(db, COLLECTIONS.STAFF, staff.id);
+    await setDoc(ref, clean, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `${COLLECTIONS.STAFF}/${staff.id}`);
+  }
+}
+
+export async function deleteStaffAccountFromCloud(staffId: string): Promise<void> {
+  try {
+    if (!db || !staffId) return;
+    const ref = doc(db, COLLECTIONS.STAFF, staffId);
+    await deleteDoc(ref);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `${COLLECTIONS.STAFF}/${staffId}`);
+  }
+}
+
+export function subscribeToStaffAccounts(
+  onData: (staffList: LabStaffAccount[]) => void,
+  onError?: (err: any) => void
+): () => void {
+  try {
+    if (!db) return () => {};
+    const colRef = collection(db, COLLECTIONS.STAFF);
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        const list: LabStaffAccount[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as LabStaffAccount);
+        });
+        onData(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, COLLECTIONS.STAFF);
+        if (onError) onError(error);
+      }
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, COLLECTIONS.STAFF);
+    return () => {};
   }
 }

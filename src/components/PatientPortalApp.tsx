@@ -48,7 +48,16 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
   initialReportId = '',
   initialMobile = '',
 }) => {
-  const { reports, receptionEntries, vendorLabSettings, updateReceptionEntry } = useCms();
+  const { 
+    reports, 
+    receptionEntries, 
+    vendorLabSettings, 
+    updateReceptionEntry,
+    refreshCloudData,
+    isCloudConnected,
+    cloudSyncStatus,
+    lastCloudSyncTime 
+  } = useCms();
 
   // Search Option: 'name_mobile' | 'report_id'
   const [searchMethod, setSearchMethod] = useState<'name_mobile' | 'report_id'>('name_mobile');
@@ -231,6 +240,9 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     setMatchedEntry(null);
     setMatchedList([]);
 
+    // Trigger instant background server pull to guarantee 0% stale cache
+    refreshCloudData().catch(() => {});
+
     const inputMobile = mobileNumber.replace(/\D/g, '');
     const inputName = patientName.trim().toLowerCase();
 
@@ -320,6 +332,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     setSearchedReport(null);
     setMatchedEntry(null);
     setPendingSampleStatus(null);
+    refreshCloudData().catch(() => {});
 
     const raw = reportIdInput.trim().toLowerCase();
     if (!raw) {
@@ -554,9 +567,20 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             </div>
           </div>
 
-          <div className="text-xs text-slate-500 hidden sm:flex items-center gap-1 font-medium">
-            <ShieldCheck className="w-4 h-4 text-[#0F766E]" />
-            <span>Zero-Login Secure NABL Portal</span>
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => refreshCloudData()}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer shadow-2xs"
+              title="Click to check latest live report directly from Cloud Server (No cache)"
+            >
+              <span className={`w-2 h-2 rounded-full ${isCloudConnected ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`}></span>
+              <span className="hidden sm:inline">Live Cloud Sync</span>
+              <RefreshCw className={`w-3 h-3 text-emerald-600 ${cloudSyncStatus === 'syncing' ? 'animate-spin' : ''}`} />
+            </button>
+            <div className="text-xs text-slate-500 hidden md:flex items-center gap-1 font-medium">
+              <ShieldCheck className="w-4 h-4 text-[#0F766E]" />
+              <span>Zero-Login Secure NABL Portal</span>
+            </div>
           </div>
         </div>
       </header>

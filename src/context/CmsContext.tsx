@@ -36,6 +36,8 @@ import {
   syncLabSettingsToCloud,
   subscribeToLabSettings,
   fetchAllLabSettingsFromCloud,
+  fetchReportsFromServer,
+  fetchReceptionEntriesFromServer,
   syncTestToCloud,
   deleteTestFromCloud,
   subscribeToTests,
@@ -49,6 +51,19 @@ import {
   subscribeToLabReports,
   subscribeToBookings,
   seedInitialFirestoreData,
+  syncCompanySettingsToCloud,
+  subscribeToCompanySettings,
+  syncPortalSectionsToCloud,
+  subscribeToPortalSections,
+  syncVendorLabToCloud,
+  deleteVendorLabFromCloud,
+  subscribeToVendorLabs,
+  syncPricingPlanToCloud,
+  deletePricingPlanFromCloud,
+  subscribeToPricingPlans,
+  syncStaffAccountToCloud,
+  deleteStaffAccountFromCloud,
+  subscribeToStaffAccounts,
 } from '../lib/cloudSync';
 
 export const DEFAULT_VENDOR_SECTIONS: VendorWebsiteSections = {
@@ -1647,7 +1662,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [portalSections]);
 
   const updatePortalSection = (sectionKey: keyof PortalWebsiteSections, enabled: boolean) => {
-    setPortalSections((prev) => ({ ...prev, [sectionKey]: enabled }));
+    setPortalSections((prev) => {
+      const updated = { ...prev, [sectionKey]: enabled };
+      syncPortalSectionsToCloud(updated);
+      return updated;
+    });
   };
 
   const toggleAllPortalSections = (enabled: boolean) => {
@@ -1656,6 +1675,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       (Object.keys(updated) as (keyof PortalWebsiteSections)[]).forEach((k) => {
         updated[k] = enabled;
       });
+      syncPortalSectionsToCloud(updated);
       return updated;
     });
   };
@@ -2017,7 +2037,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       vendorLabSettingsMap, 
       allVendorTests, 
       allVendorPackages, 
-      allVendorDoctors
+      allVendorDoctors,
+      companySettings,
+      portalSections,
+      vendorLabsList,
+      pricingPlans,
+      allStaffAccounts
     );
 
     // 2. Subscribe to Lab Settings (Name, Phone, Address, QR Codes, Branding across all mobile & desktop devices)
@@ -2107,6 +2132,41 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     );
 
+    // 9. Subscribe to Company Settings
+    const unsubscribeCompany = subscribeToCompanySettings((cloudSettings) => {
+      if (cloudSettings && Object.keys(cloudSettings).length > 0) {
+        setCompanySettings((prev) => ({ ...prev, ...cloudSettings }));
+      }
+    });
+
+    // 10. Subscribe to Portal Sections
+    const unsubscribeSections = subscribeToPortalSections((cloudSections) => {
+      if (cloudSections && Object.keys(cloudSections).length > 0) {
+        setPortalSections((prev) => ({ ...prev, ...cloudSections }));
+      }
+    });
+
+    // 11. Subscribe to Vendor Labs Directory
+    const unsubscribeVendorLabs = subscribeToVendorLabs((cloudLabs) => {
+      if (cloudLabs && cloudLabs.length > 0) {
+        setVendorLabsList(cloudLabs);
+      }
+    });
+
+    // 12. Subscribe to Pricing Plans
+    const unsubscribePricing = subscribeToPricingPlans((cloudPlans) => {
+      if (cloudPlans && cloudPlans.length > 0) {
+        setPricingPlans(cloudPlans);
+      }
+    });
+
+    // 13. Subscribe to Staff Accounts
+    const unsubscribeStaff = subscribeToStaffAccounts((cloudStaff) => {
+      if (cloudStaff && cloudStaff.length > 0) {
+        setAllStaffAccounts(cloudStaff);
+      }
+    });
+
     return () => {
       unsubscribeSettings();
       unsubscribeTests();
@@ -2115,19 +2175,34 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       unsubscribeReception();
       unsubscribeReports();
       unsubscribeBookings();
+      unsubscribeCompany();
+      unsubscribeSections();
+      unsubscribeVendorLabs();
+      unsubscribePricing();
+      unsubscribeStaff();
     };
   }, []);
 
-  // Explicit Cloud Refresh (Pulls latest from Cloud Firestore)
+  // Explicit Cloud Refresh (Pulls latest directly from Cloud Firestore servers, zero cache)
   const refreshCloudData = async () => {
     setCloudSyncStatus('syncing');
     try {
-      const cloudSettings = await fetchAllLabSettingsFromCloud();
+      const [cloudSettings, cloudReports, cloudEntries] = await Promise.all([
+        fetchAllLabSettingsFromCloud(),
+        fetchReportsFromServer(),
+        fetchReceptionEntriesFromServer(),
+      ]);
       if (cloudSettings && Object.keys(cloudSettings).length > 0) {
         setVendorLabSettingsMap((prev) => ({
           ...prev,
           ...cloudSettings,
         }));
+      }
+      if (cloudReports && cloudReports.length > 0) {
+        setAllReports(cloudReports);
+      }
+      if (cloudEntries && cloudEntries.length > 0) {
+        setAllReceptionEntries(cloudEntries);
       }
       setIsCloudConnected(true);
       setCloudSyncStatus('synced');
@@ -2702,10 +2777,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       minute: '2-digit',
     });
 
+    let syncedStaff: LabStaffAccount | null = null;
     setAllStaffAccounts((prev) => {
       const updated = prev.map((s) => {
         if (s.id === id) {
-          return { ...s, password: cleanPass, lastPasswordReset: now };
+          syncedStaff = { ...s, password: cleanPass, lastPasswordReset: now };
+          return syncedStaff;
         }
         return s;
       });
@@ -2714,6 +2791,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch {}
       return updated;
     });
+    if (syncedStaff) {
+      syncStaffAccountToCloud(syncedStaff);
+    }
   };
 
   const updateStaffAccount = (id: string, updates: Partial<LabStaffAccount>) => {
@@ -2724,15 +2804,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       hour: '2-digit',
       minute: '2-digit',
     });
+    let syncedStaff: LabStaffAccount | null = null;
     setAllStaffAccounts((prev) => {
       const updated = prev.map((s) => {
         if (s.id === id) {
           const passChanged = updates.password && updates.password !== s.password;
-          return {
+          syncedStaff = {
             ...s,
             ...updates,
             ...(passChanged ? { lastPasswordReset: now } : {}),
           };
+          return syncedStaff;
         }
         return s;
       });
@@ -2741,6 +2823,9 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch {}
       return updated;
     });
+    if (syncedStaff) {
+      syncStaffAccountToCloud(syncedStaff);
+    }
   };
 
   const addStaffAccount = (staff: Omit<LabStaffAccount, 'id'>) => {
@@ -2765,6 +2850,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch {}
       return updated;
     });
+    syncStaffAccountToCloud(newStaff);
   };
 
   const deleteStaffAccount = (id: string) => {
@@ -2775,6 +2861,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch {}
       return updated;
     });
+    deleteStaffAccountFromCloud(id);
   };
 
   // Auth actions with strict credential verification
@@ -3275,7 +3362,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Company CMS Actions
   const updateCompanySettings = (newSettings: Partial<CompanySettings>) => {
-    setCompanySettings((prev) => ({ ...prev, ...newSettings }));
+    setCompanySettings((prev) => {
+      const updated = { ...prev, ...newSettings };
+      syncCompanySettingsToCloud(updated);
+      return updated;
+    });
   };
 
   const addPricingPlan = (plan: Omit<PricingPlan, 'id'>) => {
@@ -3284,14 +3375,25 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: `plan-${Date.now()}`,
     };
     setPricingPlans((prev) => [...prev, newPlan]);
+    syncPricingPlanToCloud(newPlan);
   };
 
   const updatePricingPlan = (id: string, plan: Partial<PricingPlan>) => {
-    setPricingPlans((prev) => prev.map((p) => (p.id === id ? { ...p, ...plan } : p)));
+    setPricingPlans((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          const updated = { ...p, ...plan };
+          syncPricingPlanToCloud(updated);
+          return updated;
+        }
+        return p;
+      })
+    );
   };
 
   const deletePricingPlan = (id: string) => {
     setPricingPlans((prev) => prev.filter((p) => p.id !== id));
+    deletePricingPlanFromCloud(id);
   };
 
   const addCompanyFeature = (feature: Omit<CompanyFeature, 'id'>) => {
@@ -3645,12 +3747,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       badge: isExplicitActive ? (vendor.badge || 'Verified Lab') : 'Draft - Pending Admin Approval',
     };
     setVendorLabsList((prev) => [newLab, ...prev]);
+    syncVendorLabToCloud(newLab);
 
     // Ensure settings map entry exists for this lab and is synced with draft/approved state
     setVendorLabSettingsMap((prev) => {
       const defaultSettings = buildDefaultSettingsForLab(newLab);
       defaultSettings.status = initialStatus;
       defaultSettings.isWebsiteApproved = isExplicitActive;
+      syncLabSettingsToCloud(newLabId, defaultSettings);
       return {
         ...prev,
         [newLabId]: defaultSettings,
@@ -3661,48 +3765,67 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateVendorLab = (id: string, updates: Partial<VendorLabDirectoryItem>) => {
+    let syncedLab: VendorLabDirectoryItem | null = null;
     setVendorLabsList((prev) => {
-      const updated = prev.map((lab) => (lab.id === id ? { ...lab, ...updates } : lab));
+      const updated = prev.map((lab) => {
+        if (lab.id === id) {
+          syncedLab = { ...lab, ...updates };
+          return syncedLab;
+        }
+        return lab;
+      });
       try {
         localStorage.setItem('cms_vendor_labs_list', JSON.stringify(updated));
       } catch {}
       return updated;
     });
+    if (syncedLab) {
+      syncVendorLabToCloud(syncedLab);
+    }
   };
 
   const updateVendorLabCredentials = (labId: string, password: string, pin?: string) => {
     const cleanPass = password.trim();
     const cleanPin = pin?.trim();
+    let syncedLab: VendorLabDirectoryItem | null = null;
 
     setVendorLabsList((prev) => {
-      const updated = prev.map((lab) =>
-        lab.id === labId
-          ? {
-              ...lab,
-              password: cleanPass,
-              ...(cleanPin ? { pin: cleanPin } : {}),
-            }
-          : lab
-      );
+      const updated = prev.map((lab) => {
+        if (lab.id === labId) {
+          syncedLab = {
+            ...lab,
+            password: cleanPass,
+            ...(cleanPin ? { pin: cleanPin } : {}),
+          };
+          return syncedLab;
+        }
+        return lab;
+      });
       try {
         localStorage.setItem('cms_vendor_labs_list', JSON.stringify(updated));
       } catch {}
       return updated;
     });
 
+    if (syncedLab) {
+      syncVendorLabToCloud(syncedLab);
+    }
+
     setVendorLabSettingsMap((prev) => {
       if (prev[labId]) {
+        const updatedSettings = {
+          ...prev[labId],
+          ownerPassword: cleanPass,
+          ...(cleanPin ? { ownerPin: cleanPin } : {}),
+        };
         const updated = {
           ...prev,
-          [labId]: {
-            ...prev[labId],
-            ownerPassword: cleanPass,
-            ...(cleanPin ? { ownerPin: cleanPin } : {}),
-          },
+          [labId]: updatedSettings,
         };
         try {
           localStorage.setItem('cms_vendor_lab_settings_map', JSON.stringify(updated));
         } catch {}
+        syncLabSettingsToCloud(labId, updatedSettings);
         return updated;
       }
       return prev;
@@ -3711,34 +3834,41 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteVendorLab = (id: string) => {
     setVendorLabsList((prev) => prev.filter((lab) => lab.id !== id));
+    deleteVendorLabFromCloud(id);
   };
 
   const setVendorStatus = (id: string, status: VendorStatus) => {
     const isApproved = status === 'Active';
+    let syncedLab: VendorLabDirectoryItem | null = null;
     setVendorLabsList((prev) =>
-      prev.map((lab) =>
-        lab.id === id
-          ? {
-              ...lab,
-              status,
-              isWebsiteApproved: isApproved,
-              ...(isApproved
-                ? {
-                    approvedAt: new Date().toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                    }),
-                    approvedBy: currentUser?.name || 'Platform Admin',
-                    badge: lab.badge === 'Draft - Pending Admin Approval' ? 'Verified Lab' : lab.badge,
-                  }
-                : {
-                    badge: status === 'Draft' ? 'Draft - Pending Admin Approval' : lab.badge,
+      prev.map((lab) => {
+        if (lab.id === id) {
+          syncedLab = {
+            ...lab,
+            status,
+            isWebsiteApproved: isApproved,
+            ...(isApproved
+              ? {
+                  approvedAt: new Date().toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
                   }),
-            }
-          : lab
-      )
+                  approvedBy: currentUser?.name || 'Platform Admin',
+                  badge: lab.badge === 'Draft - Pending Admin Approval' ? 'Verified Lab' : lab.badge,
+                }
+              : {
+                  badge: status === 'Draft' ? 'Draft - Pending Admin Approval' : lab.badge,
+                }),
+          };
+          return syncedLab;
+        }
+        return lab;
+      })
     );
+    if (syncedLab) {
+      syncVendorLabToCloud(syncedLab);
+    }
 
     // Sync with vendorLabSettingsMap
     setVendorLabSettingsMap((prev) => {
