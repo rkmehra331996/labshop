@@ -52,12 +52,10 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
 
   // 3. Generate Assets in Parallel:
   // - ONE QR Code ONLY (top header)
-  // - Dynamic Laboratory Logo Watermark (faded ~0.045 opacity)
-  const labLogoUrl = (report as any).labLogoUrl || '';
-
+  // - Dynamic Diagonal Laboratory Watermark (center of page, 45° rotation, light/faded opacity)
   const [headerQrDataUrl, watermarkDataUrl] = await Promise.all([
     generateQrDataUrl(verifyUrl, { size: 320, darkColor: '#0F2744' }),
-    generateLaboratoryLogoWatermark(labLogoUrl, report.labName),
+    generateLaboratoryLogoWatermark(report.labName, report.labPhone),
   ]);
 
   // 4. Automatically Evaluate Parameters & Determine Exact Statuses
@@ -128,10 +126,10 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
   // RENDER PAGE 1 (Header, Patient Info, Tests)
   // ==========================================
 
-  // --- Background Watermark on Page 1 ---
+  // --- Background Diagonal Watermark on Page 1 (Center of page, 45° rotation, light/faded opacity) ---
   if (watermarkDataUrl) {
     try {
-      const wmSize = 115; // mm
+      const wmSize = 160; // mm
       const wmX = (pageWidth - wmSize) / 2;
       const wmY = (pageHeight - wmSize) / 2;
       doc.addImage(watermarkDataUrl, 'PNG', wmX, wmY, wmSize, wmSize, undefined, 'FAST');
@@ -140,12 +138,8 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
     }
   }
 
-  // --- 1. TOP HEADER (70% Left Area | 30% Right Area - No Header Logo) ---
-  const headerY = 7;
-
-  // Top Navy Decorative Accent Line (Clinical Primary)
-  doc.setFillColor(18, 59, 109); // #123B6D - Primary Medical Navy
-  doc.rect(marginX, headerY, contentWidth, 2, 'F');
+  // --- 1. TOP HEADER (70% Left Area | 30% Right Area - Clean Letterhead - No Top Bar / No Header Logo) ---
+  const headerY = 8;
 
   // Exact 70% Left / 30% Right Layout Split
   const leftAreaWidth = contentWidth * 0.70; // 130.2 mm
@@ -153,7 +147,7 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
   const rightRightEdge = pageWidth - marginX;
 
   // Left 70% Area (Starts directly at marginX - logo removed from header):
-  let leftY = headerY + 6;
+  let leftY = headerY;
 
   // Lab Name Title (Bold, Multi-line wrapping if name is long)
   doc.setTextColor(18, 59, 109);
@@ -185,14 +179,23 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
   doc.setTextColor(15, 118, 110); // Medical Teal
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.2);
-  const licenseText = `NABL Accredited: ${report.nablAccreditationNo || 'MC-4821'} • ISO 15189:2022 Certified • Reg No: LAB-2026-PB84`;
+
+  // Clean NABL accreditation number to eliminate any redundant ISO or duplicate accreditation suffixes
+  const rawNabl = (report.nablAccreditationNo || 'MC-4821').trim();
+  const cleanedNabl = rawNabl
+    .replace(/\s*\([^)]*iso[^)]*\)/gi, '')
+    .replace(/\s*\([^)]*nabl[^)]*\)/gi, '')
+    .replace(/\s*-\s*iso.*$/i, '')
+    .trim() || 'MC-4821';
+
+  const licenseText = `NABL Accredited: ${cleanedNabl} • ISO 15189:2022 Certified • Reg No: LAB-2026-PB84`;
   const licenseLines = doc.splitTextToSize(licenseText, leftAreaWidth - 4);
   doc.text(licenseLines, marginX, leftY);
   leftY += licenseLines.length * 3.5;
 
   // Right 30% Area:
   // Official Booking Receipt Number + ONE QR CODE ONLY + Verification caption
-  let rightY = headerY + 6;
+  let rightY = headerY;
 
   // Official Booking Receipt Number (Prominent & bold)
   doc.setTextColor(18, 59, 109);
@@ -242,7 +245,7 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
 
   // --- 2. PATIENT INFORMATION BOX ---
   // Clean bordered box with two columns (Patient Details | Report Details)
-  let cursorY = headerBottomY + 3;
+  let cursorY = headerBottomY + 3.8;
   const pBoxH = 26;
   const pBoxW = contentWidth;
 
@@ -513,10 +516,10 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
   for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
     doc.setPage(pageNum);
 
-    // Apply Logo Watermark on pages 2+ as well
+    // Apply Diagonal Watermark on pages 2+ as well
     if (pageNum > 1 && watermarkDataUrl) {
       try {
-        const wmSize = 115;
+        const wmSize = 160;
         const wmX = (pageWidth - wmSize) / 2;
         const wmY = (pageHeight - wmSize) / 2;
         doc.addImage(watermarkDataUrl, 'PNG', wmX, wmY, wmSize, wmSize, undefined, 'FAST');

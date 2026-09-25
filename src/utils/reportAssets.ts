@@ -366,89 +366,418 @@ function drawStar(
 }
 
 /**
- * Generates an ultra-light, faded laboratory logo watermark (center-aligned on page, ~0.045 opacity)
- * using the laboratory's uploaded logo, or an official diagnostic laboratory crest if no logo uploaded.
- * Does not affect text readability in any way.
+ * Generates an ultra-light, faded diagonal text watermark in the center of the report page:
+ * Line 1: [Vendor Lab Name]
+ * Line 2: [Vendor Contact Number]
+ * 45° rotation / diagonal
+ * Very light / faded opacity (0.055) - zero impact on test readability.
  */
 export async function generateLaboratoryLogoWatermark(
-  logoUrl?: string,
-  labName?: string
+  labName?: string,
+  labPhone?: string
 ): Promise<string> {
   const canvas = document.createElement('canvas');
-  canvas.width = 800;
-  canvas.height = 800;
+  canvas.width = 1200;
+  canvas.height = 1200;
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
 
-  const cx = 400;
-  const cy = 400;
+  const cx = 600;
+  const cy = 600;
 
-  // Ultra-faded alpha for background watermark (0.045 = 4.5% opacity)
   ctx.save();
-  ctx.globalAlpha = 0.045;
+  ctx.translate(cx, cy);
+  // 45° rotation / diagonal
+  ctx.rotate(-45 * Math.PI / 180);
 
-  let loadedCustomLogo = false;
-  if (logoUrl && logoUrl.trim()) {
-    try {
-      const img = await loadImage(logoUrl);
-      const aspect = img.width / img.height;
-      let drawW = 550;
-      let drawH = 550;
-      if (aspect > 1) {
-        drawH = drawW / aspect;
-      } else {
-        drawW = drawH * aspect;
-      }
-      ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
-      loadedCustomLogo = true;
-    } catch {
-      loadedCustomLogo = false;
-    }
-  }
+  // Very light / faded opacity
+  ctx.globalAlpha = 0.055;
+  ctx.fillStyle = '#123B6D';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
 
-  if (!loadedCustomLogo) {
-    // Generate clean medical laboratory emblem
-    ctx.strokeStyle = '#123B6D';
-    ctx.lineWidth = 14;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 340, 0, Math.PI * 2);
-    ctx.stroke();
+  const displayName = (labName || 'APEX DIAGNOSTIC & CLINICAL PATHOLOGY LABORATORY').toUpperCase();
+  const rawDigits = (labPhone || '').replace(/\D/g, '');
+  const cleanPhone = rawDigits.length >= 10 ? `+91 ${rawDigits.slice(-10)}` : `+91 ${labPhone || '7087033009'}`;
 
-    ctx.lineWidth = 5;
-    ctx.setLineDash([14, 10]);
-    ctx.beginPath();
-    ctx.arc(cx, cy, 315, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
+  // Line 1: [Vendor Lab Name] (Scaled to fit diagonal gracefully)
+  const nameFontSize = displayName.length > 45 ? 32 : (displayName.length > 30 ? 38 : 46);
+  ctx.font = `bold ${nameFontSize}px Arial, Helvetica, sans-serif`;
+  ctx.fillText(displayName, 0, -22);
 
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = '#0F766E';
-    ctx.beginPath();
-    ctx.arc(cx, cy, 285, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Curved Text: Laboratory Name / Accreditation
-    ctx.fillStyle = '#123B6D';
-    ctx.font = 'bold 24px Arial, Helvetica, sans-serif';
-    ctx.textAlign = 'center';
-    const displayName = (labName || 'DIAGNOSTIC PATHOLOGY LABORATORY').toUpperCase();
-    drawCurvedText(ctx, `★ ${displayName} ★`, cx, cy, 300, Math.PI * 1.5, false);
-    drawCurvedText(ctx, '★ NABL ACCREDITED • ISO 15189:2022 CERTIFIED ★', cx, cy, 300, Math.PI * 0.5, true);
-
-    // Center Cross & Microscope Emblem
-    ctx.fillStyle = '#123B6D';
-    const barW = 40;
-    const barH = 180;
-    ctx.fillRect(cx - barW / 2, cy - barH / 2, barW, barH);
-    ctx.fillRect(cx - barH / 2, cy - barW / 2, barH, barW);
-
-    ctx.fillStyle = '#0F766E';
-    ctx.font = 'bold 44px Arial, Helvetica, sans-serif';
-    ctx.fillText('NABL', cx, cy + 130);
-  }
+  // Line 2: [Vendor Contact Number]
+  ctx.font = `bold 28px Arial, Helvetica, sans-serif`;
+  ctx.fillText(cleanPhone, 0, 26);
 
   ctx.restore();
   return canvas.toDataURL('image/png');
+}
+
+/**
+ * Generates the official Apex Diagnostics medical crest emblem logo
+ * (Blue faceted 'A' with green/teal droplet fluid swoosh)
+ */
+export function generateApexEmblemDataUrl(): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 400;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  ctx.clearRect(0, 0, 400, 400);
+
+  // 1. Teal/Emerald fluid swoosh and teardrop
+  ctx.save();
+  ctx.fillStyle = '#00A78E'; // Vibrant emerald-teal
+  ctx.beginPath();
+  ctx.moveTo(85, 230);
+  ctx.bezierCurveTo(45, 280, 85, 360, 165, 360);
+  ctx.bezierCurveTo(250, 360, 325, 305, 345, 235);
+  ctx.bezierCurveTo(348, 215, 340, 195, 325, 205);
+  ctx.bezierCurveTo(310, 215, 305, 235, 295, 255);
+  ctx.bezierCurveTo(270, 300, 220, 332, 165, 332);
+  ctx.bezierCurveTo(115, 332, 88, 285, 105, 245);
+  ctx.bezierCurveTo(110, 235, 95, 220, 85, 230);
+  ctx.closePath();
+  ctx.fill();
+
+  // Teardrop droplet accent on the lower right
+  ctx.beginPath();
+  ctx.arc(360, 310, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(360, 280);
+  ctx.lineTo(347, 304);
+  ctx.lineTo(373, 304);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // 2. Bold geometric dark navy 'A' emblem
+  ctx.save();
+  ctx.fillStyle = '#0E3B6C'; // Deep royal navy
+  
+  // Left leg of 'A'
+  ctx.beginPath();
+  ctx.moveTo(200, 50); // Peak
+  ctx.lineTo(240, 50);
+  ctx.lineTo(165, 315); // Bottom left outer
+  ctx.lineTo(105, 315);
+  ctx.closePath();
+  ctx.fill();
+
+  // Right leg of 'A'
+  ctx.beginPath();
+  ctx.moveTo(200, 50); // Peak
+  ctx.lineTo(160, 50);
+  ctx.lineTo(270, 315); // Bottom right outer
+  ctx.lineTo(330, 315);
+  ctx.closePath();
+  ctx.fill();
+
+  // Sharp faceted cutouts inside 'A'
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.moveTo(200, 125);
+  ctx.lineTo(162, 225);
+  ctx.lineTo(238, 225);
+  ctx.closePath();
+  ctx.fill();
+
+  // Crossbar and middle geometric facets
+  ctx.fillStyle = '#0E3B6C';
+  ctx.beginPath();
+  ctx.moveTo(148, 238);
+  ctx.lineTo(252, 238);
+  ctx.lineTo(262, 268);
+  ctx.lineTo(138, 268);
+  ctx.closePath();
+  ctx.fill();
+
+  // Bottom cutout between legs
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.moveTo(200, 252);
+  ctx.lineTo(168, 320);
+  ctx.lineTo(232, 320);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+  return canvas.toDataURL('image/png');
+}
+
+export interface HeaderIconsMap {
+  locationPin: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  globe: string;
+  ribbon: string;
+  shield: string;
+  regDoc: string;
+  reportDoc: string;
+  flask: string;
+}
+
+/**
+ * Generates razor-sharp, clinical icon PNGs for header elements
+ */
+export function generateHeaderIconDataUrls(): HeaderIconsMap {
+  const createIcon = (draw: (ctx: CanvasRenderingContext2D) => void): string => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+    ctx.clearRect(0, 0, 64, 64);
+    draw(ctx);
+    return canvas.toDataURL('image/png');
+  };
+
+  const blue = '#0E3B6C';
+  const green = '#25D366';
+
+  const locationPin = createIcon((ctx) => {
+    ctx.fillStyle = blue;
+    ctx.beginPath();
+    ctx.arc(32, 24, 16, Math.PI, 0, false);
+    ctx.lineTo(32, 54);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(32, 24, 6, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  const phone = createIcon((ctx) => {
+    ctx.save();
+    ctx.translate(32, 32);
+    ctx.rotate(-15 * Math.PI / 180);
+    ctx.fillStyle = blue;
+    // Handset body
+    ctx.beginPath();
+    ctx.roundRect(-8, -20, 16, 40, 6);
+    ctx.fill();
+    // Ear & mic earpieces
+    ctx.fillStyle = blue;
+    ctx.beginPath();
+    ctx.arc(-2, -18, 9, 0, Math.PI * 2);
+    ctx.arc(-2, 18, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  const whatsapp = createIcon((ctx) => {
+    // Green bubble
+    ctx.fillStyle = green;
+    ctx.beginPath();
+    ctx.arc(32, 30, 22, 0, Math.PI * 2);
+    ctx.fill();
+    // Little speech tail
+    ctx.beginPath();
+    ctx.moveTo(18, 40);
+    ctx.lineTo(12, 52);
+    ctx.lineTo(24, 47);
+    ctx.closePath();
+    ctx.fill();
+    // White telephone handset
+    ctx.save();
+    ctx.translate(32, 30);
+    ctx.rotate(-20 * Math.PI / 180);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.roundRect(-5, -12, 10, 24, 4);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(-1, -11, 5.5, 0, Math.PI * 2);
+    ctx.arc(-1, 11, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  const email = createIcon((ctx) => {
+    ctx.fillStyle = blue;
+    ctx.beginPath();
+    ctx.roundRect(10, 16, 44, 32, 6);
+    ctx.fill();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(13, 20);
+    ctx.lineTo(32, 34);
+    ctx.lineTo(51, 20);
+    ctx.stroke();
+  });
+
+  const globe = createIcon((ctx) => {
+    ctx.strokeStyle = blue;
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.arc(32, 32, 22, 0, Math.PI * 2);
+    ctx.stroke();
+    // Equator line
+    ctx.beginPath();
+    ctx.moveTo(10, 32);
+    ctx.lineTo(54, 32);
+    ctx.stroke();
+    // Latitude curves
+    ctx.beginPath();
+    ctx.moveTo(14, 20);
+    ctx.lineTo(50, 20);
+    ctx.moveTo(14, 44);
+    ctx.lineTo(50, 44);
+    ctx.stroke();
+    // Meridian ellipse
+    ctx.beginPath();
+    ctx.ellipse(32, 32, 11, 22, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+
+  const ribbon = createIcon((ctx) => {
+    ctx.fillStyle = blue;
+    ctx.strokeStyle = blue;
+    ctx.lineWidth = 3;
+    // Circular medal / rosette
+    ctx.beginPath();
+    ctx.arc(32, 24, 15, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(32, 24, 8, 0, Math.PI * 2);
+    ctx.fill();
+    // Twin ribbon tails
+    ctx.beginPath();
+    ctx.moveTo(25, 34);
+    ctx.lineTo(19, 54);
+    ctx.lineTo(26, 49);
+    ctx.lineTo(33, 54);
+    ctx.lineTo(29, 36);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(39, 34);
+    ctx.lineTo(45, 54);
+    ctx.lineTo(38, 49);
+    ctx.lineTo(31, 54);
+    ctx.lineTo(35, 36);
+    ctx.closePath();
+    ctx.fill();
+  });
+
+  const shield = createIcon((ctx) => {
+    ctx.fillStyle = blue;
+    ctx.beginPath();
+    ctx.moveTo(14, 12);
+    ctx.lineTo(50, 12);
+    ctx.lineTo(50, 30);
+    ctx.bezierCurveTo(50, 45, 32, 54, 32, 56);
+    ctx.bezierCurveTo(32, 54, 14, 45, 14, 30);
+    ctx.closePath();
+    ctx.fill();
+    // White checkmark
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(22, 32);
+    ctx.lineTo(29, 39);
+    ctx.lineTo(42, 24);
+    ctx.stroke();
+  });
+
+  const regDoc = createIcon((ctx) => {
+    ctx.fillStyle = blue;
+    ctx.strokeStyle = blue;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(14, 10, 36, 44, 4);
+    ctx.stroke();
+    // Inner text lines
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(22, 22);
+    ctx.lineTo(42, 22);
+    ctx.moveTo(22, 32);
+    ctx.lineTo(42, 32);
+    ctx.moveTo(22, 42);
+    ctx.lineTo(34, 42);
+    ctx.stroke();
+  });
+
+  const reportDoc = createIcon((ctx) => {
+    ctx.strokeStyle = blue;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(14, 10, 36, 44, 4);
+    ctx.stroke();
+    // Checklist check + lines
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(20, 22);
+    ctx.lineTo(24, 26);
+    ctx.lineTo(30, 20);
+    ctx.moveTo(34, 23);
+    ctx.lineTo(44, 23);
+
+    ctx.moveTo(20, 34);
+    ctx.lineTo(24, 38);
+    ctx.lineTo(30, 32);
+    ctx.moveTo(34, 35);
+    ctx.lineTo(44, 35);
+    ctx.stroke();
+  });
+
+  const flask = createIcon((ctx) => {
+    ctx.strokeStyle = blue;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    // Rim
+    ctx.moveTo(24, 12);
+    ctx.lineTo(40, 12);
+    // Neck
+    ctx.moveTo(27, 12);
+    ctx.lineTo(27, 24);
+    // Conical flask body
+    ctx.lineTo(14, 48);
+    ctx.bezierCurveTo(13, 52, 16, 54, 20, 54);
+    ctx.lineTo(44, 54);
+    ctx.bezierCurveTo(48, 54, 51, 52, 50, 48);
+    ctx.lineTo(37, 24);
+    ctx.lineTo(37, 12);
+    ctx.stroke();
+    // Liquid level & bubbles
+    ctx.fillStyle = blue;
+    ctx.beginPath();
+    ctx.moveTo(19, 41);
+    ctx.bezierCurveTo(26, 43, 38, 39, 45, 41);
+    ctx.lineTo(46, 48);
+    ctx.lineTo(18, 48);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(28, 34, 2.5, 0, Math.PI * 2);
+    ctx.arc(36, 30, 2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  return {
+    locationPin,
+    phone,
+    whatsapp,
+    email,
+    globe,
+    ribbon,
+    shield,
+    regDoc,
+    reportDoc,
+    flask,
+  };
 }
 
 /**

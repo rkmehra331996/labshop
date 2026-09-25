@@ -548,7 +548,7 @@ export const CreateReportModal: React.FC<CreateReportModalProps> = ({
       labName: vendorLabSettings.labName || 'APEX DIAGNOSTICS & PATHOLOGY LABORATORY',
       labAddress: vendorLabSettings.address || 'SCO 42, Green Park Avenue, Near Civil Hospital, Ludhiana, Punjab - 141001',
       labPhone: vendorLabSettings.phone || '+91 7087033009',
-      nablAccreditationNo: vendorLabSettings.nablAccreditationNo || 'MC-2849 (ISO 15189:2022 Certified)',
+      nablAccreditationNo: vendorLabSettings.nablAccreditationNo || 'MC-2849',
       pathologist: pathologistName,
       pathologistDegrees: pathologistDegrees,
       barcode: '||||| | |||| ||| |||||| ||||| |||',

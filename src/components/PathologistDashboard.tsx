@@ -57,7 +57,7 @@ export const PathologistDashboard: React.FC<PathologistDashboardProps> = ({
   const doctorName = currentUser?.name || 'Dr. Meenakshi Sundaram';
   const doctorDegree = 'MD (Microbiology & Clinical Pathology), FICPath';
   const medicalRegNo = 'MCI / PMC-48291';
-  const nablAccreditation = vendorLabSettings?.nablAccreditationNo || 'MC-4821 (ISO 15189:2022)';
+  const nablAccreditation = vendorLabSettings?.nablAccreditationNo || 'MC-4821';
 
   // Identify panic / critical values
   const hasCriticalValues = (report: LabReport): boolean => {

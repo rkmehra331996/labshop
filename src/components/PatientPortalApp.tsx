@@ -60,6 +60,9 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     lastCloudSyncTime 
   } = useCms();
 
+  // Search Tab Option: 'name_mobile' (Left Tab: Option 1) | 'report_id' (Right Tab: Option 2)
+  const [searchMethod, setSearchMethod] = useState<'name_mobile' | 'report_id'>('name_mobile');
+
   // Option 1 Fields (Patient Search: Mobile Number + optional Patient Name)
   const [patientName, setPatientName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
@@ -172,6 +175,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
       if (found) {
         setSearchedReport(found);
         setReportIdInput(found.reportId);
+        setSearchMethod('report_id');
         setErrorMessage(null);
         setErrorDetails(null);
 
@@ -189,6 +193,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         setSearchedReport(found);
         setPatientName(found.patientName);
         setMobileNumber(found.mobile);
+        setSearchMethod('name_mobile');
         setErrorMessage(null);
         setErrorDetails(null);
 
@@ -591,20 +596,47 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             </div>
           )}
 
-          {/* SEARCH OPTIONS */}
-          <div className="mt-5 space-y-5">
-            {/* OPTION 1 — PATIENT SEARCH */}
-            <div className="bg-slate-50/70 rounded-xl p-4 sm:p-5 border border-slate-200">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-full bg-[#123B6D] text-white flex items-center justify-center font-bold text-[11px]">
-                  1
-                </div>
-                <h2 className="text-xs sm:text-sm font-bold text-[#172033]">
-                  Option 1 — Patient Search
-                </h2>
-              </div>
+          {/* TWO SEARCH TABS: LEFT (OPTION 1) & RIGHT (OPTION 2) */}
+          <div className="mt-4 flex bg-slate-100 p-1 rounded-xl max-w-md mx-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setSearchMethod('name_mobile');
+                setErrorMessage(null);
+                setErrorDetails(null);
+              }}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                searchMethod === 'name_mobile'
+                  ? 'bg-white text-[#123B6D] shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Phone className="w-3.5 h-3.5 text-[#123B6D]" />
+              <span>Option 1 — Patient Search</span>
+            </button>
 
-              <form onSubmit={handleSearchByNameAndMobile} className="space-y-3">
+            <button
+              type="button"
+              onClick={() => {
+                setSearchMethod('report_id');
+                setErrorMessage(null);
+                setErrorDetails(null);
+              }}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                searchMethod === 'report_id'
+                  ? 'bg-white text-[#123B6D] shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Hash className="w-3.5 h-3.5 text-[#123B6D]" />
+              <span>Option 2 — Token / Report ID</span>
+            </button>
+          </div>
+
+          {/* LEFT TAB: OPTION 1 — PATIENT SEARCH */}
+          {searchMethod === 'name_mobile' && (
+            <div className="mt-5 bg-slate-50/70 rounded-xl p-4 sm:p-5 border border-slate-200 animate-in fade-in duration-150">
+              <form onSubmit={handleSearchByNameAndMobile} className="space-y-3.5">
                 {/* Mobile Number & Patient Name INLINE on mobile & desktop */}
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div>
@@ -744,29 +776,12 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                 </div>
               )}
             </div>
+          )}
 
-            {/* SEPARATOR */}
-            <div className="relative my-4 text-center">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
-              </div>
-              <div className="relative inline-flex px-3 bg-white text-xs font-bold text-slate-400 uppercase tracking-wider">
-                OR
-              </div>
-            </div>
-
-            {/* OPTION 2 — TOKEN NO. / REPORT ID */}
-            <div className="bg-slate-50/70 rounded-xl p-4 sm:p-5 border border-slate-200">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-full bg-[#123B6D] text-white flex items-center justify-center font-bold text-[11px]">
-                  2
-                </div>
-                <h2 className="text-xs sm:text-sm font-bold text-[#172033]">
-                  Option 2 — Token No. / Report ID
-                </h2>
-              </div>
-
-              <form onSubmit={handleSearchByReportIdOrToken} className="space-y-3">
+          {/* RIGHT TAB: OPTION 2 — TOKEN NO. / REPORT ID */}
+          {searchMethod === 'report_id' && (
+            <div className="mt-5 bg-slate-50/70 rounded-xl p-4 sm:p-5 border border-slate-200 animate-in fade-in duration-150">
+              <form onSubmit={handleSearchByReportIdOrToken} className="space-y-3.5">
                 <div>
                   <label className="block text-[11px] sm:text-xs font-bold text-slate-700 mb-1">
                     Token No. / Report ID: <span className="text-rose-500">*</span>
@@ -796,7 +811,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                 </button>
               </form>
             </div>
-          </div>
+          )}
         </div>
 
         {/* LIVE SAMPLE PROGRESS STATE (When Token or Patient is registered but lab testing is still in progress) */}
