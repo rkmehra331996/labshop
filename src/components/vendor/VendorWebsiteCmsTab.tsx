@@ -187,6 +187,17 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({ onPrev
     reader.readAsDataURL(file);
   };
 
+  const handleHeroBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      setFormData((prev) => ({ ...prev, heroBackgroundImageUrl: dataUrl }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [activeSectionFilter, setActiveSectionFilter] = useState<'All' | 'Core' | 'Public Info' | 'Clinical'>('All');
 
@@ -854,6 +865,69 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({ onPrev
                     onChange={(e) => setFormData({ ...formData, ogImageUrl: e.target.value })}
                     className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#123B6D] font-mono text-[11px]"
                     placeholder="https://example.com/social-preview.jpg"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* First Screen Welcome Background Image */}
+            <div className="md:col-span-3 p-4 bg-slate-50/80 border border-slate-200 rounded-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div>
+                  <h4 className="text-xs font-bold text-[#123B6D] flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-sky-600" />
+                    <span>First Screen Full-Screen Background Image (Laboratory Photo)</span>
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Upload a high-resolution photo of your laboratory, equipment, or building. Shown as the full-screen background on your lab website first welcome screen.
+                  </p>
+                </div>
+                {formData.heroBackgroundImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, heroBackgroundImageUrl: '' })}
+                    className="text-[11px] text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Reset to Default Image</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                {/* Background Image Preview */}
+                <div className="w-full h-24 rounded-lg border border-slate-300 bg-slate-900 p-1 flex items-center justify-center overflow-hidden shadow-xs shrink-0 relative">
+                  <img
+                    src={formData.heroBackgroundImageUrl || 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=600&q=80'}
+                    alt="First Screen Background Preview"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover rounded opacity-90"
+                  />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-[10px] text-white font-bold">
+                    {formData.heroBackgroundImageUrl ? 'Custom Image Active' : 'Default Lab Photo'}
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="cursor-pointer bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold px-3 py-2 rounded-lg text-xs flex items-center gap-1.5 shadow-xs transition">
+                      <Upload className="w-3.5 h-3.5 text-[#123B6D]" />
+                      <span>Upload Laboratory Background</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleHeroBgUpload}
+                      />
+                    </label>
+                    <span className="text-slate-400 text-xs">or paste image URL:</span>
+                  </div>
+                  <input
+                    type="url"
+                    value={formData.heroBackgroundImageUrl || ''}
+                    onChange={(e) => setFormData({ ...formData, heroBackgroundImageUrl: e.target.value })}
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#123B6D] font-mono text-[11px]"
+                    placeholder="https://images.unsplash.com/... or your lab photo link"
                   />
                 </div>
               </div>

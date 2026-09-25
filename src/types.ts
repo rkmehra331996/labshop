@@ -194,6 +194,7 @@ export interface VendorLabSettings {
   primaryColor?: string;
   domainPreview?: string;
   announcementText?: string;
+  heroBackgroundImageUrl?: string;
   sections?: Partial<VendorWebsiteSections>;
   // 1 or 2 QR Code images for payment
   qrCode1Url?: string;

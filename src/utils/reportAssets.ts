@@ -366,6 +366,92 @@ function drawStar(
 }
 
 /**
+ * Generates an ultra-light, faded laboratory logo watermark (center-aligned on page, ~0.045 opacity)
+ * using the laboratory's uploaded logo, or an official diagnostic laboratory crest if no logo uploaded.
+ * Does not affect text readability in any way.
+ */
+export async function generateLaboratoryLogoWatermark(
+  logoUrl?: string,
+  labName?: string
+): Promise<string> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 800;
+  canvas.height = 800;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  const cx = 400;
+  const cy = 400;
+
+  // Ultra-faded alpha for background watermark (0.045 = 4.5% opacity)
+  ctx.save();
+  ctx.globalAlpha = 0.045;
+
+  let loadedCustomLogo = false;
+  if (logoUrl && logoUrl.trim()) {
+    try {
+      const img = await loadImage(logoUrl);
+      const aspect = img.width / img.height;
+      let drawW = 550;
+      let drawH = 550;
+      if (aspect > 1) {
+        drawH = drawW / aspect;
+      } else {
+        drawW = drawH * aspect;
+      }
+      ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+      loadedCustomLogo = true;
+    } catch {
+      loadedCustomLogo = false;
+    }
+  }
+
+  if (!loadedCustomLogo) {
+    // Generate clean medical laboratory emblem
+    ctx.strokeStyle = '#123B6D';
+    ctx.lineWidth = 14;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 340, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.lineWidth = 5;
+    ctx.setLineDash([14, 10]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, 315, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#0F766E';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 285, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Curved Text: Laboratory Name / Accreditation
+    ctx.fillStyle = '#123B6D';
+    ctx.font = 'bold 24px Arial, Helvetica, sans-serif';
+    ctx.textAlign = 'center';
+    const displayName = (labName || 'DIAGNOSTIC PATHOLOGY LABORATORY').toUpperCase();
+    drawCurvedText(ctx, `★ ${displayName} ★`, cx, cy, 300, Math.PI * 1.5, false);
+    drawCurvedText(ctx, '★ NABL ACCREDITED • ISO 15189:2022 CERTIFIED ★', cx, cy, 300, Math.PI * 0.5, true);
+
+    // Center Cross & Microscope Emblem
+    ctx.fillStyle = '#123B6D';
+    const barW = 40;
+    const barH = 180;
+    ctx.fillRect(cx - barW / 2, cy - barH / 2, barW, barH);
+    ctx.fillRect(cx - barH / 2, cy - barW / 2, barH, barW);
+
+    ctx.fillStyle = '#0F766E';
+    ctx.font = 'bold 44px Arial, Helvetica, sans-serif';
+    ctx.fillText('NABL', cx, cy + 130);
+  }
+
+  ctx.restore();
+  return canvas.toDataURL('image/png');
+}
+
+/**
  * Promisified Image loader
  */
 function loadImage(src: string): Promise<HTMLImageElement> {

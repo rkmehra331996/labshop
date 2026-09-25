@@ -21,6 +21,7 @@ import {
   Smartphone,
   Check,
   X,
+  ChevronLeft,
   ChevronRight,
   Menu,
   QrCode,
@@ -44,6 +45,7 @@ import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
 import { Language } from '../types';
 import { OnlineTestBookingModal } from './vendor/OnlineTestBookingModal';
 import { HeroBookingForm } from './vendor/HeroBookingForm';
+import { LabWelcomeFirstScreen } from './vendor/LabWelcomeFirstScreen';
 import { getTenantWebsiteUrl, getTenantSubdomain, getTenantBrowserUrl, SUPER_ADMIN_DOMAIN } from '../constants/domains';
 
 interface LabVendorWebsiteProps {
@@ -161,6 +163,9 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       });
     };
   }, [labName, labShopId, labNabl, labDescription, labWebsiteUrl, labOgImageUrl]);
+
+  // First Screen (Welcome Gateway) vs Full Website Exploration State
+  const [hasEnteredWebsite, setHasEnteredWebsite] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -431,6 +436,41 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     );
   }
 
+  // 1. ISOLATED FIRST SCREEN GATEWAY (Pure Welcome Screen - No Scrolling into Website)
+  // Shown exclusively until user clicks "Visit Website", "Book Test", or "Check Report"
+  if (!hasEnteredWebsite) {
+    return (
+      <div className="relative w-full h-[100dvh] max-h-[100dvh] overflow-hidden bg-slate-950 font-sans">
+        <LabWelcomeFirstScreen
+          labName={labName}
+          labShopId={labShopId}
+          labLogoUrl={labLogoUrl}
+          labNabl={labNabl}
+          labAddress={labAddress}
+          labPhone={labPhone}
+          backgroundImageUrl={vendorLabSettings?.heroBackgroundImageUrl}
+          onVisitWebsite={() => {
+            setHasEnteredWebsite(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onBookTest={() => {
+            setHasEnteredWebsite(true);
+            setSelectedTestOrPackage(
+              vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
+            );
+            setIsBookingModalOpen(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onCheckReport={() => {
+            onOpenReportPortal();
+          }}
+          onStaffLogin={() => openLoginModal('vendor')}
+          onOpenSoftwareWebsite={onOpenSoftwareWebsite}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans selection:bg-[#123B6D]/15 selection:text-[#123B6D]">
       {/* Super Admin Website Live Control & Status Banner */}
@@ -506,7 +546,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       )}
 
       {/* Main Lab Header */}
-      <header className="sticky top-0 bg-white border-b border-slate-200 z-40 shadow-xs">
+      <header id="main-website-header" className="sticky top-0 bg-white border-b border-slate-200 z-40 shadow-xs">
         <div className="max-w-7xl mx-auto px-3 sm:px-8 h-16 sm:h-18 flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo & Lab Identity */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
@@ -545,6 +585,20 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
           {/* Desktop Navigation Links: (home, health package, test's, pathologists, contact us) */}
           <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs lg:text-sm font-semibold text-slate-700 whitespace-nowrap">
+            {/* 0. Return to Welcome First Screen */}
+            <button
+              onClick={() => {
+                setHasEnteredWebsite(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="hover:text-[#123B6D] transition cursor-pointer text-slate-500 hover:font-bold whitespace-nowrap py-1 flex items-center gap-1"
+              id="vendor-nav-welcome-gateway"
+              title="Return to Welcome Screen"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Welcome</span>
+            </button>
+
             {/* 1. Simple Home (Vendor Website) */}
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -591,11 +645,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             </a>
           </nav>
 
-          {/* Action Items: (Language + Payment QR + Report + Menu) */}
+          {/* Action Items: (Mobile: Check Report + Book Test + Menu | Desktop: Language + QR + Report + Book + Login) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Language Selector (Hidden on mobile view, available inside mobile menu drawer) */}
+            {/* Desktop Language Selector */}
             <div
-              className="hidden md:flex items-center gap-1 bg-slate-100 hover:bg-slate-200/80 rounded-lg px-2 sm:px-2.5 py-1.5 sm:py-2 border border-slate-200 text-xs text-slate-700 font-semibold transition cursor-pointer shrink-0"
+              className="hidden xl:flex items-center gap-1 bg-slate-100 hover:bg-slate-200/80 rounded-lg px-2 sm:px-2.5 py-1.5 sm:py-2 border border-slate-200 text-xs text-slate-700 font-semibold transition cursor-pointer shrink-0"
               title="Change Language / भाषा बदलें"
             >
               <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#123B6D] shrink-0" />
@@ -612,34 +666,48 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               </select>
             </div>
 
-            {/* Payment QR Button */}
+            {/* Desktop Payment QR Button */}
             <button
               onClick={() => setIsPaymentQrModalOpen(true)}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/90 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0"
+              className="hidden lg:inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/90 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0"
               id="header-payment-qr-btn"
               title="Scan Lab Payment QR Code"
             >
               <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
-              <span className="hidden xs:inline">Payment QR</span>
-              <span className="xs:hidden">QR</span>
+              <span>Payment QR</span>
             </button>
 
-            {/* Download Report Button */}
+            {/* Check Report Button (Mobile: logo + check report + book test + menu icon) */}
             <button
               onClick={() => onOpenReportPortal()}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-teal-50 hover:bg-teal-100 text-[#0F766E] border border-teal-300/90 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-teal-50 hover:bg-teal-100 text-[#0F766E] border border-teal-300/90 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
               id="header-download-report-btn"
-              title="Download or View Patient Lab Report"
+              title="Check or Download Patient Lab Report"
             >
               <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0F766E] shrink-0" />
-              <span className="hidden sm:inline">Download Report</span>
-              <span className="sm:hidden">Report</span>
+              <span className="text-[11px] sm:text-xs">Check Report</span>
             </button>
 
-            {/* Lab Staff / Admin Login Button */}
+            {/* Book Test Button (Mobile: logo + check report + book test + menu icon) */}
+            <button
+              onClick={() => {
+                setSelectedTestOrPackage(
+                  vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
+                );
+                setIsBookingModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
+              id="header-book-test-btn"
+              title="Book Lab Test or Health Package"
+            >
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-950 shrink-0" />
+              <span className="text-[11px] sm:text-xs">Book Test</span>
+            </button>
+
+            {/* Desktop Lab Staff / Admin Login Button */}
             <button
               onClick={() => openLoginModal('vendor')}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-98"
+              className="hidden lg:inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-98"
               id="header-lab-login-btn"
               title="Lab Admin, Receptionist & Technician Login"
             >
@@ -662,6 +730,23 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1.5 shadow-xl animate-in fade-in duration-200">
+            {/* 0. Return to Welcome Screen */}
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setHasEnteredWebsite(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="w-full text-left py-2 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 font-bold text-amber-950 flex items-center justify-between text-sm border border-amber-200"
+            >
+              <span className="flex items-center gap-2">
+                <ChevronLeft className="w-4 h-4 text-amber-700" />
+                <span>Return to Welcome Screen</span>
+              </span>
+              <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-black">
+                First Screen
+              </span>
+            </button>
             {/* 1. Simple Home (Vendor Website) */}
             <button
               onClick={() => {
