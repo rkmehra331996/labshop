@@ -100,8 +100,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     updateVendorLabSettings,
   } = useCms();
 
-  const [inlineReportSearch, setInlineReportSearch] = useState('');
-
   const currentLabItem = React.useMemo(() => {
     return (
       vendorLabsList.find((l) => l.id === (vendorLabSettings?.labId || selectedVendorLabId)) ||
@@ -3113,71 +3111,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         </div>
       </section>
 
-      {/* Patient Report Download Banner with Inline Search */}
-      <section id="download-report-footer" className="py-12 bg-slate-900 text-white scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 bg-slate-800/80 rounded-3xl p-6 sm:p-8 border border-slate-700/70 shadow-xl">
-            <div className="max-w-xl space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-400/30">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{labName} Patient Report Portal</span>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Download Your Diagnostic Report Online
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Directly check reports for {labName}. No password required. Enter your registered 10-digit mobile number or Token / Report ID below.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch gap-3 shrink-0">
-              <input
-                type="text"
-                value={inlineReportSearch}
-                onChange={(e) => setInlineReportSearch(e.target.value)}
-                placeholder="Mobile number or Token / Report ID"
-                className="px-4 py-3 bg-slate-900/90 border border-slate-600 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400 min-w-[240px]"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (inlineReportSearch.trim()) {
-                      const cleanDigits = inlineReportSearch.replace(/\D/g, '');
-                      if (cleanDigits.length >= 10) {
-                        handleCheckReport('', cleanDigits);
-                      } else {
-                        handleCheckReport(inlineReportSearch.trim(), '');
-                      }
-                    } else {
-                      handleCheckReport();
-                    }
-                  }
-                }}
-              />
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (inlineReportSearch.trim()) {
-                    const cleanDigits = inlineReportSearch.replace(/\D/g, '');
-                    if (cleanDigits.length >= 10) {
-                      handleCheckReport('', cleanDigits);
-                    } else {
-                      handleCheckReport(inlineReportSearch.trim(), '');
-                    }
-                  } else {
-                    handleCheckReport();
-                  }
-                }}
-                className="bg-[#0F766E] hover:bg-[#0c615a] text-white px-6 py-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 whitespace-nowrap"
-              >
-                <FileText className="w-4 h-4" />
-                <span>Go to Report Portal</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* 10. Footer */}
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
@@ -4024,49 +3957,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
           </div>
         </div>
       )}
-      {/* Side Sticky Floating Action Buttons: WhatsApp & Call */}
-      <aside
-        aria-label="Quick contact buttons"
-        className="fixed right-3.5 sm:right-6 bottom-5 sm:bottom-6 z-40 flex flex-col items-end gap-2.5 pointer-events-auto"
-      >
-        {/* WhatsApp Sticky Button */}
-        <a
-          href={stickyWhatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          id="vendor-sticky-whatsapp-btn"
-          aria-label="Chat on WhatsApp"
-          title={`Chat with ${labName} on WhatsApp (+91 ${cleanPhone})`}
-          className="group flex items-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] active:scale-95 text-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full shadow-lg shadow-emerald-950/20 hover:shadow-xl hover:shadow-emerald-500/30 transition-all duration-300 border border-white/30 cursor-pointer"
-        >
-          <div className="relative flex items-center justify-center">
-            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            <span className="absolute -top-1 -right-1 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-200"></span>
-            </span>
-          </div>
-          <span className="font-bold text-xs tracking-wide whitespace-nowrap">
-            WhatsApp
-          </span>
-        </a>
 
-        {/* Call Helpline Sticky Button */}
-        <a
-          href={stickyTelUrl}
-          id="vendor-sticky-call-btn"
-          aria-label={`Call Lab Helpline +91 ${cleanPhone}`}
-          title={`Call ${labName}: +91 ${cleanPhone}`}
-          className="group flex items-center gap-2 bg-[#123B6D] hover:bg-[#0c284b] active:scale-95 text-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full shadow-lg shadow-[#123B6D]/30 hover:shadow-xl hover:shadow-[#123B6D]/40 transition-all duration-300 border border-white/25 cursor-pointer"
-        >
-          <div className="relative flex items-center justify-center">
-            <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 animate-pulse" />
-          </div>
-          <span className="font-bold text-xs tracking-wide whitespace-nowrap">
-            Call Lab
-          </span>
-        </a>
-      </aside>
     </div>
   );
 };
