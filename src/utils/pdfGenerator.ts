@@ -20,7 +20,7 @@ import {
  * 6. Report End Separator: — END OF REPORT —
  * 7. Signature Section (Prepared/Verified By on Left, Authorized Signatory on Right).
  * 8. Dynamic Laboratory Logo Watermark (center-aligned, very light/faded, zero impact on readability).
- * 9. Fixed Clinical Footer with IndianLalaji branding, Report ID, Date/Time, and dynamic Page X of Y.
+ * 9. Fixed Clinical Center-Aligned Footer with Lab Name and dynamic Page X of Y.
  */
 export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF> {
   const doc = new jsPDF({
@@ -173,8 +173,8 @@ export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF>
   doc.text(addressLines, marginX, leftY);
   leftY += addressLines.length * 3.6 + 0.8;
 
-  // Phone / Helpline & WhatsApp
-  doc.text(`Phone / Helpline: +91 ${report.labPhone || '7087033009'} | WhatsApp: +91 7087033009`, marginX, leftY);
+  // Phone & WhatsApp
+  doc.text(`Phone: +91 ${report.labPhone || '7087033009'} | WhatsApp: +91 7087033009`, marginX, leftY);
   leftY += 3.8;
 
   // Email & Website

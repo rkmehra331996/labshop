@@ -60,10 +60,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     lastCloudSyncTime 
   } = useCms();
 
-  // Search Option: 'name_mobile' | 'report_id'
-  const [searchMethod, setSearchMethod] = useState<'name_mobile' | 'report_id'>('name_mobile');
-
-  // Option 1 Fields (Patient Name + Mobile Number must both match)
+  // Option 1 Fields (Patient Search: Mobile Number + optional Patient Name)
   const [patientName, setPatientName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
 
@@ -175,7 +172,6 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
       if (found) {
         setSearchedReport(found);
         setReportIdInput(found.reportId);
-        setSearchMethod('report_id');
         setErrorMessage(null);
         setErrorDetails(null);
 
@@ -193,7 +189,6 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         setSearchedReport(found);
         setPatientName(found.patientName);
         setMobileNumber(found.mobile);
-        setSearchMethod('name_mobile');
         setErrorMessage(null);
         setErrorDetails(null);
 
@@ -526,24 +521,14 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
   const handleShareWhatsApp = () => {
     if (!searchedReport) return;
+    const shareUrl =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/rpt/${searchedReport.reportId}`
+        : `https://report.labportal.online/rpt/${searchedReport.reportId}`;
     const text = encodeURIComponent(
-      `Here is my authenticated lab report (${searchedReport.reportId}) from ${searchedReport.labName}: https://report.indianlalaji.com/rpt/${searchedReport.reportId}`
+      `Here is my authenticated lab report (${searchedReport.reportId}) from ${searchedReport.labName}: ${shareUrl}`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
-  };
-
-  // Demo profile prefill helper
-  const handleQuickFill = (name: string, mob: string, rptId: string) => {
-    if (searchMethod === 'name_mobile') {
-      setPatientName(name);
-      setMobileNumber(mob);
-      setErrorMessage(null);
-      setErrorDetails(null);
-    } else {
-      setReportIdInput(rptId);
-      setErrorMessage(null);
-      setErrorDetails(null);
-    }
   };
 
   return (
@@ -561,7 +546,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
               <span>Back</span>
             </button>
             <div className="flex items-center gap-1.5 font-extrabold text-sm text-[#123B6D]">
-              <span>report.indianlalaji.com</span>
+              <span>Diagnostic Report Portal</span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
                 Patient Portal
               </span>
@@ -569,16 +554,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => refreshCloudData()}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition cursor-pointer shadow-2xs"
-              title="Click to check latest live report directly from Cloud Server (No cache)"
-            >
-              <span className={`w-2 h-2 rounded-full ${isCloudConnected ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`}></span>
-              <span className="hidden sm:inline">Live Cloud Sync</span>
-              <RefreshCw className={`w-3 h-3 text-emerald-600 ${cloudSyncStatus === 'syncing' ? 'animate-spin' : ''}`} />
-            </button>
-            <div className="text-xs text-slate-500 hidden md:flex items-center gap-1 font-medium">
+            <div className="text-xs text-slate-500 flex items-center gap-1 font-medium">
               <ShieldCheck className="w-4 h-4 text-[#0F766E]" />
               <span>Zero-Login Secure NABL Portal</span>
             </div>
@@ -604,46 +580,6 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             </div>
           </div>
 
-          {/* CLEAN TWO SEARCH OPTIONS SEGMENTED SWITCH */}
-          <div className="mt-4 flex bg-slate-100 p-1 rounded-xl max-w-md mx-auto">
-            <button
-              type="button"
-              onClick={() => {
-                setSearchMethod('name_mobile');
-                setErrorMessage(null);
-                setErrorDetails(null);
-              }}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                searchMethod === 'name_mobile'
-                  ? 'bg-white text-[#123B6D] shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Phone className="w-3.5 h-3.5 text-[#123B6D]" />
-              <span>Mobile Number</span>
-              <span className="text-[10px] px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded-full font-semibold hidden sm:inline">
-                Instant
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSearchMethod('report_id');
-                setErrorMessage(null);
-                setErrorDetails(null);
-              }}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                searchMethod === 'report_id'
-                  ? 'bg-white text-[#123B6D] shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Hash className="w-3.5 h-3.5 text-[#123B6D]" />
-              <span>Token / Report ID</span>
-            </button>
-          </div>
-
           {/* ERROR ALERT BANNER */}
           {errorMessage && (
             <div className="mt-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-3 animate-in fade-in duration-150">
@@ -655,163 +591,187 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             </div>
           )}
 
-          {/* OPTION 1: 10-DIGIT MOBILE NUMBER (+ OPTIONAL PATIENT NAME) */}
-          {searchMethod === 'name_mobile' && (
-            <form onSubmit={handleSearchByNameAndMobile} className="mt-5 space-y-3.5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Mobile Number <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-xs text-slate-500 font-bold">+91</span>
-                    <input
-                      type="tel"
-                      required
-                      pattern="[0-9]{10}"
-                      value={mobileNumber}
-                      onChange={(e) => {
-                        setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
-                        if (errorMessage) setErrorMessage(null);
-                      }}
-                      placeholder="10 Digits (e.g. 9876543210)"
-                      className="w-full pl-11 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-[#123B6D]/20 focus:border-[#123B6D] focus:outline-none font-mono"
-                    />
-                  </div>
+          {/* SEARCH OPTIONS */}
+          <div className="mt-5 space-y-5">
+            {/* OPTION 1 — PATIENT SEARCH */}
+            <div className="bg-slate-50/70 rounded-xl p-4 sm:p-5 border border-slate-200">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-5 h-5 rounded-full bg-[#123B6D] text-white flex items-center justify-center font-bold text-[11px]">
+                  1
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Patient Name <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      value={patientName}
-                      onChange={(e) => {
-                        setPatientName(e.target.value);
-                        if (errorMessage) setErrorMessage(null);
-                      }}
-                      placeholder="e.g. Ramesh Kumar (Optional)"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-[#123B6D]/20 focus:border-[#123B6D] focus:outline-none"
-                    />
-                  </div>
-                </div>
+                <h2 className="text-xs sm:text-sm font-bold text-[#172033]">
+                  Option 1 — Patient Search
+                </h2>
               </div>
 
-              <div className="pt-1 flex items-center justify-between gap-3 flex-wrap">
-                <span className="text-[11px] text-slate-500 flex items-center gap-1 font-medium">
-                  <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-                  <span>Real-time cross-device cloud sync enabled</span>
-                </span>
+              <form onSubmit={handleSearchByNameAndMobile} className="space-y-3">
+                {/* Mobile Number & Patient Name INLINE on mobile & desktop */}
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <div>
+                    <label className="block text-[11px] sm:text-xs font-bold text-slate-700 mb-1 truncate">
+                      Mobile Number: <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-2.5 sm:left-3 top-2.5 text-xs text-slate-500 font-bold">+91</span>
+                      <input
+                        type="tel"
+                        required
+                        pattern="[0-9]{10}"
+                        value={mobileNumber}
+                        onChange={(e) => {
+                          setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10));
+                          if (errorMessage) setErrorMessage(null);
+                        }}
+                        placeholder="Enter Mobile Number"
+                        className="w-full pl-9 sm:pl-11 pr-2 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-[#123B6D]/20 focus:border-[#123B6D] focus:outline-none font-mono placeholder:text-slate-400 placeholder:text-[11px] sm:placeholder:text-xs bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] sm:text-xs font-bold text-slate-700 mb-1 truncate">
+                      Patient Name: <span className="text-slate-400 font-normal text-[10px] sm:text-[11px]">(Optional)</span>
+                    </label>
+                    <div className="relative">
+                      <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 absolute left-2.5 sm:left-3 top-3" />
+                      <input
+                        type="text"
+                        value={patientName}
+                        onChange={(e) => {
+                          setPatientName(e.target.value);
+                          if (errorMessage) setErrorMessage(null);
+                        }}
+                        placeholder="Enter Patient Name"
+                        className="w-full pl-8 sm:pl-9 pr-2 py-2.5 rounded-xl border border-slate-300 text-xs font-medium focus:ring-2 focus:ring-[#123B6D]/20 focus:border-[#123B6D] focus:outline-none placeholder:text-slate-400 placeholder:text-[11px] sm:placeholder:text-xs bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <button
                   type="submit"
-                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-2 cursor-pointer active:scale-98"
+                  className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                 >
-                  <Search className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Search Reports</span>
+                  <Search className="w-4 h-4 text-amber-300" />
+                  <span>Search Report</span>
                 </button>
-              </div>
-            </form>
-          )}
+              </form>
 
-          {/* MULTI-RECORD RESULTS LIST FOR CLIENT MOBILE NUMBER */}
-          {matchedList.length > 0 && (
-            <div className="mt-5 p-4 sm:p-5 bg-blue-50/80 border-2 border-blue-200 rounded-2xl animate-in fade-in duration-200 shadow-xs">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-[#123B6D] text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                    {matchedList.length}
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-xs text-[#123B6D]">
-                      {matchedList.length} Records Found for +91 {mobileNumber}
-                    </h3>
-                    <p className="text-[11px] text-slate-600">
-                      Found {matchedList.length} diagnostic records for this mobile number. Please select your report:
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setMatchedList([])}
-                  className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-                  title="Close list"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-2.5">
-                {matchedList.map((m, idx) => {
-                  const pName = m.report?.patientName || m.entry?.patientName || 'Patient';
-                  const testNames =
-                    m.report?.items?.map((p) => p.testName || p.parameter).slice(0, 3).join(', ') ||
-                    m.entry?.tests?.slice(0, 3).join(', ') ||
-                    'Diagnostic Profile';
-                  const tokenOrId = m.report?.reportId || m.entry?.tokenNumber || `Record #${idx + 1}`;
-                  const isReady = Boolean(m.report) || m.entry?.status === 'Report Ready';
-
-                  return (
-                    <div
-                      key={idx}
-                      className="p-3 bg-white rounded-xl border border-slate-200 hover:border-[#123B6D] transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs hover:shadow-xs"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                            isReady ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                          }`}
-                        >
-                          {isReady ? <FileText className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
-                        </div>
-                        <div>
-                          <div className="font-bold text-xs text-slate-900 flex items-center gap-2">
-                            <span>{pName}</span>
-                            <span className="font-mono text-[10px] text-slate-600 px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 font-bold">
-                              {tokenOrId}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-600 truncate max-w-xs sm:max-w-md mt-0.5">
-                            {testNames}
-                          </div>
-                        </div>
+              {/* MULTI-RECORD RESULTS LIST FOR CLIENT MOBILE NUMBER */}
+              {matchedList.length > 0 && (
+                <div className="mt-4 p-3.5 sm:p-4 bg-blue-50/90 border border-blue-200 rounded-xl animate-in fade-in duration-200 shadow-xs">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-6 h-6 rounded-lg bg-[#123B6D] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                        {matchedList.length}
                       </div>
-
-                      <div className="flex items-center justify-between sm:justify-end gap-2.5">
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                            isReady ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                          }`}
-                        >
-                          {isReady ? 'Report Ready' : 'In Testing'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectRecord(m)}
-                          className="px-3.5 py-1.5 bg-[#123B6D] hover:bg-[#0e2c52] text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
-                        >
-                          <span>View Live Report</span>
-                          <ArrowRight className="w-3 h-3 text-amber-300" />
-                        </button>
+                      <div>
+                        <h3 className="font-extrabold text-xs text-[#123B6D]">
+                          {matchedList.length} Records Found for +91 {mobileNumber}
+                        </h3>
+                        <p className="text-[11px] text-slate-600">
+                          Select your report from the list below:
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
+                    <button
+                      type="button"
+                      onClick={() => setMatchedList([])}
+                      className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                      title="Close list"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {matchedList.map((m, idx) => {
+                      const pName = m.report?.patientName || m.entry?.patientName || 'Patient';
+                      const testNames =
+                        m.report?.items?.map((p) => p.testName || p.parameter).slice(0, 3).join(', ') ||
+                        m.entry?.tests?.slice(0, 3).join(', ') ||
+                        'Diagnostic Profile';
+                      const tokenOrId = m.report?.reportId || m.entry?.tokenNumber || `Record #${idx + 1}`;
+                      const isReady = Boolean(m.report) || m.entry?.status === 'Report Ready';
+
+                      return (
+                        <div
+                          key={idx}
+                          className="p-2.5 bg-white rounded-xl border border-slate-200 hover:border-[#123B6D] transition flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs hover:shadow-xs"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                isReady ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                              }`}
+                            >
+                              {isReady ? <FileText className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
+                            </div>
+                            <div>
+                              <div className="font-bold text-xs text-slate-900 flex items-center gap-2">
+                                <span>{pName}</span>
+                                <span className="font-mono text-[10px] text-slate-600 px-1.5 py-0.5 bg-slate-100 rounded border border-slate-200 font-bold">
+                                  {tokenOrId}
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-slate-600 truncate max-w-xs sm:max-w-md mt-0.5">
+                                {testNames}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between sm:justify-end gap-2">
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                isReady ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {isReady ? 'Report Ready' : 'In Testing'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleSelectRecord(m)}
+                              className="px-3 py-1.5 bg-[#123B6D] hover:bg-[#0e2c52] text-white rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                            >
+                              <span>View Report</span>
+                              <ArrowRight className="w-3 h-3 text-amber-300" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* SEPARATOR */}
+            <div className="relative my-4 text-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative inline-flex px-3 bg-white text-xs font-bold text-slate-400 uppercase tracking-wider">
+                OR
               </div>
             </div>
-          )}
 
-          {/* OPTION 2: TOKEN NUMBER OR REPORT ID */}
-          {searchMethod === 'report_id' && (
-            <form onSubmit={handleSearchByReportIdOrToken} className="mt-5 space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Token No. or Report ID <span className="text-rose-500">*</span>
-                </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
+            {/* OPTION 2 — TOKEN NO. / REPORT ID */}
+            <div className="bg-slate-50/70 rounded-xl p-4 sm:p-5 border border-slate-200">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-5 h-5 rounded-full bg-[#123B6D] text-white flex items-center justify-center font-bold text-[11px]">
+                  2
+                </div>
+                <h2 className="text-xs sm:text-sm font-bold text-[#172033]">
+                  Option 2 — Token No. / Report ID
+                </h2>
+              </div>
+
+              <form onSubmit={handleSearchByReportIdOrToken} className="space-y-3">
+                <div>
+                  <label className="block text-[11px] sm:text-xs font-bold text-slate-700 mb-1">
+                    Token No. / Report ID: <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
                     <Hash className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     <input
                       type="text"
@@ -821,63 +781,20 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                         setReportIdInput(e.target.value);
                         if (errorMessage) setErrorMessage(null);
                       }}
-                      placeholder="e.g. 101, TK-101, or RPT-2026-8812"
-                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold focus:ring-2 focus:ring-[#123B6D]/20 focus:border-[#123B6D] focus:outline-none"
+                      placeholder="Enter Token No. or Report ID"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold focus:ring-2 focus:ring-[#123B6D]/20 focus:border-[#123B6D] focus:outline-none placeholder:text-slate-400 placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-sans bg-white"
                     />
                   </div>
-                  <button
-                    type="submit"
-                    className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-6 py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
-                  >
-                    <Search className="w-3.5 h-3.5 text-amber-300" />
-                    <span>View Report</span>
-                  </button>
                 </div>
-              </div>
-            </form>
-          )}
 
-          {/* CLEAN DEMO QUICK-FILL PRESETS */}
-          <div className="mt-4 pt-3.5 border-t border-slate-100 flex flex-wrap items-center gap-2 text-xs">
-            <span className="text-slate-400 text-[11px] font-semibold flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>Quick Demo:</span>
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchMethod('name_mobile');
-                  handleQuickFill('Ramesh Kumar Verma', '9876543210', 'RPT-2026-8812');
-                }}
-                className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-semibold transition cursor-pointer border border-emerald-200"
-              >
-                Ramesh (Paid)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchMethod('report_id');
-                  setReportIdInput('TK-104');
-                  setErrorMessage(null);
-                  setErrorDetails(null);
-                }}
-                className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 text-[11px] font-semibold transition cursor-pointer border border-amber-200"
-              >
-                TK-104 (Due ₹300)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchMethod('report_id');
-                  setReportIdInput('TK-103');
-                  setErrorMessage(null);
-                  setErrorDetails(null);
-                }}
-                className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#123B6D] text-[11px] font-semibold transition cursor-pointer border border-blue-200"
-              >
-                TK-103 (In Testing)
-              </button>
+                <button
+                  type="submit"
+                  className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 sm:py-3 px-4 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                >
+                  <Search className="w-4 h-4 text-amber-300" />
+                  <span>Search Report</span>
+                </button>
+              </form>
             </div>
           </div>
         </div>
@@ -1030,29 +947,6 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         {/* THE AUTHENTICATED REPORT VIEW: SHOWN ONLY WHEN MATCHED SUCCESSFULLY */}
         {searchedReport && (
           <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Live Real-Time Multi-Device Sync Indicator & Client WhatsApp */}
-            <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-emerald-950 shadow-2xs no-print">
-              <div className="flex items-center gap-2.5 font-bold">
-                <span className="relative flex h-2.5 w-2.5 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                </span>
-                <span>Live Real-Time Sync Active (Connected across all devices • Updates made by doctor or lab appear here instantly)</span>
-              </div>
-              <a
-                href={`https://wa.me/91${(searchedReport.mobile || mobileNumber || '').replace(/\D/g, '')}?text=${encodeURIComponent(
-                  `Apex Diagnostic Lab Report Ready:\nPatient: ${searchedReport.patientName}\nToken: ${searchedReport.tokenNumber || ''}\nReport ID: ${searchedReport.reportId}\nStatus: ${searchedReport.verified ? 'Verified & Final' : searchedReport.status}\nLab: ${labName}\nPhone: ${labPhone}`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-[#25D366] hover:bg-[#1ebd5a] text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition shrink-0 self-start sm:self-auto cursor-pointer shadow-2xs"
-                title="Send official report summary to client WhatsApp"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>WhatsApp to Client</span>
-              </a>
-            </div>
-
             {/* Prominent Cancellation Banner if Report Was Cancelled */}
             {searchedReport.cancelled && (
               <div className="bg-rose-50 border-2 border-rose-400 rounded-2xl p-5 text-xs text-rose-950 shadow-sm flex items-start gap-4">
@@ -1143,8 +1037,19 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
               </div>
             )}
 
-            {/* Action Bar for Patient */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs no-print">
+            {/* CANONICAL REPORT PDF PREVIEW (Full Screen / Direct Presence) */}
+            <div className="pt-1">
+              <CanonicalPdfViewer
+                report={searchedReport}
+                isPaymentPending={isPaymentPending}
+                activeDueAmount={activeDueAmount}
+                onPayOnline={() => setShowPayOnlineModal(true)}
+                title={`OFFICIAL REPORT MASTER • ${searchedReport.reportId}`}
+              />
+            </div>
+
+            {/* ACTION BAR (Neatly positioned BELOW the report) */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm no-print">
               <div className="flex items-center gap-2">
                 <span
                   className={`w-2.5 h-2.5 rounded-full ${
@@ -1167,35 +1072,26 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={handleResetSearch}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 cursor-pointer"
-                  title="Search Another Report"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Search Another</span>
-                </button>
-
+              <div className="flex items-center gap-2.5 flex-wrap">
                 {/* 1. PDF Download Button (Conditional on Payment Clearance) */}
                 {isPaymentPending ? (
                   <button
                     id="btn-download-pdf-portal-locked"
                     onClick={() => setShowPayOnlineModal(true)}
-                    className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
                     title={`Payment pending: Clear ₹${activeDueAmount} to download report PDF`}
                   >
-                    <Lock className="w-3.5 h-3.5 text-amber-700" />
+                    <Lock className="w-4 h-4 text-amber-700" />
                     <span>Download PDF (Due ₹{activeDueAmount})</span>
                   </button>
                 ) : (
                   <button
                     id="btn-download-pdf-portal"
                     onClick={handleDownloadPdf}
-                    className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+                    className="bg-[#0F766E] hover:bg-[#0d655e] text-white px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
                     title="Download Official NABL Medical Report PDF"
                   >
-                    <Download className="w-3.5 h-3.5 text-emerald-300" />
+                    <Download className="w-4 h-4 text-emerald-300" />
                     <span>Download PDF</span>
                   </button>
                 )}
@@ -1205,50 +1101,55 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                   <button
                     id="btn-print-report-portal-locked"
                     onClick={() => setShowPayOnlineModal(true)}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer active:scale-95"
                     title={`Payment pending: Clear ₹${activeDueAmount} to print report`}
                   >
-                    <Lock className="w-3.5 h-3.5 text-amber-700" />
-                    <span>Print (Locked)</span>
+                    <Lock className="w-4 h-4 text-amber-700" />
+                    <span>Print Report (Locked)</span>
                   </button>
                 ) : (
                   <button
                     id="btn-print-report-portal"
                     onClick={handlePrint}
-                    className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer"
+                    className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-xs active:scale-95 cursor-pointer"
                     title="Print Report on A4 / Letterhead"
                   >
-                    <Printer className="w-3.5 h-3.5 text-amber-300" />
+                    <Printer className="w-4 h-4 text-amber-300" />
                     <span>Print Report</span>
                   </button>
                 )}
 
+                {/* 3. Share on WhatsApp Button */}
                 <button
+                  id="btn-share-whatsapp-portal"
                   onClick={handleShareWhatsApp}
-                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-xs cursor-pointer active:scale-95"
+                  title="Share report on WhatsApp"
                 >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>WhatsApp</span>
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Share on WhatsApp</span>
                 </button>
+
+                {/* 4. Search Another Report */}
+                <button
+                  onClick={handleResetSearch}
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer border border-slate-200"
+                  title="Search Another Report"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Search Another</span>
+                </button>
+
+                {/* 5. Verify QR Code Modal Button */}
                 <button
                   onClick={() => setShowVerifyModal(true)}
-                  className="bg-teal-50 hover:bg-teal-100 text-[#0F766E] border border-teal-200 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1 cursor-pointer"
+                  className="bg-teal-50 hover:bg-teal-100 text-[#0F766E] border border-teal-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
+                  title="Verify Security QR Code"
                 >
                   <ShieldCheck className="w-3.5 h-3.5 text-[#0F766E]" />
                   <span>Verify QR</span>
                 </button>
               </div>
-            </div>
-
-            {/* CANONICAL REPORT PDF PREVIEW (Exact same PDF document as download & print) */}
-            <div className="pt-2">
-              <CanonicalPdfViewer
-                report={searchedReport}
-                isPaymentPending={isPaymentPending}
-                activeDueAmount={activeDueAmount}
-                onPayOnline={() => setShowPayOnlineModal(true)}
-                title={`OFFICIAL REPORT MASTER • ${searchedReport.reportId}`}
-              />
             </div>
           </div>
         )}

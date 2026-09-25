@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Lock,
-  CreditCard,
-  AlertCircle,
-} from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { LabReport } from '../types';
 import { getCanonicalReportPdfBlob } from '../utils/pdfGenerator';
 import { renderPdfPages, RenderedPdfPage } from '../utils/canonicalPdfRenderer';
@@ -21,9 +17,6 @@ interface CanonicalPdfViewerProps {
 
 export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
   report,
-  isPaymentPending = false,
-  activeDueAmount = 0,
-  onPayOnline,
   className = '',
 }) => {
   const [loading, setLoading] = useState(true);
@@ -67,36 +60,7 @@ export const CanonicalPdfViewer: React.FC<CanonicalPdfViewerProps> = ({
     <div
       className={`bg-slate-950 text-slate-100 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col w-full ${className}`}
     >
-      {/* PAYMENT PENDING OVERLAY (if active) */}
-      {isPaymentPending && (
-        <div className="bg-amber-950/90 border-b border-amber-600/60 p-3 sm:p-4 text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-start gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center shrink-0">
-              <Lock className="w-4 h-4 text-amber-400" />
-            </div>
-            <div>
-              <div className="font-bold text-amber-100 text-xs sm:text-sm">
-                Official Report Ready • Payment Due: ₹{activeDueAmount}
-              </div>
-              <p className="text-amber-300/80 text-[11px] mt-0.5">
-                Clear pending dues to unlock full diagnostic investigations.
-              </p>
-            </div>
-          </div>
-          {onPayOnline && (
-            <button
-              type="button"
-              onClick={onPayOnline}
-              className="bg-amber-500 hover:bg-amber-400 text-amber-950 px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm active:scale-95"
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              <span>Pay ₹{activeDueAmount}</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* PURE REPORT PRESENTATION (NO BUTTONS INSIDE THE BOX - FULL DISPLAY) */}
+      {/* PURE CANONICAL REPORT PRESENTATION (ZERO BUTTONS INSIDE THIS DARK BOX - ONLY FULL DISPLAY REPORT) */}
       <div className="flex-1 overflow-auto bg-slate-950 p-2 sm:p-6 flex flex-col items-center justify-start min-h-[500px]">
         {loading && (
           <div className="flex flex-col items-center justify-center py-28 text-slate-400 space-y-3">

@@ -199,26 +199,6 @@ export const PatientPortalSection: React.FC<PatientPortalSectionProps> = ({
               </div>
             </div>
           </form>
-
-          {/* Quick preset selector for instant testing */}
-          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-            <span className="flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-500" /> Demo Fill:
-            </span>
-            <button
-              onClick={() => {
-                if (searchMethod === 'name_mobile') {
-                  setPatientName('Ramesh Kumar Verma');
-                  setMobileNumber('9876543210');
-                } else {
-                  setReportId('RPT-2026-8812');
-                }
-              }}
-              className="text-[#123B6D] hover:underline font-semibold cursor-pointer"
-            >
-              Fill Sample {searchMethod === 'name_mobile' ? 'Ramesh (9876543210)' : 'RPT-2026-8812'}
-            </button>
-          </div>
         </div>
       </div>
     </section>
