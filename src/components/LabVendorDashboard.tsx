@@ -42,6 +42,7 @@ import {
   UserPlus,
   Receipt,
   AlertCircle,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';

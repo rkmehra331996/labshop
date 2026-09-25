@@ -28,6 +28,8 @@ import {
   Copy,
   Globe,
   Mail,
+  Shield,
+  RotateCcw,
   Send,
   Share2,
   Navigation,
@@ -58,116 +60,9 @@ import { OnlineTestBookingModal } from './vendor/OnlineTestBookingModal';
 import { HeroBookingForm } from './vendor/HeroBookingForm';
 import { LabWelcomeFirstScreen } from './vendor/LabWelcomeFirstScreen';
 import { TermsConditionsModal } from './TermsConditionsModal';
+import { VendorPolicyModal, PolicyTabType } from './vendor/VendorPolicyModal';
 import { getTenantWebsiteUrl, getTenantSubdomain, getTenantBrowserUrl, SUPER_ADMIN_DOMAIN } from '../constants/domains';
 import { isTenantMatch } from '../utils/tenantSecurity';
-
-export interface LabGalleryItem {
-  id: string;
-  title: string;
-  category: 'Equipment' | 'Phlebotomy' | 'Facility' | 'Quality';
-  tag: string;
-  description: string;
-  image: string;
-}
-
-export const LAB_GALLERY_ITEMS: LabGalleryItem[] = [
-  {
-    id: 'gal-1',
-    title: 'Sysmex Automated 5-Part Hematology Cell Counter',
-    category: 'Equipment',
-    tag: 'Automated CBC Testing',
-    description: 'Precision automated cell counter delivering complete blood counts with fluorescent flow cytometry flags.',
-    image: 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'gal-2',
-    title: 'Roche Cobas Immunoassay & Biochemistry Platform',
-    category: 'Equipment',
-    tag: 'Clinical Chemistry',
-    description: 'Electrochemiluminescence technology for liver, kidney, hormonal, and cardiac biomarker diagnostics.',
-    image: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'gal-3',
-    title: 'Vacuum-Sealed Sterile Vacutainer Tubes',
-    category: 'Phlebotomy',
-    tag: 'Safe Blood Collection',
-    description: 'Color-coded EDTA, fluoride, and gel-separator vacutainer collection tubes preventing pre-analytical errors.',
-    image: 'https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'gal-4',
-    title: 'High-Resolution Binocular Clinical Microscope',
-    category: 'Equipment',
-    tag: 'Morphology & Histology',
-    description: 'Equipped with plan-achromatic optics for peripheral blood smear examination and cytology analysis.',
-    image: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'gal-5',
-    title: 'Sterile Phlebotomy Blood Collection Chair',
-    category: 'Phlebotomy',
-    tag: 'Patient Comfort',
-    description: 'Ergonomic blood collection chair with adjustable armrests ensuring comfortable and safe venipuncture.',
-    image: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'gal-6',
-    title: 'Cold-Chain Temperature Controlled Transport Carrier',
-    category: 'Phlebotomy',
-    tag: 'Temperature 2°C–8°C',
-    description: 'Insulated sample boxes with calibrated gel ice packs maintaining specimen integrity during transit.',
-    image: 'https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'gal-7',
-    title: 'Air-Conditioned Patient Reception & Waiting Lounge',
-    category: 'Facility',
-    tag: 'Comfort & Cleanliness',
-    description: 'Hygienic, comfortable waiting area with real-time digital token display and drinking water amenities.',
-    image: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'gal-8',
-    title: 'Senior Clinical Pathologist Review Bench',
-    category: 'Quality',
-    tag: 'NABL Verification',
-    description: 'Each report is cross-checked against clinical history and delta checks before applying the digital signature.',
-    image: 'https://images.unsplash.com/photo-1583912267670-6575ad472688?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'gal-9',
-    title: 'Precision Micro-Pipetting & Serology Setup',
-    category: 'Equipment',
-    tag: 'Microliter Accuracy',
-    description: 'Multi-channel micropipettes calibrated weekly with gravimetric checks for allergy and serology tests.',
-    image: 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'gal-10',
-    title: 'Class II Biosafety Laminar Airflow Cabinet',
-    category: 'Quality',
-    tag: 'Sterile Processing',
-    description: 'HEPA filtration protecting lab personnel and infectious samples during culture & microbiological processing.',
-    image: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'gal-11',
-    title: 'Automated Barcode Generation & UHID Tracking Station',
-    category: 'Quality',
-    tag: 'Zero Sample Mix-up',
-    description: 'Thermal barcoded labels printed instantaneously at the registration counter linked to the cloud database.',
-    image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'gal-12',
-    title: 'Digital Consultation & WhatsApp Dispatch Desk',
-    category: 'Facility',
-    tag: 'Instant Delivery',
-    description: 'Dedicated client support desk for inquiries, doctor consultation coordination, and report printouts.',
-    image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=800&q=80',
-  },
-];
 
 interface LabVendorWebsiteProps {
   language?: Language;
@@ -231,6 +126,16 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
   const dedicatedDomain = currentLabItem?.domainPreview || `${currentLabItem?.id || 'apexdiagnostics'}.${SUPER_ADMIN_DOMAIN}`;
   const canonicalUrl = getTenantWebsiteUrl(dedicatedDomain);
+
+  const handleOpenAdmin = () => {
+    if (currentUser && currentUser.role === 'admin') {
+      if (onOpenAdminDashboard) onOpenAdminDashboard();
+    } else if (currentUser && currentUser.role === 'vendor') {
+      if (onOpenVendorDashboard) onOpenVendorDashboard();
+    } else {
+      openLoginModal('admin');
+    }
+  };
 
   const handleOpenManagement = () => {
     if (currentUser && (currentUser.role === 'vendor' || currentUser.role === 'admin')) {
@@ -315,10 +220,30 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isPaymentQrModalOpen, setIsPaymentQrModalOpen] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
-  const [selectedGalleryImage, setSelectedGalleryImage] = useState<any | null>(null);
-  const [galleryCategory, setGalleryCategory] = useState<'All' | 'Equipment' | 'Phlebotomy' | 'Facility' | 'Quality'>('All');
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [selectedQrType, setSelectedQrType] = useState<'counter' | 'home'>('counter');
+  const [isWebsiteQrModalOpen, setIsWebsiteQrModalOpen] = useState(false);
+  const [copiedWebsiteUrl, setCopiedWebsiteUrl] = useState(false);
+  const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+  const [policyModalTab, setPolicyModalTab] = useState<PolicyTabType>('terms');
+
+  const openPolicyModal = (tab: PolicyTabType) => {
+    setPolicyModalTab(tab);
+    setIsPolicyModalOpen(true);
+  };
+
+  const websiteDirectUrl = React.useMemo(() => {
+    if (typeof window !== 'undefined') {
+      const origin = window.location.origin;
+      const search = window.location.search;
+      if (search && search.includes('lab=')) {
+        return `${origin}${window.location.pathname}${search}`;
+      }
+      const slug = currentLabItem?.domainPreview?.replace(`.${SUPER_ADMIN_DOMAIN}`, '') || currentLabItem?.id || 'apexdiagnostics';
+      return `${origin}/?lab=${slug}`;
+    }
+    return canonicalUrl;
+  }, [currentLabItem, canonicalUrl]);
 
   // Default Pathology & Diagnostic Banners
   const DEFAULT_HERO_BANNER_IMAGES = React.useMemo(() => [
@@ -1080,14 +1005,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             </a>
 
             <a
-              href="#gallery"
-              className="hover:text-[#123B6D] transition text-slate-700 hover:font-bold whitespace-nowrap py-1"
-              id="vendor-nav-gallery"
-            >
-              Gallery
-            </a>
-
-            <a
               href="#contact"
               className="hover:text-[#123B6D] transition text-slate-700 hover:font-bold whitespace-nowrap py-1"
               id="vendor-nav-contact"
@@ -1255,7 +1172,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   </button>
                 </div>
 
-                {/* Scrollable Navigation Links (Home, Packages, Tests, About, Team, Gallery, Contact) */}
+                {/* Scrollable Navigation Links (Home, Packages, Tests, About, Team, Contact) */}
                 <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-1 text-sm font-semibold text-slate-700">
                   <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 pb-1">
                     Quick Links
@@ -1313,17 +1230,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     <span>Team (Pathologists)</span>
                   </a>
 
-                  {/* 6. Gallery */}
-                  <a
-                    href="#gallery"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 transition flex items-center gap-3 text-slate-800 font-bold cursor-pointer"
-                  >
-                    <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs">🖼️</span>
-                    <span>Gallery (12 Photos)</span>
-                  </a>
-
-                  {/* 7. Contact */}
+                  {/* 6. Contact */}
                   <a
                     href="#contact"
                     onClick={() => setMobileMenuOpen(false)}
@@ -2753,180 +2660,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         </div>
       </section>
 
-      {/* 8. Laboratory & Infrastructure Photo Gallery Section (12 High-Res Photos) */}
-      <section id="gallery" className="py-16 sm:py-20 bg-white border-b border-slate-200 scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          {/* Section Header */}
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold mb-3 border border-emerald-200">
-              <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
-              <span>NABL Certified Diagnostic Center Tour</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
-              Laboratory &amp; Pathology Infrastructure
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
-              Take a visual tour of our advanced clinical chemistry analyzers, sterile phlebotomy stations, temperature-controlled cold-chain sample logistics, and patient consultation lounge.
-            </p>
-
-            {/* Category Filter Pills */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
-              {(['All', 'Equipment', 'Phlebotomy', 'Facility', 'Quality'] as const).map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setGalleryCategory(cat)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer active:scale-95 ${
-                    galleryCategory === cat
-                      ? 'bg-[#123B6D] text-white shadow-xs'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  {cat === 'All' ? 'All Photos (12)' : cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 12 Image Gallery Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {LAB_GALLERY_ITEMS.filter(
-              (item) => galleryCategory === 'All' || item.category === galleryCategory
-            ).map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setSelectedGalleryImage(item)}
-                className="group bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer flex flex-col"
-              >
-                {/* Photo with Overlay Zoom */}
-                <div className="relative aspect-4/3 overflow-hidden bg-slate-900">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 opacity-80 group-hover:opacity-90 transition-opacity" />
-                  
-                  {/* Category Badge */}
-                  <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/95 text-slate-900 shadow-2xs">
-                    {item.category}
-                  </span>
-
-                  {/* Zoom Trigger Button */}
-                  <div className="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
-                    <Maximize2 className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-
-                {/* Card Meta Content */}
-                <div className="p-4 flex-1 flex flex-col justify-between space-y-2">
-                  <div>
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#0F766E] bg-teal-50 px-2 py-0.5 rounded border border-teal-200/60 inline-block mb-1">
-                      {item.tag}
-                    </span>
-                    <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-snug group-hover:text-[#123B6D] transition-colors">
-                      {item.title}
-                    </h3>
-                  </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-2">
-                    {item.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Quick CTA inside Gallery */}
-          <div className="mt-10 p-5 rounded-2xl bg-gradient-to-r from-blue-50 via-slate-50 to-teal-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#123B6D] text-white flex items-center justify-center shrink-0 shadow-2xs">
-                <ShieldCheck className="w-5 h-5 text-amber-300" />
-              </div>
-              <div>
-                <h4 className="font-extrabold text-sm text-slate-900">
-                  Strict ISO 15189 Quality Protocol &amp; NABL Accreditation
-                </h4>
-                <p className="text-xs text-slate-500">
-                  All equipment calibrated daily with commercial controls and verified by qualified technologists.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedTestOrPackage(
-                  vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
-                );
-                setIsBookingModalOpen(true);
-              }}
-              className="px-4 py-2.5 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
-            >
-              <Calendar className="w-3.5 h-3.5 text-amber-300" />
-              <span>Book Test at this Lab</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Gallery Image Lightbox Modal */}
-        {selectedGalleryImage && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150"
-            onClick={() => setSelectedGalleryImage(null)}
-          >
-            <div
-              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-white/20 animate-in zoom-in-95 duration-150"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close Button */}
-              <button
-                type="button"
-                onClick={() => setSelectedGalleryImage(null)}
-                className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition cursor-pointer"
-                aria-label="Close photo preview"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="max-h-[60vh] overflow-hidden bg-slate-950 flex items-center justify-center">
-                <img
-                  src={selectedGalleryImage.image}
-                  alt={selectedGalleryImage.title}
-                  className="w-full max-h-[60vh] object-cover"
-                />
-              </div>
-
-              <div className="p-5 sm:p-6 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-teal-100 text-teal-900 px-2.5 py-0.5 rounded-full">
-                    {selectedGalleryImage.category}
-                  </span>
-                  <span className="text-[11px] font-bold text-slate-500">
-                    {selectedGalleryImage.tag}
-                  </span>
-                </div>
-                <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
-                  {selectedGalleryImage.title}
-                </h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {selectedGalleryImage.description}
-                </p>
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedGalleryImage(null)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition cursor-pointer"
-                  >
-                    Close Preview
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
       {/* 9. Dedicated Contact Us & Lab Location Section */}
       <section id="contact" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
@@ -3448,186 +3181,234 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       {/* 10. Footer */}
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8 text-xs text-slate-600">
-            <div>
-              <div className="flex items-center gap-2.5 mb-3">
+          {/* Footer — 5 Columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 pb-10 text-xs text-slate-600">
+            {/* Column 1: Lab Info (Lab Name + ID + Contact Number) */}
+            <div className="space-y-3.5 sm:col-span-2 lg:col-span-1">
+              <div className="flex items-center gap-2.5">
                 {labLogoUrl ? (
                   <img
                     src={labLogoUrl}
                     alt={labName}
                     referrerPolicy="no-referrer"
-                    className="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200 p-0.5 shadow-xs shrink-0"
+                    className="w-9 h-9 rounded-xl object-contain bg-white border border-slate-200 p-0.5 shadow-xs shrink-0"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-lg bg-[#123B6D] text-white flex items-center justify-center font-black text-xs shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#123B6D] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
                     <span className="text-amber-400">{labName.charAt(0) || 'A'}</span>
                     {labName.split(' ')[1]?.charAt(0) || 'L'}
                   </div>
                 )}
                 <div>
                   <span className="font-extrabold text-[#123B6D] text-sm block leading-tight">{labName}</span>
-                  <span className="font-mono text-[10px] text-slate-500 font-bold">ID: {labShopId}</span>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-bold border border-slate-200">
+                      ID: {labShopId}
+                    </span>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded font-bold border border-emerald-200">
+                      NABL
+                    </span>
+                  </div>
                 </div>
               </div>
-              <p className="text-slate-500 leading-relaxed mb-3">
-                {labDescription}
-              </p>
-              <div className="space-y-1.5 text-[11px] text-slate-600 border-t border-slate-100 pt-3">
-                <div className="flex items-center gap-1.5">
+
+              <div className="space-y-2.5 pt-2 border-t border-slate-100 text-slate-700">
+                <div className="flex items-center gap-2">
                   <Phone className="w-3.5 h-3.5 text-[#123B6D] shrink-0" />
-                  <a href={`tel:+91${cleanPhone}`} className="hover:text-[#123B6D] font-bold">
+                  <a href={`tel:+91${cleanPhone}`} className="hover:text-[#123B6D] font-bold text-xs">
                     +91 {labPhone}
                   </a>
                 </div>
-                <div className="flex items-center gap-1.5">
+
+                <div className="flex items-center gap-2">
                   <MessageSquare className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <a href={stickyWhatsappUrl} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-700 font-bold text-emerald-700">
+                  <a href={stickyWhatsappUrl} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-700 font-bold text-xs text-emerald-700">
                     WhatsApp: +91 {cleanWhatsapp}
                   </a>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                  <a href={`mailto:${labEmail}`} className="hover:text-indigo-800 break-all">
-                    {labEmail}
-                  </a>
-                </div>
-                <div className="flex items-start gap-1.5 pt-0.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#123B6D] shrink-0 mt-0.5" />
-                  <span>{labAddress}</span>
-                </div>
-              </div>
 
-              {/* Social Media Links inside Footer */}
-              <div className="mt-4 pt-3 border-t border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                  Follow Us Online
-                </span>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={stickyWhatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="WhatsApp"
-                    className="w-7 h-7 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center transition"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                  </a>
-                  <a
-                    href="https://facebook.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Facebook"
-                    className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center transition"
-                  >
-                    <Facebook className="w-3.5 h-3.5" />
-                  </a>
-                  <a
-                    href="https://instagram.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Instagram"
-                    className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 flex items-center justify-center transition"
-                  >
-                    <Instagram className="w-3.5 h-3.5" />
-                  </a>
-                  <a
-                    href="https://twitter.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Twitter / X"
-                    className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 flex items-center justify-center transition"
-                  >
-                    <Twitter className="w-3.5 h-3.5" />
-                  </a>
-                  <a
-                    href="https://youtube.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="YouTube"
-                    className="w-7 h-7 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 flex items-center justify-center transition"
-                  >
-                    <Youtube className="w-3.5 h-3.5" />
-                  </a>
-                  <a
-                    href="https://linkedin.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="LinkedIn"
-                    className="w-7 h-7 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 flex items-center justify-center transition"
-                  >
-                    <Linkedin className="w-3.5 h-3.5" />
-                  </a>
-                </div>
+                {labAddress && (
+                  <div className="flex items-start gap-1.5 text-[11px] text-slate-500 pt-0.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#123B6D] shrink-0 mt-0.5" />
+                    <span>{labAddress}</span>
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* Column 2: Main Menu */}
             <div>
-              <h4 className="font-bold text-[#123B6D] mb-3 uppercase tracking-wider text-[11px]">
-                Popular Blood Tests
+              <h4 className="font-extrabold text-[#123B6D] mb-4 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <span>Main Menu</span>
               </h4>
-              <ul className="space-y-2">
-                <li>Complete Blood Count (CBC)</li>
-                <li>HbA1c & Fasting Blood Sugar</li>
-                <li>Thyroid Profile (T3, T4, TSH)</li>
-                <li>Lipid Profile (Cholesterol)</li>
-                <li>Liver & Kidney Profiles</li>
-                <li>Vitamin D3 & Vitamin B12</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-[#123B6D] mb-3 uppercase tracking-wider text-[11px]">
-                Health Packages
-              </h4>
-              <ul className="space-y-2">
-                <li>Full Body Health Checkup (68 Tests)</li>
-                <li>Comprehensive Diabetic Care</li>
-                <li>Senior Citizen Advanced Profile</li>
-                <li>Women Wellness Profile</li>
-                <li>Pre-Operative Profile</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-[#123B6D] mb-3 uppercase tracking-wider text-[11px]">
-                Quick Access & Links
-              </h4>
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 <li>
                   <button
-                    onClick={onOpenSoftwareWebsite}
-                    className="hover:text-[#123B6D] flex items-center gap-1.5 cursor-pointer text-[#0F766E] font-bold"
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById('top') || document.getElementById('main-website-header');
+                      el ? el.scrollIntoView({ behavior: 'smooth' }) : window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="hover:text-[#123B6D] hover:font-bold transition cursor-pointer text-slate-600 text-left"
                   >
-                    <span>🏠 Main Home Portal</span>
+                    Home
+                  </button>
+                </li>
+                <li>
+                  <a
+                    href="#packages"
+                    className="hover:text-[#123B6D] hover:font-bold transition text-slate-600 block"
+                  >
+                    Packages
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#book-test-section"
+                    className="hover:text-[#123B6D] hover:font-bold transition text-slate-600 block"
+                  >
+                    Tests
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#about"
+                    className="hover:text-[#123B6D] hover:font-bold transition text-slate-600 block"
+                  >
+                    About Us
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#doctors"
+                    className="hover:text-[#123B6D] hover:font-bold transition text-slate-600 block"
+                  >
+                    Team
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#contact"
+                    className="hover:text-[#123B6D] hover:font-bold transition text-slate-600 block"
+                  >
+                    Contact Us
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 3: Quick Access */}
+            <div>
+              <h4 className="font-extrabold text-[#123B6D] mb-4 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <span>Quick Access</span>
+              </h4>
+              <ul className="space-y-2.5">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => handleCheckReport()}
+                    className="hover:text-[#123B6D] text-teal-700 font-bold flex items-center gap-1.5 cursor-pointer text-left transition"
+                  >
+                    <FileText className="w-3.5 h-3.5 shrink-0" />
+                    <span>Download Report</span>
                   </button>
                 </li>
                 <li>
                   <button
+                    type="button"
+                    onClick={() => setIsPaymentQrModalOpen(true)}
+                    className="hover:text-[#123B6D] hover:font-bold text-slate-600 flex items-center gap-1.5 cursor-pointer text-left transition"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span>Lab Payment UPI QR</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setIsWebsiteQrModalOpen(true)}
+                    className="hover:text-[#123B6D] hover:font-bold text-slate-600 flex items-center gap-1.5 cursor-pointer text-left transition"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span>Website QR (Lab Website QR)</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 4: Legal & Policy */}
+            <div>
+              <h4 className="font-extrabold text-[#123B6D] mb-4 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <span>Legal &amp; Policy</span>
+              </h4>
+              <ul className="space-y-2.5">
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => openPolicyModal('terms')}
+                    className="hover:text-[#123B6D] hover:font-bold text-slate-600 flex items-center gap-1.5 cursor-pointer text-left transition"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>Terms &amp; Conditions</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => openPolicyModal('privacy')}
+                    className="hover:text-[#123B6D] hover:font-bold text-slate-600 flex items-center gap-1.5 cursor-pointer text-left transition"
+                  >
+                    <Shield className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Privacy Policy</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => openPolicyModal('refund')}
+                    className="hover:text-[#123B6D] hover:font-bold text-slate-600 flex items-center gap-1.5 cursor-pointer text-left transition"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span>Refund &amp; Cancellation Policy</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 5: Login / Portal */}
+            <div>
+              <h4 className="font-extrabold text-[#123B6D] mb-4 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <span>Login / Portal</span>
+              </h4>
+              <ul className="space-y-2.5">
+                <li>
+                  <button
+                    type="button"
+                    onClick={handleOpenAdmin}
+                    className="hover:text-[#123B6D] hover:font-bold text-slate-600 flex items-center gap-1.5 cursor-pointer text-left transition"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span>
+                    <span>Admin Login</span>
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
                     onClick={handleOpenReception}
-                    className="hover:text-[#123B6D] flex items-center gap-1.5 cursor-pointer"
+                    className="hover:text-[#123B6D] hover:font-bold text-slate-600 flex items-center gap-1.5 cursor-pointer text-left transition"
                   >
-                    <span>🖥️ Reception Counter</span>
+                    <span className="w-2 h-2 rounded-full bg-teal-600 shrink-0"></span>
+                    <span>Reception Login</span>
                   </button>
                 </li>
                 <li>
                   <button
+                    type="button"
                     onClick={handleOpenTechnician}
-                    className="hover:text-[#123B6D] flex items-center gap-1.5 cursor-pointer"
+                    className="hover:text-[#123B6D] hover:font-bold text-slate-600 flex items-center gap-1.5 cursor-pointer text-left transition"
                   >
-                    <span>🔬 Lab Technician Station</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={handleOpenManagement}
-                    className="hover:text-[#123B6D] flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>⚙️ Management CMS</span>
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => handleCheckReport()} className="hover:text-[#123B6D] text-teal-700 font-semibold cursor-pointer">
-                    Download Patient Report (PDF)
+                    <span className="w-2 h-2 rounded-full bg-indigo-600 shrink-0"></span>
+                    <span>Technician Login</span>
                   </button>
                 </li>
               </ul>
@@ -3637,21 +3418,18 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
           <div className="border-t border-slate-200 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span>© {new Date().getFullYear()} {labName}. All Rights Reserved.</span>
-              <span className="text-slate-300 hidden sm:inline">|</span>
-              <span>
-                Software by{' '}
-                <a
-                  href="https://indianlalaji.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#123B6D] hover:underline font-black"
-                >
-                  indianlalaji.com
-                </a>
-              </span>
             </div>
-            <div className="flex items-center gap-1.5 font-medium">
-              <span className="text-slate-500">Customer Care:</span>
+            <div className="flex items-center gap-2 font-medium flex-wrap">
+              <span>Powered by</span>
+              <a
+                href="https://indianlalaji.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#123B6D] hover:underline font-black"
+              >
+                indianlalaji.com
+              </a>
+              <span className="text-slate-300">|</span>
               <a
                 href="tel:7087033009"
                 className="text-[#123B6D] hover:underline font-black inline-flex items-center gap-1 bg-slate-100 hover:bg-blue-50 px-2.5 py-1 rounded-md transition border border-slate-200"
@@ -3825,11 +3603,103 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         onOpenReportPortal={handleCheckReport}
       />
 
-      {/* Terms & Conditions Modal */}
-      <TermsConditionsModal
-        isOpen={isTermsModalOpen}
-        onClose={() => setIsTermsModalOpen(false)}
+      {/* Terms & Conditions / Privacy / Refund Policy Modal */}
+      <VendorPolicyModal
+        isOpen={isPolicyModalOpen || isTermsModalOpen}
+        onClose={() => {
+          setIsPolicyModalOpen(false);
+          setIsTermsModalOpen(false);
+        }}
+        activeTab={policyModalTab}
+        onSelectTab={setPolicyModalTab}
+        labName={labName}
+        labPhone={labPhone}
+        labEmail={labEmail}
       />
+
+      {/* Website QR Modal */}
+      {isWebsiteQrModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="website-qr-modal-title"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200"
+          onClick={() => setIsWebsiteQrModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-sm w-full p-6 relative shadow-2xl border border-slate-100 flex flex-col items-center text-center animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setIsWebsiteQrModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
+              aria-label="Close Website QR Modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center mb-3">
+              <QrCode className="w-6 h-6" />
+            </div>
+
+            <h3 id="website-qr-modal-title" className="text-base font-extrabold text-slate-900 leading-tight mb-1">
+              Official Website QR Code
+            </h3>
+            <p className="text-xs text-slate-500 mb-4 line-clamp-1">
+              {labName}
+            </p>
+
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-4 shadow-inner flex flex-col items-center">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(websiteDirectUrl)}`}
+                alt={`${labName} Website QR`}
+                className="w-48 h-48 rounded-xl object-contain bg-white p-2 border border-slate-200 shadow-xs"
+              />
+              <span className="text-[11px] font-semibold text-slate-500 mt-2 flex items-center gap-1">
+                <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
+                Scan to open vendor lab website
+              </span>
+            </div>
+
+            <div className="w-full bg-slate-50 rounded-xl p-2.5 border border-slate-200 mb-4 flex items-center justify-between text-xs font-mono text-slate-700">
+              <span className="truncate pr-2 select-all">{websiteDirectUrl}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(websiteDirectUrl);
+                  setCopiedWebsiteUrl(true);
+                  setTimeout(() => setCopiedWebsiteUrl(false), 2000);
+                }}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold shrink-0 transition flex items-center gap-1 cursor-pointer"
+              >
+                {copiedWebsiteUrl ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedWebsiteUrl ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+
+            <div className="w-full grid grid-cols-2 gap-2 text-xs">
+              <a
+                href={websiteDirectUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-800 py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-slate-600" />
+                <span>Visit Link</span>
+              </a>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Visit ${labName} Website: ${websiteDirectUrl}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Share QR</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Test Information & Fasting Preparation Modal */}
       {selectedTestInfoModal && (() => {

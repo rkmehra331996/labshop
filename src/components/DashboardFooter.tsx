@@ -24,29 +24,26 @@ export const DashboardFooter: React.FC<DashboardFooterProps> = ({
       className={`border-t border-slate-200 bg-white py-3.5 px-4 sm:px-6 text-xs text-slate-500 mt-auto transition-colors ${className}`}
     >
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-        {/* Left: Lab Copyright & Software link */}
+        {/* Left: Lab Copyright */}
         <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
           <span className="font-semibold text-slate-700">
             © {currentYear} {labName}. All Rights Reserved.
           </span>
-          <span className="text-slate-300 hidden sm:inline">|</span>
-          <span className="text-slate-600">
-            Software by{' '}
-            <a
-              href={`https://${superAdminDomain}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#123B6D] hover:underline font-bold inline-flex items-center gap-1"
-            >
-              <Globe className="w-3 h-3 text-[#123B6D]" />
-              <span>{superAdminDomain}</span>
-            </a>
-          </span>
         </div>
 
-        {/* Right: Customer Care Number */}
-        <div className="flex items-center gap-2 font-medium justify-center sm:justify-end">
-          <span className="text-slate-500">Customer Care:</span>
+        {/* Right: Powered by indianlalaji.com | Phone */}
+        <div className="flex items-center gap-2 font-medium justify-center sm:justify-end flex-wrap">
+          <span className="text-slate-600">Powered by</span>
+          <a
+            href={`https://${superAdminDomain}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#123B6D] hover:underline font-bold inline-flex items-center gap-1"
+          >
+            <Globe className="w-3 h-3 text-[#123B6D]" />
+            <span>{superAdminDomain}</span>
+          </a>
+          <span className="text-slate-300">|</span>
           <a
             href={`tel:${companySettings?.supportPhone || '7087033009'}`}
             className="text-[#123B6D] hover:underline font-black inline-flex items-center gap-1.5 bg-slate-100 hover:bg-blue-50 px-2.5 py-1 rounded-md transition border border-slate-200"
