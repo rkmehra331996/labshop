@@ -239,11 +239,15 @@ export interface VendorDoctor {
   name: string;
   degrees: string;
   qualification?: string;
+  designation?: string;
+  roleCategory?: 'Pathologist' | 'Biochemist' | 'Microbiologist' | 'Technician' | 'Phlebotomist';
   specialization: string;
   specialty?: string;
+  specialExpertise?: string;
   experience: string;
   bio: string;
   avatarEmoji: string;
+  imageUrl?: string;
   referralCommissionPct?: number;
   monthlyReferrals?: number;
   totalReferredBilling?: number;

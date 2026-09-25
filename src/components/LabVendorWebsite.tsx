@@ -2569,32 +2569,186 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         </div>
       </section>
 
-      {/* 7. Qualified Medical & Pathologist Panel */}
-      <section id="doctors" className="py-16 bg-[#F8FAFC] border-b border-slate-200 scroll-mt-20">
+      {/* SECTION 6: QUALIFIED TEAM SECTION (Pathologists, Biochemists & Senior Lab Technicians) */}
+      <section id="doctors" className="py-16 sm:py-20 bg-[#F8FAFC] border-b border-slate-200 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="text-center max-w-xl mx-auto mb-12">
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
-              Led by Experienced MD Pathologists
+          {/* Section Header */}
+          <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-14">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-100/80 text-[#123B6D] text-xs font-black mb-3 border border-blue-200/80 shadow-2xs">
+              <Users className="w-3.5 h-3.5 text-blue-700" />
+              <span>Qualified Clinical &amp; Laboratory Team</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#123B6D] tracking-tight">
+              Experienced Pathologists, Biochemists &amp; Senior Technicians
             </h2>
-            <p className="text-xs sm:text-sm text-[#64748B] mt-2">
-              Every report is reviewed, validated, and signed by our senior clinical experts.
+            <p className="text-xs sm:text-sm text-slate-600 mt-2.5 leading-relaxed">
+              लैब के अनुभवी पैथोलॉजिस्ट्स, बायोकेमिस्ट्स और सीनियर लैब टेक्नीशियन्स — Every test sample undergoes rigorous multi-tier verification before digital sign-off and dispatch.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {vendorDoctors.map((doc, idx) => (
-              <div key={doc.id || idx} className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs text-center">
-                <div className="w-16 h-16 rounded-full bg-[#123B6D]/10 text-[#123B6D] mx-auto flex items-center justify-center font-bold text-xl mb-4">
-                  {doc.avatarEmoji || '👨‍⚕️'}
+          {/* Qualified Team Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+            {vendorDoctors.map((doc, idx) => {
+              // Fallback image based on role
+              let fallbackImg = '/src/assets/images/team_pathologist_woman_1790345423035.jpg';
+              if (doc.roleCategory === 'Biochemist' || doc.specialization?.toLowerCase().includes('biochem')) {
+                fallbackImg = '/src/assets/images/team_biochemist_1790345449541.jpg';
+              } else if (doc.roleCategory === 'Phlebotomist' || doc.specialization?.toLowerCase().includes('phlebotom')) {
+                fallbackImg = '/src/assets/images/team_phlebotomist_1790345465190.jpg';
+              } else if (doc.roleCategory === 'Technician' || doc.specialization?.toLowerCase().includes('technic')) {
+                fallbackImg = '/src/assets/images/team_technologist_1790345481173.jpg';
+              } else if (idx === 0) {
+                fallbackImg = '/src/assets/images/founder_pathologist_1790345211989.jpg';
+              }
+              const displayImage = doc.imageUrl || fallbackImg;
+
+              const roleBadgeColor =
+                doc.roleCategory === 'Pathologist'
+                  ? 'bg-blue-100 text-blue-900 border-blue-200'
+                  : doc.roleCategory === 'Biochemist'
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-200'
+                  : doc.roleCategory === 'Phlebotomist'
+                  ? 'bg-amber-100 text-amber-900 border-amber-200'
+                  : 'bg-purple-100 text-purple-900 border-purple-200';
+
+              return (
+                <div
+                  key={doc.id || idx}
+                  className="bg-white rounded-3xl border border-slate-200/90 hover:border-[#123B6D]/50 p-5 sm:p-6 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
+                >
+                  {/* Top Bar Accent */}
+                  <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#123B6D] via-[#0F766E] to-blue-500 opacity-90 group-hover:h-2 transition-all" />
+
+                  <div>
+                    {/* Photo + Designation Badge Container */}
+                    <div className="flex items-start gap-4 mb-4">
+                      {/* Doctor / Staff Photo in Medical Coat */}
+                      <div className="relative shrink-0">
+                        <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-md group-hover:border-[#123B6D] transition-colors bg-slate-100">
+                          <img
+                            src={displayImage}
+                            alt={doc.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                        </div>
+                        <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-xs" title="NABL Verified Clinician">
+                          ✓
+                        </span>
+                      </div>
+
+                      {/* Name, Degrees & Designation */}
+                      <div className="min-w-0 flex-1">
+                        <span className={`inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${roleBadgeColor} mb-1`}>
+                          {doc.roleCategory || 'Clinical Specialist'}
+                        </span>
+                        <h3 className="font-black text-base sm:text-lg text-[#123B6D] leading-snug group-hover:text-blue-700 transition truncate">
+                          {doc.name}
+                        </h3>
+                        <div className="text-xs font-bold text-slate-800 line-clamp-1">
+                          {doc.degrees}
+                        </div>
+                        <div className="text-[11px] font-semibold text-[#0F766E] mt-0.5 line-clamp-1">
+                          {doc.designation || doc.specialization}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Experience & Qualification Highlights */}
+                    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 space-y-1.5 mb-3.5 text-xs">
+                      {/* Experience */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400 font-semibold text-[11px]">Experience:</span>
+                        <span className="font-extrabold text-[#123B6D] bg-white px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs">
+                          ⏱️ {doc.experience}
+                        </span>
+                      </div>
+
+                      {/* Special Qualification */}
+                      {doc.qualification && (
+                        <div className="flex items-start justify-between gap-1 pt-1 border-t border-slate-200/60 text-[11px]">
+                          <span className="text-slate-400 font-semibold shrink-0">Credentials:</span>
+                          <span className="font-bold text-slate-700 text-right line-clamp-1" title={doc.qualification}>
+                            🎓 {doc.qualification}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Special Expertise */}
+                      {doc.specialExpertise && (
+                        <div className="flex items-start justify-between gap-1 pt-1 border-t border-slate-200/60 text-[11px]">
+                          <span className="text-slate-400 font-semibold shrink-0">Specialty:</span>
+                          <span className="font-bold text-emerald-800 text-right line-clamp-1" title={doc.specialExpertise}>
+                            🔬 {doc.specialExpertise}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Short Clinical Bio */}
+                    <p className="text-xs text-slate-600 leading-relaxed line-clamp-2 mb-4">
+                      {doc.bio}
+                    </p>
+                  </div>
+
+                  {/* Card Bottom: WhatsApp Consult & Booking Action */}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <a
+                      href={`https://wa.me/91${cleanWhatsapp}?text=${encodeURIComponent(
+                        `Hello ${doc.name} (${labName}), I would like to consult regarding a lab report / diagnostic guidance.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 py-2 px-2.5 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#075e54] font-bold text-xs border border-[#25D366]/30 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                      title="Chat on WhatsApp"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
+                      <span>WhatsApp Consult</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTestOrPackage(
+                          vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Comprehensive Diagnostic Panel (₹999)'
+                        );
+                        setIsBookingModalOpen(true);
+                      }}
+                      className="py-2 px-3 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs shadow-xs transition flex items-center gap-1 cursor-pointer active:scale-95"
+                      title="Book Test Online"
+                    >
+                      <span>Book Test</span>
+                      <ArrowRight className="w-3 h-3 text-amber-300" />
+                    </button>
+                  </div>
                 </div>
-                <h3 className="font-bold text-base text-[#123B6D]">{doc.name}</h3>
-                <div className="text-xs text-[#0F766E] font-semibold">{doc.qualification || doc.degrees || 'Consultant Pathologist'}</div>
-                <div className="text-[11px] text-slate-400 mt-0.5">{doc.experience} • {doc.specialization}</div>
-                <p className="text-xs text-[#64748B] mt-3">
-                  {doc.bio}
+              );
+            })}
+          </div>
+
+          {/* Trust Banner Under Team Grid */}
+          <div className="mt-12 bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-sm text-[#123B6D]">
+                  Dual-Doctor Verification for Critical &amp; Panic Value Reports
+                </h4>
+                <p className="text-slate-500 mt-0.5">
+                  Any abnormal, critical, or panic value is immediately re-tested on a backup analyzer and reviewed by two qualified pathologists prior to dispatch.
                 </p>
               </div>
-            ))}
+            </div>
+
+            <a
+              href={`tel:${cleanPhone}`}
+              className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0"
+            >
+              <Phone className="w-3.5 h-3.5 text-[#123B6D]" />
+              <span>Direct Doctor Line: +91 {cleanPhone}</span>
+            </a>
           </div>
         </div>
       </section>
