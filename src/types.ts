@@ -208,6 +208,8 @@ export interface VendorLabSettings {
   websiteDomain?: string;
   isWebsiteApproved?: boolean;
   status?: VendorStatus;
+  ownerPassword?: string;
+  ownerPin?: string;
 }
 
 export interface VendorPackage {

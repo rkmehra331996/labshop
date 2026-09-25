@@ -37,6 +37,7 @@ import {
   Youtube,
   ExternalLink,
   Lock,
+  KeyRound,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
@@ -635,6 +636,17 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <span className="sm:hidden">Report</span>
             </button>
 
+            {/* Lab Staff / Admin Login Button */}
+            <button
+              onClick={() => openLoginModal('vendor')}
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-98"
+              id="header-lab-login-btn"
+              title="Lab Admin, Receptionist & Technician Login"
+            >
+              <KeyRound className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
+              <span>Login</span>
+            </button>
+
             {/* Mobile Menu Button (Hamburger) */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -730,6 +742,23 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 </span>
                 <span className="text-[10px] bg-teal-200 text-teal-900 px-2 py-0.5 rounded-full font-black">
                   PDF
+                </span>
+              </button>
+
+              {/* Lab Staff & Admin Login */}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openLoginModal('vendor');
+                }}
+                className="w-full text-left py-2.5 px-3 rounded-lg bg-[#123B6D] text-white font-bold flex items-center justify-between text-sm shadow-xs"
+              >
+                <span className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-amber-300" />
+                  <span>Lab Staff & Admin Login</span>
+                </span>
+                <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded font-black">
+                  Portal
                 </span>
               </button>
 

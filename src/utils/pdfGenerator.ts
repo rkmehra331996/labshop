@@ -9,53 +9,57 @@ import {
 } from './reportAssets';
 
 /**
- * Generate a professional, NABL-compliant medical diagnostic lab report PDF
+ * Builds the canonical NABL-compliant medical diagnostic lab report PDF document
  * with embedded NABL certification logo, authentic scannable QR code,
- * and high-security watermarked QR code for hospital submission credibility.
+ * and high-security watermarked QR code.
+ *
+ * This single canonical PDF instance is used for:
+ * - In-app visual preview (identical layout, fonts, tables, page breaks)
+ * - File download (identical PDF)
+ * - Printing (identical PDF)
  */
-export async function generateReportPdf(report: LabReport): Promise<void> {
-  try {
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-    });
+export async function buildCanonicalReportPdf(report: LabReport): Promise<jsPDF> {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
 
-    // Generate authentic verification assets
-    const certCode = report.nablAccreditationNo || 'MC-4892';
-    const verifyUrl = `https://indianlalaji.com/verify?id=${encodeURIComponent(
-      report.reportId
-    )}&uhid=${encodeURIComponent(report.uhid)}&auth=${encodeURIComponent(
-      (report.verificationHash || 'VERIFIED').slice(0, 16)
-    )}`;
+  // Generate authentic verification assets
+  const certCode = report.nablAccreditationNo || 'MC-4892';
+  const verifyUrl = `https://indianlalaji.com/verify?id=${encodeURIComponent(
+    report.reportId
+  )}&uhid=${encodeURIComponent(report.uhid)}&auth=${encodeURIComponent(
+    (report.verificationHash || 'VERIFIED').slice(0, 16)
+  )}`;
 
-    const [nablLogoDataUrl, watermarkedQrDataUrl, scannableQrDataUrl] = await Promise.all([
-      Promise.resolve(generateNablLogoDataUrl(certCode)),
-      generateWatermarkedQrDataUrl({
-        reportId: report.reportId,
-        uhid: report.uhid,
-        nablCode: certCode,
-        patientName: report.patientName,
-        labName: report.labName,
-        verificationHash: report.verificationHash || 'MED-HASH-7819',
-      }),
-      generateQrDataUrl(verifyUrl, { size: 300, darkColor: '#0B3558' }),
-    ]);
+  const [nablLogoDataUrl, watermarkedQrDataUrl, scannableQrDataUrl] = await Promise.all([
+    Promise.resolve(generateNablLogoDataUrl(certCode)),
+    generateWatermarkedQrDataUrl({
+      reportId: report.reportId,
+      uhid: report.uhid,
+      nablCode: certCode,
+      patientName: report.patientName,
+      labName: report.labName,
+      verificationHash: report.verificationHash || 'MED-HASH-7819',
+    }),
+    generateQrDataUrl(verifyUrl, { size: 300, darkColor: '#0B3558' }),
+  ]);
 
-    // Evaluate items for critical panic values
-    const itemsWithAlerts = report.items.map((item) => {
-      const critical = checkPanicOrCriticalValue(item.parameter, item.result, item.unit);
-      return {
-        ...item,
-        critical,
-        isPanic: critical.isCritical,
-      };
-    });
-    const criticalItems = itemsWithAlerts.filter((i) => i.isPanic);
-    const abnormalItems = itemsWithAlerts.filter((i) => i.isAbnormal && !i.isPanic);
+  // Evaluate items for critical panic values
+  const itemsWithAlerts = report.items.map((item) => {
+    const critical = checkPanicOrCriticalValue(item.parameter, item.result, item.unit);
+    return {
+      ...item,
+      critical,
+      isPanic: critical.isCritical,
+    };
+  });
+  const criticalItems = itemsWithAlerts.filter((i) => i.isPanic);
+  const abnormalItems = itemsWithAlerts.filter((i) => i.isAbnormal && !i.isPanic);
 
     // 1. Central Translucent Security Watermark Layer
     // (Rendered first so it sits gracefully behind table data and test results)
@@ -406,14 +410,118 @@ export async function generateReportPdf(report: LabReport): Promise<void> {
       { align: 'center' }
     );
 
-    // 11. Direct File Download Trigger
-    const safePatientName = report.patientName.replace(/[^a-zA-Z0-9]/g, '_');
+    // Return the completed canonical jsPDF document
+    return doc;
+}
+
+/**
+ * Returns the exact canonical PDF Blob, Object URL, Data URI, ArrayBuffer, and filename
+ * for rendering in the canonical preview or embedding.
+ */
+export async function getCanonicalReportPdfBlob(report: LabReport): Promise<{
+  blob: Blob;
+  blobUrl: string;
+  dataUri: string;
+  arrayBuffer: ArrayBuffer;
+  filename: string;
+  doc: jsPDF;
+}> {
+  const doc = await buildCanonicalReportPdf(report);
+  const safePatientName = (report.patientName || 'Patient').replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = `${report.reportId}_${safePatientName}_Report.pdf`;
+  const blob = doc.output('blob');
+  const blobUrl = URL.createObjectURL(blob);
+  const dataUri = doc.output('datauristring');
+  const arrayBuffer = doc.output('arraybuffer');
+  return { blob, blobUrl, dataUri, arrayBuffer, filename, doc };
+}
+
+/**
+ * Downloads the exact same canonical PDF file
+ */
+export async function downloadReportPdf(report: LabReport, prebuiltDoc?: jsPDF): Promise<void> {
+  try {
+    const doc = prebuiltDoc || (await buildCanonicalReportPdf(report));
+    const safePatientName = (report.patientName || 'Patient').replace(/[^a-zA-Z0-9]/g, '_');
     const filename = `${report.reportId}_${safePatientName}_Report.pdf`;
     doc.save(filename);
   } catch (error) {
-    console.error('PDF generation error:', error);
-    // Fallback to HTML-based download
+    console.error('PDF download error:', error);
     downloadReportAsHtml(report);
+  }
+}
+
+/**
+ * Backward compatibility alias for downloadReportPdf
+ */
+export const generateReportPdf = downloadReportPdf;
+
+/**
+ * Prints the exact canonical PDF document directly
+ */
+export async function printCanonicalReportPdf(report: LabReport, existingBlobUrl?: string): Promise<boolean> {
+  try {
+    let url = existingBlobUrl;
+    let cleanup = false;
+    if (!url) {
+      const res = await getCanonicalReportPdfBlob(report);
+      url = res.blobUrl;
+      cleanup = true;
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.visibility = 'hidden';
+    iframe.src = url;
+
+    document.body.appendChild(iframe);
+
+    return new Promise((resolve) => {
+      let isResolved = false;
+
+      const triggerPrint = () => {
+        if (isResolved) return;
+        isResolved = true;
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+            if (cleanup && url) URL.revokeObjectURL(url);
+            resolve(true);
+          }, 3000);
+        } catch (e) {
+          console.warn('Iframe PDF direct print blocked or failed, falling back:', e);
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+          downloadReportPdf(report);
+          resolve(false);
+        }
+      };
+
+      iframe.onload = () => {
+        setTimeout(triggerPrint, 500);
+      };
+
+      // In case onload is delayed or blocked
+      setTimeout(() => {
+        if (!isResolved) {
+          triggerPrint();
+        }
+      }, 2500);
+    });
+  } catch (err) {
+    console.error('Print canonical PDF error:', err);
+    await downloadReportPdf(report);
+    return false;
   }
 }
 

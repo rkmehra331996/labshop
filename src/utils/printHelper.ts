@@ -1,5 +1,5 @@
 import { LabReport } from '../types';
-import { generateReportPdf } from './pdfGenerator';
+import { printCanonicalReportPdf, downloadReportPdf } from './pdfGenerator';
 
 /**
  * Checks if the current document is running inside an iframe
@@ -29,20 +29,14 @@ export function safePrint(onBlocked?: () => void): boolean {
 }
 
 /**
- * Prints or downloads a LabReport reliably across all devices and iframe sandboxes
+ * Prints the exact canonical PDF document so preview, download, and print are 100% identical
  */
-export function printReportSafely(report: LabReport): void {
-  // If running in an iframe, try print first, but also trigger PDF generation or printable window
-  let printed = false;
+export async function printReportSafely(report: LabReport, existingBlobUrl?: string): Promise<void> {
   try {
-    window.print();
-    printed = true;
-  } catch {
-    printed = false;
-  }
-
-  // If window.print was blocked or failed, generate the actual official PDF
-  if (!printed) {
-    generateReportPdf(report);
+    await printCanonicalReportPdf(report, existingBlobUrl);
+  } catch (err) {
+    console.error('Failed to print canonical PDF:', err);
+    await downloadReportPdf(report);
   }
 }
+

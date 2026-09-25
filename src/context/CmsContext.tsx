@@ -1476,16 +1476,16 @@ interface CmsContextType {
   openRegisterLabModal: () => void;
   registerNewLab: (payload: {
     labName: string;
-    ownerName: string;
+    state: string;
     phone: string;
-    email: string;
-    city: string;
-    state?: string;
+    password?: string;
+    pin?: string;
+    ownerName?: string;
+    email?: string;
+    city?: string;
     address?: string;
     tagline?: string;
     nablCode?: string;
-    password?: string;
-    pin?: string;
     category?: string;
     subscriptionPlan?: string;
   }) => { lab: VendorLabDirectoryItem; adminUser: CmsUser };
@@ -4080,16 +4080,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const registerNewLab = (payload: {
     labName: string;
-    ownerName: string;
+    state: string;
     phone: string;
-    email: string;
-    city: string;
-    state?: string;
+    password?: string;
+    pin?: string;
+    ownerName?: string;
+    email?: string;
+    city?: string;
     address?: string;
     tagline?: string;
     nablCode?: string;
-    password?: string;
-    pin?: string;
     category?: string;
     subscriptionPlan?: string;
   }): { lab: VendorLabDirectoryItem; adminUser: CmsUser } => {
@@ -4109,10 +4109,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: newLabId,
       name: payload.labName,
       tagline: payload.tagline || `${payload.category || 'Diagnostic Pathology'} & Clinical Hub`,
-      city: payload.city,
-      state: payload.state || 'India',
-      address: payload.address || `${payload.city}, India`,
+      city: payload.city || payload.state || 'Punjab',
+      state: payload.state || 'Punjab',
+      address: payload.address || `${payload.state || 'Punjab'}, India`,
       phone: cleanPhone,
+      password: payload.password || 'owner123',
+      pin: payload.pin || '123456',
       nablCode: payload.nablCode || `NABL-${Math.floor(1000 + Math.random() * 9000)}`,
       badge: 'Draft - Pending Admin Approval',
       rating: 5.0,
@@ -4122,8 +4124,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       color: '#0F766E',
       status: 'Draft',
       isWebsiteApproved: false,
-      ownerName: payload.ownerName,
-      email: payload.email,
+      ownerName: payload.ownerName || `${payload.labName} Owner`,
+      email: payload.email || `${cleanPhone}@indianlalaji.com`,
       subscriptionPlan: payload.subscriptionPlan || 'Professional',
       subscriptionAmount: payload.subscriptionPlan === 'Enterprise' ? 3999 : 1499,
       joinedDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -4139,6 +4141,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (payload.address) settings.address = payload.address;
     if (payload.email) settings.email = payload.email;
     if (cleanPhone) settings.phone = cleanPhone;
+    if (payload.password) settings.ownerPassword = payload.password;
+    if (payload.pin) settings.ownerPin = payload.pin;
     setVendorLabSettingsMap((prev) => ({
       ...prev,
       [newLabId]: settings,
