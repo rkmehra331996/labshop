@@ -47,11 +47,12 @@ import { OnlineTestBookingModal } from './vendor/OnlineTestBookingModal';
 import { HeroBookingForm } from './vendor/HeroBookingForm';
 import { LabWelcomeFirstScreen } from './vendor/LabWelcomeFirstScreen';
 import { getTenantWebsiteUrl, getTenantSubdomain, getTenantBrowserUrl, SUPER_ADMIN_DOMAIN } from '../constants/domains';
+import { isTenantMatch } from '../utils/tenantSecurity';
 
 interface LabVendorWebsiteProps {
   language?: Language;
   onSelectLanguage?: (lang: Language) => void;
-  onOpenReportPortal: (reportId?: string, mobile?: string) => void;
+  onOpenReportPortal: (reportId?: string, mobile?: string, labId?: string) => void;
   onOpenLabSoftware: () => void;
   onOpenSoftwareWebsite: () => void;
   onOpenVendorDashboard?: () => void;
@@ -80,7 +81,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     vendorLabsList,
     selectedVendorLabId,
     setVendorStatus,
+    allReports,
   } = useCms();
+
+  const [inlineReportSearch, setInlineReportSearch] = useState('');
 
   const currentLabItem = React.useMemo(() => {
     return (
@@ -92,6 +96,17 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       null
     );
   }, [vendorLabsList, vendorLabSettings, selectedVendorLabId]);
+
+  const currentVendorReport = React.useMemo(() => {
+    const tid = currentLabItem?.id || selectedVendorLabId;
+    return (allReports || []).find((r) => isTenantMatch(r, tid));
+  }, [allReports, currentLabItem?.id, selectedVendorLabId]);
+
+  const handleCheckReport = (reportId?: string, mobile?: string) => {
+    const rId = reportId !== undefined ? reportId : (currentVendorReport?.reportId || '');
+    const mob = mobile !== undefined ? mobile : (currentVendorReport?.mobile || '');
+    onOpenReportPortal(rId, mob, currentLabItem?.id || selectedVendorLabId);
+  };
 
   const dedicatedDomain = currentLabItem?.domainPreview || `${currentLabItem?.id || 'apexdiagnostics'}.${SUPER_ADMIN_DOMAIN}`;
   const canonicalUrl = getTenantWebsiteUrl(dedicatedDomain);
@@ -462,7 +477,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           onCheckReport={() => {
-            onOpenReportPortal();
+            handleCheckReport();
           }}
           onStaffLogin={() => openLoginModal('vendor')}
           onOpenSoftwareWebsite={onOpenSoftwareWebsite}
@@ -585,20 +600,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
           {/* Desktop Navigation Links: (home, health package, test's, pathologists, contact us) */}
           <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs lg:text-sm font-semibold text-slate-700 whitespace-nowrap">
-            {/* 0. Return to Welcome First Screen */}
-            <button
-              onClick={() => {
-                setHasEnteredWebsite(false);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="hover:text-[#123B6D] transition cursor-pointer text-slate-500 hover:font-bold whitespace-nowrap py-1 flex items-center gap-1"
-              id="vendor-nav-welcome-gateway"
-              title="Return to Welcome Screen"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Welcome</span>
-            </button>
-
             {/* 1. Simple Home (Vendor Website) */}
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -679,10 +680,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
             {/* Check Report Button (Mobile: logo + check report + book test + menu icon) */}
             <button
-              onClick={() => onOpenReportPortal()}
+              onClick={() => handleCheckReport()}
               className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-teal-50 hover:bg-teal-100 text-[#0F766E] border border-teal-300/90 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
               id="header-download-report-btn"
-              title="Check or Download Patient Lab Report"
+              title={`Check or Download Patient Lab Report for ${labName}`}
             >
               <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0F766E] shrink-0" />
               <span className="text-[11px] sm:text-xs">Check Report</span>
@@ -730,23 +731,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1.5 shadow-xl animate-in fade-in duration-200">
-            {/* 0. Return to Welcome Screen */}
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setHasEnteredWebsite(false);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="w-full text-left py-2 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 font-bold text-amber-950 flex items-center justify-between text-sm border border-amber-200"
-            >
-              <span className="flex items-center gap-2">
-                <ChevronLeft className="w-4 h-4 text-amber-700" />
-                <span>Return to Welcome Screen</span>
-              </span>
-              <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-black">
-                First Screen
-              </span>
-            </button>
             {/* 1. Simple Home (Vendor Website) */}
             <button
               onClick={() => {
@@ -817,7 +801,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  onOpenReportPortal();
+                  handleCheckReport();
                 }}
                 className="w-full text-left py-2.5 px-3 rounded-lg bg-teal-50 text-[#0F766E] font-bold border border-teal-200 flex items-center justify-between text-sm"
               >
@@ -921,10 +905,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 </a>
 
                 <button
-                  onClick={() => onOpenReportPortal('RPT-2026-8812', '9876543210')}
-                  className="bg-white hover:bg-slate-50 border-2 border-[#123B6D] text-[#123B6D] px-5 py-3.5 rounded-lg text-sm font-bold transition flex items-center gap-1.5"
+                  onClick={() => handleCheckReport(currentVendorReport?.reportId, currentVendorReport?.mobile)}
+                  className="bg-white hover:bg-slate-50 border-2 border-[#123B6D] text-[#123B6D] px-5 py-3.5 rounded-lg text-sm font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                  title={`Check & Download Verified Patient Report for ${labName}`}
                 >
-                  <FileText className="w-4 h-4" />
+                  <FileText className="w-4 h-4 text-[#123B6D]" />
                   <span>Download My Report</span>
                 </button>
               </div>
@@ -952,7 +937,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
             {/* Right: Lab Test Booking / Sample Collection Form */}
             <div className="lg:col-span-5">
-              <HeroBookingForm onOpenReportPortal={() => onOpenReportPortal()} />
+              <HeroBookingForm onOpenReportPortal={() => handleCheckReport()} />
             </div>
           </div>
         </div>
@@ -1737,26 +1722,67 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         </div>
       </section>
 
-      {/* Patient Report Download Banner */}
+      {/* Patient Report Download Banner with Inline Search */}
       <section id="download-report" className="py-12 bg-slate-900 text-white scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-800/60 rounded-2xl p-6 sm:p-8 border border-slate-700/60">
-            <div className="max-w-2xl space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">
-                <span>Are You A Patient Waiting For Report?</span>
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 bg-slate-800/80 rounded-3xl p-6 sm:p-8 border border-slate-700/70 shadow-xl">
+            <div className="max-w-xl space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-400/30">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{labName} Patient Report Portal</span>
               </div>
-              <h3 className="text-xl sm:text-2xl font-bold">Download Your Diagnostic Report Online</h3>
-              <p className="text-xs sm:text-sm text-slate-300">
-                No passwords or account required. Simply enter your registered mobile number or report ID to view and download digitally verified NABL report.
+              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                Download Your Diagnostic Report Online
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Directly check reports for {labName}. No password required. Enter your registered 10-digit mobile number or Token / Report ID below.
               </p>
             </div>
-            <button
-              onClick={() => onOpenReportPortal('RPT-2026-8812', '9876543210')}
-              className="shrink-0 bg-[#0F766E] hover:bg-[#0c615a] text-white px-6 py-3 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer shadow-md"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Go to Patient Report Portal</span>
-            </button>
+
+            <div className="flex flex-col sm:flex-row items-stretch gap-3 shrink-0">
+              <input
+                type="text"
+                value={inlineReportSearch}
+                onChange={(e) => setInlineReportSearch(e.target.value)}
+                placeholder="Mobile number or Token / Report ID"
+                className="px-4 py-3 bg-slate-900/90 border border-slate-600 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400 min-w-[240px]"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (inlineReportSearch.trim()) {
+                      const cleanDigits = inlineReportSearch.replace(/\D/g, '');
+                      if (cleanDigits.length >= 10) {
+                        handleCheckReport('', cleanDigits);
+                      } else {
+                        handleCheckReport(inlineReportSearch.trim(), '');
+                      }
+                    } else {
+                      handleCheckReport(currentVendorReport?.reportId, currentVendorReport?.mobile);
+                    }
+                  }
+                }}
+              />
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (inlineReportSearch.trim()) {
+                    const cleanDigits = inlineReportSearch.replace(/\D/g, '');
+                    if (cleanDigits.length >= 10) {
+                      handleCheckReport('', cleanDigits);
+                    } else {
+                      handleCheckReport(inlineReportSearch.trim(), '');
+                    }
+                  } else {
+                    handleCheckReport(currentVendorReport?.reportId, currentVendorReport?.mobile);
+                  }
+                }}
+                className="bg-[#0F766E] hover:bg-[#0c615a] text-white px-6 py-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 whitespace-nowrap"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Go to Report Portal</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -1942,7 +1968,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => onOpenReportPortal()} className="hover:text-[#123B6D] text-teal-700 font-semibold cursor-pointer">
+                  <button onClick={() => handleCheckReport()} className="hover:text-[#123B6D] text-teal-700 font-semibold cursor-pointer">
                     Download Patient Report (PDF)
                   </button>
                 </li>
@@ -2138,7 +2164,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}
         initialSelection={selectedTestOrPackage}
-        onOpenReportPortal={onOpenReportPortal}
+        onOpenReportPortal={handleCheckReport}
       />
       {/* Side Sticky Floating Action Buttons: WhatsApp & Call */}
       <aside

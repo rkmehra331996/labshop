@@ -23,6 +23,7 @@ import {
   ArrowRight,
   Filter,
   Globe,
+  FileText,
   Copy,
   Check,
   KeyRound,
@@ -300,6 +301,12 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
     const labId = typeof vendor === 'string' ? vendor : vendor.id;
     selectVendorLab(labId);
     onNavigateView('vendor_website');
+  };
+
+  const handleOpenVendorReportPage = (vendor: VendorLabDirectoryItem | string) => {
+    const labId = typeof vendor === 'string' ? vendor : vendor.id;
+    selectVendorLab(labId);
+    onNavigateView('patient_portal');
   };
 
   return (
@@ -848,6 +855,25 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                         <span className="text-indigo-700 font-semibold">{vendor.domainPreview || `${vendor.id}.indianlalaji.com`}</span>
                         <span className="text-[10px] text-slate-400 ml-auto font-sans">(DNS Wildcard required for direct subdomain)</span>
                       </div>
+
+                      {/* Dedicated Report Portal Link */}
+                      <div className="flex items-center justify-between gap-1 text-[11px] bg-emerald-50/70 border border-emerald-200/80 px-2.5 py-1 rounded-lg">
+                        <div className="flex items-center gap-1 text-emerald-900 font-medium">
+                          <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>Dedicated Report Page:</span>
+                          <span className="font-mono font-bold text-emerald-800">?view=patient_portal&lab={vendor.id}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenVendorReportPage(vendor.id)}
+                          className="text-[10px] font-black text-emerald-700 hover:text-emerald-950 underline flex items-center gap-0.5 cursor-pointer ml-2"
+                          title="Open this vendor's dedicated report search page"
+                        >
+                          <span>Open Report Page (रिपोर्ट पेज खोलें)</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+
                       <div className="text-slate-500 text-[11px]">
                         ★ {vendor.rating} ({vendor.reviewsCount || 80}+ reviews) • {vendor.turnaroundTime} TAT
                       </div>

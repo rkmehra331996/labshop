@@ -28,6 +28,7 @@ import {
   ExternalLink,
   X,
   ArrowRight,
+  Globe,
 } from 'lucide-react';
 import { QRVerifyModal } from './Modals';
 import { useCms } from '../context/CmsContext';
@@ -37,28 +38,102 @@ import { ReportCopyrightBottomBar } from './ReportCopyrightBottomBar';
 import { generateReportPdf } from '../utils/pdfGenerator';
 import { safePrint } from '../utils/printHelper';
 import { CanonicalPdfViewer } from './CanonicalPdfViewer';
+import { isTenantMatch } from '../utils/tenantSecurity';
+import { getTenantSubdomain } from '../constants/domains';
 
 interface PatientPortalAppProps {
   onBackToWebsite: () => void;
   initialReportId?: string;
   initialMobile?: string;
+  vendorLabId?: string;
+  onSelectVendorLab?: (labId: string) => void;
 }
 
 export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
   onBackToWebsite,
   initialReportId = '',
   initialMobile = '',
+  vendorLabId = '',
+  onSelectVendorLab,
 }) => {
   const { 
     reports, 
+    allReports,
     receptionEntries, 
+    allReceptionEntries,
     vendorLabSettings, 
+    vendorLabSettingsMap,
+    getLabSettings,
+    vendorLabsList,
+    selectedVendorLabId,
+    setSelectedVendorLabId,
+    selectVendorLab,
     updateReceptionEntry,
     refreshCloudData,
     isCloudConnected,
     cloudSyncStatus,
     lastCloudSyncTime 
   } = useCms();
+
+  // Active Lab Resolution: prop > URL parameter (?lab=...) > selectedVendorLabId
+  const urlLabParam = typeof window !== 'undefined'
+    ? (new URLSearchParams(window.location.search).get('lab') || new URLSearchParams(window.location.search).get('subdomain'))
+    : null;
+
+  const currentLabIdentifier = vendorLabId || urlLabParam || (selectedVendorLabId && selectedVendorLabId !== 'all' ? selectedVendorLabId : '');
+
+  // Match directory item for current lab
+  const activeVendorLab = React.useMemo(() => {
+    if (!currentLabIdentifier || currentLabIdentifier === 'all') return null;
+    const clean = currentLabIdentifier.toLowerCase().trim();
+    return (
+      vendorLabsList.find((l) => l.id.toLowerCase() === clean) ||
+      vendorLabsList.find((l) => getTenantSubdomain(l.domainPreview || l.id).toLowerCase() === clean) ||
+      vendorLabsList.find((l) => l.name.toLowerCase().includes(clean)) ||
+      null
+    );
+  }, [currentLabIdentifier, vendorLabsList]);
+
+  // Is this page opened for a specific vendor's lab?
+  const isVendorDedicated = Boolean(activeVendorLab);
+
+  // Lab details for contact & display
+  const currentSettings = React.useMemo(() => {
+    if (activeVendorLab) {
+      return getLabSettings ? getLabSettings(activeVendorLab.id) : (vendorLabSettingsMap?.[activeVendorLab.id] || vendorLabSettings);
+    }
+    return vendorLabSettings;
+  }, [activeVendorLab, getLabSettings, vendorLabSettingsMap, vendorLabSettings]);
+
+  const labName = activeVendorLab?.name || currentSettings?.labName || 'Diagnostic Laboratory';
+  const labPhone = activeVendorLab?.phone || currentSettings?.phone || '7087033009';
+  const labAddress = currentSettings?.address || activeVendorLab?.address || `${activeVendorLab?.city || 'Punjab'}, India`;
+  const labNabl = activeVendorLab?.nablCode || currentSettings?.nablAccreditationNo || 'NABL Accredited';
+  const labUpi = currentSettings?.upiId || 'apexlab@upi';
+
+  // Target reports & reception entries scoped to active vendor lab (or all if universal search)
+  const scopedReports = React.useMemo(() => {
+    if (activeVendorLab) {
+      return (allReports || []).filter((r) => isTenantMatch(r, activeVendorLab.id));
+    }
+    return allReports || reports;
+  }, [activeVendorLab, allReports, reports]);
+
+  const scopedReceptionEntries = React.useMemo(() => {
+    if (activeVendorLab) {
+      return (allReceptionEntries || []).filter((e) => isTenantMatch(e, activeVendorLab.id));
+    }
+    return allReceptionEntries || receptionEntries;
+  }, [activeVendorLab, allReceptionEntries, receptionEntries]);
+
+  // Demo test chips for quick 1-click verification
+  const demoReport = React.useMemo(() => {
+    return scopedReports.find((r) => r.verified) || scopedReports[0] || null;
+  }, [scopedReports]);
+
+  const demoEntry = React.useMemo(() => {
+    return scopedReceptionEntries[0] || null;
+  }, [scopedReceptionEntries]);
 
   // Search Tab Option: 'name_mobile' (Left Tab: Option 1) | 'report_id' (Right Tab: Option 2)
   const [searchMethod, setSearchMethod] = useState<'name_mobile' | 'report_id'>('name_mobile');
@@ -102,12 +177,6 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [matchedList, setMatchedList] = useState<Array<{ type: 'report' | 'entry'; report?: LabReport; entry?: ReceptionPatientEntry }>>([]);
 
-  // Lab details for contact
-  const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory';
-  const labPhone = vendorLabSettings?.phone || '7087033009';
-  const labAddress = vendorLabSettings?.address || 'SCO 42, Green Park Avenue, Near Civil Hospital, Ludhiana, Punjab';
-  const labUpi = vendorLabSettings?.upiId || 'apexlab@upi';
-
   // Calculate active due amount
   const activeDueAmount =
     matchedEntry !== null && matchedEntry.dueAmount !== undefined
@@ -121,7 +190,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
   // Real-time Firestore auto-sync for patient screen (Instant updates on client phone when lab changes anything)
   useEffect(() => {
     if (searchedReport) {
-      const liveReport = reports.find(
+      const liveReport = scopedReports.find(
         (r) => r.reportId.toLowerCase() === searchedReport.reportId.toLowerCase()
       );
       if (liveReport) {
@@ -136,11 +205,11 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         }
       }
     }
-  }, [reports, searchedReport]);
+  }, [scopedReports, searchedReport]);
 
   useEffect(() => {
     if (matchedEntry) {
-      const liveEntry = (receptionEntries || []).find((e) => e.id === matchedEntry.id);
+      const liveEntry = (scopedReceptionEntries || []).find((e) => e.id === matchedEntry.id);
       if (liveEntry) {
         if (
           liveEntry.status !== matchedEntry.status ||
@@ -152,7 +221,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
           setMatchedEntry(liveEntry);
           // If lab technician finalized report and generated reportId, instantly switch to full report!
           if (liveEntry.reportId) {
-            const foundReport = reports.find(
+            const foundReport = scopedReports.find(
               (r) => r.reportId.toLowerCase() === liveEntry.reportId?.toLowerCase()
             );
             if (foundReport) {
@@ -163,13 +232,13 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         }
       }
     }
-  }, [receptionEntries, reports, matchedEntry]);
+  }, [scopedReceptionEntries, scopedReports, matchedEntry]);
 
   // Initialize from props only if explicitly passed (e.g. from lab queue direct link)
   useEffect(() => {
     if (initialReportId && initialReportId.trim()) {
       const cleanId = initialReportId.trim().toLowerCase();
-      const found = reports.find(
+      const found = scopedReports.find(
         (r) => r.reportId.toLowerCase() === cleanId || (r.uhid && r.uhid.toLowerCase() === cleanId)
       );
       if (found) {
@@ -179,7 +248,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         setErrorMessage(null);
         setErrorDetails(null);
 
-        const match = (receptionEntries || []).find(
+        const match = (scopedReceptionEntries || []).find(
           (e) =>
             (e.reportId && e.reportId.toLowerCase() === found.reportId.toLowerCase()) ||
             (e.uhid && found.uhid && e.uhid.toLowerCase() === found.uhid.toLowerCase())
@@ -188,7 +257,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
       }
     } else if (initialMobile && initialMobile.trim()) {
       const cleanMob = initialMobile.replace(/\D/g, '');
-      const found = reports.find((r) => r.mobile.replace(/\D/g, '') === cleanMob);
+      const found = scopedReports.find((r) => (r.mobile || '').replace(/\D/g, '') === cleanMob);
       if (found) {
         setSearchedReport(found);
         setPatientName(found.patientName);
@@ -197,13 +266,13 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         setErrorMessage(null);
         setErrorDetails(null);
 
-        const match = (receptionEntries || []).find(
+        const match = (scopedReceptionEntries || []).find(
           (e) => (e.mobile || '').replace(/\D/g, '') === cleanMob
         );
         setMatchedEntry(match || null);
       }
     }
-  }, [initialReportId, initialMobile, reports, receptionEntries]);
+  }, [initialReportId, initialMobile, scopedReports, scopedReceptionEntries]);
 
   const handleSelectRecord = (match: { type: 'report' | 'entry'; report?: LabReport; entry?: ReceptionPatientEntry }) => {
     setErrorMessage(null);
@@ -225,7 +294,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         registeredAt: match.entry.registeredAt || 'Today',
         status: match.entry.status || 'Sample in Testing',
         technicianStatus: match.entry.technicianStatus || 'Sent to Lab',
-        branchName: match.entry.branchName || 'Apex Central Diagnostic Hub',
+        branchName: match.entry.branchName || `${labName} (Central Hub)`,
         branchPhone: labPhone,
       });
     }
@@ -254,13 +323,13 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     }
 
     // 1. Find all matching reports
-    const matchedReports = reports.filter((r) => {
+    const matchedReports = scopedReports.filter((r) => {
       const rMob = (r.mobile || '').replace(/\D/g, '');
       return rMob === inputMobile || rMob.endsWith(inputMobile) || inputMobile.endsWith(rMob);
     });
 
     // 2. Find all matching reception entries
-    const matchedReception = (receptionEntries || []).filter((entry) => {
+    const matchedReception = (scopedReceptionEntries || []).filter((entry) => {
       const eMob = (entry.mobile || '').replace(/\D/g, '');
       return eMob === inputMobile || eMob.endsWith(inputMobile) || inputMobile.endsWith(eMob);
     });
@@ -269,7 +338,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     const allMatches: Array<{ type: 'report' | 'entry'; report?: LabReport; entry?: ReceptionPatientEntry }> = [];
 
     matchedReports.forEach((r) => {
-      const associatedEntry = (receptionEntries || []).find(
+      const associatedEntry = (scopedReceptionEntries || []).find(
         (e) =>
           (e.reportId && e.reportId.toLowerCase() === r.reportId.toLowerCase()) ||
           (e.uhid && r.uhid && e.uhid.toLowerCase() === r.uhid.toLowerCase())
@@ -285,7 +354,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
       );
       if (!alreadyIncluded) {
         if (entry.reportId) {
-          const rep = reports.find((r) => r.reportId.toLowerCase() === entry.reportId?.toLowerCase());
+          const rep = scopedReports.find((r) => r.reportId.toLowerCase() === entry.reportId?.toLowerCase());
           if (rep) {
             allMatches.push({ type: 'report', report: rep, entry });
             return;
@@ -310,7 +379,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     if (results.length === 0) {
       setErrorMessage('No Record Found');
       setErrorDetails(
-        `No active diagnostic record found for mobile number +91 ${inputMobile} ${inputName ? `(Name: ${patientName})` : ''}. Please contact reception or search with Token Number.`
+        `No active diagnostic record found for mobile number +91 ${inputMobile} ${inputName ? `(Name: ${patientName})` : ''} at ${labName}. Please check the registered phone number or search with Token / Report ID.`
       );
       return;
     }
@@ -338,14 +407,18 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     const raw = reportIdInput.trim().toLowerCase();
     if (!raw) {
       setErrorMessage('Please enter details');
-      setErrorDetails('Please enter Token Number (e.g. 101, TK-101) or Report ID (e.g. RPT-2026-8812).');
+      setErrorDetails(
+        demoReport
+          ? `Please enter Token Number (e.g. ${demoEntry?.tokenNumber || '101'}) or Report ID (e.g. ${demoReport.reportId}).`
+          : 'Please enter Token Number or Report ID.'
+      );
       return;
     }
 
     const cleanDigits = raw.replace(/\D/g, '');
 
     // 1. Direct match in reports
-    const reportMatch = reports.find((r) => {
+    const reportMatch = scopedReports.find((r) => {
       const rId = r.reportId.trim().toLowerCase();
       const rUhid = (r.uhid || '').trim().toLowerCase();
       return (
@@ -358,7 +431,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
     if (reportMatch) {
       setSearchedReport(reportMatch);
-      const match = (receptionEntries || []).find(
+      const match = (scopedReceptionEntries || []).find(
         (e) =>
           (e.reportId && e.reportId.toLowerCase() === reportMatch.reportId.toLowerCase()) ||
           (e.uhid && reportMatch.uhid && e.uhid.toLowerCase() === reportMatch.uhid.toLowerCase()) ||
@@ -369,7 +442,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     }
 
     // 2. Check in receptionEntries by Token or UHID
-    const receptionMatch = (receptionEntries || []).find((entry) => {
+    const receptionMatch = (scopedReceptionEntries || []).find((entry) => {
       const tokenLower = (entry.tokenNumber || '').toLowerCase();
       const tokenDigits = tokenLower.replace(/\D/g, '');
       const uhidLower = (entry.uhid || '').toLowerCase();
@@ -394,7 +467,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
 
       // Check if report already exists for this entry
       if (hasReportReady && receptionMatch.reportId) {
-        const foundReport = reports.find(
+        const foundReport = scopedReports.find(
           (r) =>
             r.reportId.toLowerCase() === receptionMatch.reportId?.toLowerCase() ||
             (r.uhid && r.uhid.toLowerCase() === receptionMatch.uhid.toLowerCase())
@@ -414,7 +487,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
         registeredAt: receptionMatch.registeredAt || 'Today',
         status: receptionMatch.status || 'Sample in Testing',
         technicianStatus: receptionMatch.technicianStatus || 'Sent to Lab',
-        branchName: receptionMatch.branchName || 'Apex Central Diagnostic Hub',
+        branchName: receptionMatch.branchName || `${labName} (Central Hub)`,
         branchPhone: labPhone,
       });
       return;
@@ -423,7 +496,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     // Not found
     setErrorMessage('Token or Report ID Not Found');
     setErrorDetails(
-      `No active record matched Token / Report ID "${reportIdInput}". Please check the Token Number (e.g. 101, TK-101) or Report ID (e.g. RPT-2026-8812) on your payment receipt slip.`
+      `No active record matched Token / Report ID "${reportIdInput}" at ${labName}. Please check your receipt slip or try the demo buttons below.`
     );
   };
 
@@ -539,31 +612,36 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
       {/* Top Header */}
+      {/* Top Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs no-print">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onBackToWebsite}
-              className="px-2.5 py-1.5 text-slate-700 hover:text-slate-950 rounded-lg hover:bg-slate-100 flex items-center gap-1.5 text-xs font-bold cursor-pointer transition border border-slate-200 bg-white shadow-2xs"
-              title="Back to Website"
-            >
-              <ArrowLeft className="w-4 h-4 text-[#123B6D]" />
-              <span>Back</span>
-            </button>
-            <div className="flex items-center gap-1.5 font-extrabold text-sm text-[#123B6D]">
-              <span>Diagnostic Report Portal</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
-                Patient Portal
-              </span>
-            </div>
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          {/* Left: Back button */}
+          <button
+            onClick={onBackToWebsite}
+            className="px-3 py-1.5 text-slate-700 hover:text-slate-950 rounded-lg hover:bg-slate-100 flex items-center gap-1.5 text-xs font-bold cursor-pointer transition border border-slate-200 bg-white shadow-2xs shrink-0"
+            title="Back to Website"
+          >
+            <ArrowLeft className="w-4 h-4 text-[#123B6D]" />
+            <span>Back</span>
+          </button>
+
+          {/* Center: Lab Name */}
+          <div className="flex-1 text-center min-w-0 px-2">
+            <h1 className="font-extrabold text-sm sm:text-base text-[#123B6D] truncate">
+              {labName}
+            </h1>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <div className="text-xs text-slate-500 flex items-center gap-1 font-medium">
-              <ShieldCheck className="w-4 h-4 text-[#0F766E]" />
-              <span>Zero-Login Secure NABL Portal</span>
-            </div>
-          </div>
+          {/* Right: Visit Website button */}
+          <button
+            onClick={onBackToWebsite}
+            className="px-3 py-1.5 rounded-lg bg-[#123B6D] hover:bg-[#0e2c52] text-white flex items-center gap-1.5 text-xs font-bold cursor-pointer transition shadow-2xs shrink-0"
+            title="Visit Website"
+          >
+            <Globe className="w-3.5 h-3.5 text-amber-300" />
+            <span className="hidden xs:inline">Visit Website</span>
+            <span className="xs:hidden">Website</span>
+          </button>
         </div>
       </header>
 
@@ -571,23 +649,9 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
         {/* Search / Access Form Card */}
         <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-7 shadow-sm no-print">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[#123B6D]/10 text-[#123B6D] flex items-center justify-center font-bold">
-              <FileText className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-base sm:text-lg font-black text-[#172033]">
-                Download Your Diagnostic Lab Report
-              </h1>
-              <p className="text-xs text-[#64748B]">
-                Patient Report Download Portal • Select one of the two search options below to access your report
-              </p>
-            </div>
-          </div>
-
           {/* ERROR ALERT BANNER */}
           {errorMessage && (
-            <div className="mt-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-3 animate-in fade-in duration-150">
+            <div className="mb-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-3 animate-in fade-in duration-150">
               <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <div className="flex-1 text-xs">
                 <div className="font-bold text-rose-800">{errorMessage}</div>
@@ -596,8 +660,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             </div>
           )}
 
-          {/* TWO SEARCH TABS: LEFT (OPTION 1) & RIGHT (OPTION 2) */}
-          <div className="mt-4 flex bg-slate-100 p-1 rounded-xl max-w-md mx-auto">
+          {/* TWO SEARCH TABS: PATIENT SEARCH & TOKEN / REPORT ID */}
+          <div className="flex bg-slate-100 p-1 rounded-xl max-w-md mx-auto">
             <button
               type="button"
               onClick={() => {
@@ -605,14 +669,14 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                 setErrorMessage(null);
                 setErrorDetails(null);
               }}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 px-2.5 sm:px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 searchMethod === 'name_mobile'
                   ? 'bg-white text-[#123B6D] shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Phone className="w-3.5 h-3.5 text-[#123B6D]" />
-              <span>Option 1 — Patient Search</span>
+              <Phone className="w-3.5 h-3.5 text-[#123B6D] shrink-0" />
+              <span>Patient Search</span>
             </button>
 
             <button
@@ -622,14 +686,14 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                 setErrorMessage(null);
                 setErrorDetails(null);
               }}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 px-2.5 sm:px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                 searchMethod === 'report_id'
                   ? 'bg-white text-[#123B6D] shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Hash className="w-3.5 h-3.5 text-[#123B6D]" />
-              <span>Option 2 — Token / Report ID</span>
+              <Hash className="w-3.5 h-3.5 text-[#123B6D] shrink-0" />
+              <span>Token / Report ID</span>
             </button>
           </div>
 
@@ -941,7 +1005,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
               No Report Displayed
             </h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-              For patient privacy and data protection, reports are not displayed by default. Please enter your details using <strong>Option 1</strong> (Patient Name + Mobile) or <strong>Option 2</strong> (Token / Report ID) above to view your report.
+              For patient privacy and data protection, reports are not displayed by default. Please enter your details using <strong>Patient Search</strong> (Mobile Number) or <strong>Token / Report ID</strong> above to view your report.
             </p>
             <div className="pt-2 flex items-center justify-center gap-4 text-[11px] font-semibold text-slate-600">
               <span className="flex items-center gap-1 text-emerald-700">
@@ -1143,26 +1207,6 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                 >
                   <MessageSquare className="w-4 h-4" />
                   <span>Share on WhatsApp</span>
-                </button>
-
-                {/* 4. Search Another Report */}
-                <button
-                  onClick={handleResetSearch}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer border border-slate-200"
-                  title="Search Another Report"
-                >
-                  <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Search Another</span>
-                </button>
-
-                {/* 5. Verify QR Code Modal Button */}
-                <button
-                  onClick={() => setShowVerifyModal(true)}
-                  className="bg-teal-50 hover:bg-teal-100 text-[#0F766E] border border-teal-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
-                  title="Verify Security QR Code"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#0F766E]" />
-                  <span>Verify QR</span>
                 </button>
               </div>
             </div>

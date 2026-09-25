@@ -55,6 +55,7 @@ export default function App() {
     portalSections,
     selectVendorLab,
     selectedVendorLabId,
+    setSelectedVendorLabId,
     vendorLabsList,
   } = useCms();
 
@@ -124,10 +125,20 @@ export default function App() {
           url.searchParams.set('lab', slug);
         }
         window.history.replaceState({}, '', url.pathname + url.search);
+      } else if (currentView === 'patient_portal') {
+        url.searchParams.set('view', 'patient_portal');
+        if (selectedVendorLabId && selectedVendorLabId !== 'all') {
+          const currentLab = vendorLabsList.find((l) => l.id === selectedVendorLabId);
+          const slug = getTenantSubdomain(currentLab?.domainPreview || selectedVendorLabId);
+          url.searchParams.set('lab', slug);
+        } else {
+          url.searchParams.delete('lab');
+        }
+        window.history.replaceState({}, '', url.pathname + url.search);
       } else {
         url.searchParams.set('view', currentView);
         // keep lab param if in vendor-specific views
-        if (!['vendor_dashboard', 'reception_dashboard', 'technician_dashboard', 'pathologist_dashboard'].includes(currentView)) {
+        if (!['vendor_dashboard', 'reception_dashboard', 'technician_dashboard', 'pathologist_dashboard', 'patient_portal'].includes(currentView)) {
           url.searchParams.delete('lab');
         }
         window.history.replaceState({}, '', url.pathname + url.search);
@@ -160,7 +171,11 @@ export default function App() {
 
   const handleOpenDemo = () => setIsDemoModalOpen(true);
 
-  const handleViewPatientPortal = (reportId?: string, mobile?: string) => {
+  const handleViewPatientPortal = (reportId?: string, mobile?: string, labId?: string) => {
+    if (labId) {
+      setSelectedVendorLabId(labId);
+      selectVendorLab(labId);
+    }
     setSelectedReportId(reportId || '');
     setSelectedPatientMobile(mobile || '');
     setCurrentView('patient_portal');
@@ -173,7 +188,11 @@ export default function App() {
   };
 
   const handleBackToWebsite = () => {
-    setCurrentView('vendor_website');
+    if (selectedVendorLabId && selectedVendorLabId !== 'all') {
+      setCurrentView('vendor_website');
+    } else {
+      setCurrentView('website');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -504,6 +523,11 @@ export default function App() {
           onBackToWebsite={handleBackToWebsite}
           initialReportId={selectedReportId}
           initialMobile={selectedPatientMobile}
+          vendorLabId={selectedVendorLabId}
+          onSelectVendorLab={(labId) => {
+            setSelectedVendorLabId(labId);
+            selectVendorLab(labId);
+          }}
         />
         <CmsAuthModal
           isOpen={isAuthModalOpen}

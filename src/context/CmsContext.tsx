@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   CmsUser,
   LabStaffAccount,
@@ -1566,6 +1566,7 @@ interface CmsContextType {
   // Lab Reports Store
   reports: LabReport[];
   labReports: LabReport[];
+  allReports: LabReport[];
   setLabReports: React.Dispatch<React.SetStateAction<LabReport[]>>;
   addLabReport: (report: LabReport) => void;
   updateLabReport: (reportId: string, updated: Partial<LabReport>) => void;
@@ -1577,6 +1578,7 @@ interface CmsContextType {
 
   // Reception Desk Patients Store
   receptionEntries: ReceptionPatientEntry[];
+  allReceptionEntries: ReceptionPatientEntry[];
   patients: Patient[];
   addReceptionEntry: (entry: Omit<ReceptionPatientEntry, 'id'>) => ReceptionPatientEntry;
   updateReceptionStatus: (id: string, status: ReceptionPatientEntry['status']) => void;
@@ -1588,6 +1590,9 @@ interface CmsContextType {
   completeTechnicianReport: (id: string, reportId: string) => void;
   publishReport: (id: string, publishedBy?: string) => void;
   unpublishReport: (id: string) => void;
+
+  vendorLabSettingsMap: Record<string, VendorLabSettings>;
+  getLabSettings: (labId?: string) => VendorLabSettings;
 
   // Reset demo
   resetAllToDefaults: () => void;
@@ -1835,6 +1840,18 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return vendorLabSettingsMap[effectiveSettingsLabId];
     }
     const dirMatch = vendorLabsList.find((l) => l.id === effectiveSettingsLabId) || VENDOR_LABS_DIRECTORY.find((l) => l.id === effectiveSettingsLabId);
+    if (dirMatch) {
+      return buildDefaultSettingsForLab(dirMatch);
+    }
+    return DEFAULT_VENDOR_LAB_SETTINGS;
+  }, [vendorLabSettingsMap, effectiveSettingsLabId, vendorLabsList]);
+
+  const getLabSettings = useCallback((labId?: string): VendorLabSettings => {
+    const targetId = labId || effectiveSettingsLabId;
+    if (vendorLabSettingsMap[targetId]) {
+      return vendorLabSettingsMap[targetId];
+    }
+    const dirMatch = vendorLabsList.find((l) => l.id === targetId) || VENDOR_LABS_DIRECTORY.find((l) => l.id === targetId);
     if (dirMatch) {
       return buildDefaultSettingsForLab(dirMatch);
     }
@@ -4398,6 +4415,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateCompanyStat,
 
         vendorLabSettings,
+        vendorLabSettingsMap,
+        getLabSettings,
         updateVendorLabSettings,
         updateVendorSection,
         toggleAllVendorSections,
@@ -4435,6 +4454,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         reports,
         labReports: reports,
+        allReports,
         setLabReports: setAllReports,
         addLabReport,
         updateLabReport,
@@ -4446,6 +4466,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         patients,
         receptionEntries,
+        allReceptionEntries,
         addReceptionEntry,
         updateReceptionStatus,
         updateReceptionEntry,
