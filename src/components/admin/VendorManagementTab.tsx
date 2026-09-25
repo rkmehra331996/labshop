@@ -849,12 +849,13 @@ export const VendorManagementTab: React.FC<VendorManagementTabProps> = ({
                       </div>
 
                       {/* Subdomain reference */}
-                      <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono">
-                        <Globe className="w-3 h-3 text-indigo-500 shrink-0" />
-                        <span className="text-slate-400">Subdomain:</span>
-                        <span className="text-indigo-700 font-semibold">{vendor.domainPreview || `${vendor.id}.indianlalaji.com`}</span>
-                        <span className="text-[10px] text-slate-400 ml-auto font-sans">(DNS Wildcard required for direct subdomain)</span>
-                      </div>
+                      {vendor.domainPreview && !vendor.domainPreview.toLowerCase().includes('healtech') && (
+                        <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono">
+                          <Globe className="w-3 h-3 text-indigo-500 shrink-0" />
+                          <span className="text-slate-400">Subdomain:</span>
+                          <span className="text-indigo-700 font-semibold">{vendor.domainPreview}</span>
+                        </div>
+                      )}
 
                       {/* Dedicated Report Portal Link */}
                       <div className="flex items-center justify-between gap-1 text-[11px] bg-emerald-50/70 border border-emerald-200/80 px-2.5 py-1 rounded-lg">

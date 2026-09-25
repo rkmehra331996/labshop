@@ -22,8 +22,9 @@ import {
   AppView,
   UserRole,
   Patient,
+  LabManagementFeature,
 } from '../types';
-import { MOCK_TESTS, FAQ_LIST, SAMPLE_REPORT, INITIAL_REPORTS, VENDOR_LABS_DIRECTORY, INITIAL_RECEPTION_ENTRIES } from '../data/mockData';
+import { MOCK_TESTS, FAQ_LIST, SAMPLE_REPORT, INITIAL_REPORTS, VENDOR_LABS_DIRECTORY, INITIAL_RECEPTION_ENTRIES, DEFAULT_LAB_MANAGEMENT_FEATURES } from '../data/mockData';
 export { VENDOR_LABS_DIRECTORY };
 import { getPermissionsForRole, LAB_OPTIONS } from '../utils/rbac';
 import { isTenantMatch, verifyTenantOwnership, stampTenant } from '../utils/tenantSecurity';
@@ -316,6 +317,24 @@ export const DEFAULT_ALL_VENDOR_PACKAGES: VendorPackage[] = [
       'High Sensitivity CRP (hs-CRP) for Heart Risk',
       'Serum Electrolytes (Sodium, Potassium, Chloride)',
       'Doctor Consultation & Diet Advice Included',
+    ],
+  },
+  {
+    id: 'pkg-apex-4',
+    labId: 'lab-apex',
+    name: 'Women Wellness & Hormonal Profile',
+    testsCount: 54,
+    description: 'Designed specifically for women to monitor hormone balance, anemia screen, thyroid function, and bone density markers.',
+    priceINR: 1199,
+    mrpINR: 2899,
+    isPopular: false,
+    features: [
+      'Thyroid Profile (Total T3, Total T4, TSH)',
+      'Serum Ferritin & Complete Iron Studies (Anemia)',
+      'Complete Hemogram (CBC + ESR - 24 tests)',
+      'Vitamin D3 (25-OH) & Vitamin B12 Levels',
+      'Serum Calcium & Alkaline Phosphatase (Bone Health)',
+      'Fasting Blood Sugar & Lipid Health Risk',
     ],
   },
   // CityCare packages
@@ -1525,6 +1544,11 @@ interface CmsContextType {
   addCompanyFeature: (feature: Omit<CompanyFeature, 'id'>) => void;
   updateCompanyFeature: (id: string, feature: Partial<CompanyFeature>) => void;
   deleteCompanyFeature: (id: string) => void;
+  labManagementFeatures: LabManagementFeature[];
+  addLabManagementFeature: (feat: Omit<LabManagementFeature, 'id'>) => void;
+  updateLabManagementFeature: (id: string, updates: Partial<LabManagementFeature>) => void;
+  deleteLabManagementFeature: (id: string) => void;
+  resetLabManagementFeatures: () => void;
   companyFaqs: CompanyFaq[];
   addCompanyFaq: (faq: Omit<CompanyFaq, 'id'>) => void;
   updateCompanyFaq: (id: string, faq: Partial<CompanyFaq>) => void;
@@ -1762,6 +1786,50 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return DEFAULT_COMPANY_FEATURES;
     }
   });
+
+  const [labManagementFeatures, setLabManagementFeatures] = useState<LabManagementFeature[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_lab_management_features');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return DEFAULT_LAB_MANAGEMENT_FEATURES;
+    } catch {
+      return DEFAULT_LAB_MANAGEMENT_FEATURES;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_lab_management_features', JSON.stringify(labManagementFeatures));
+    } catch {}
+  }, [labManagementFeatures]);
+
+  const addLabManagementFeature = (feat: Omit<LabManagementFeature, 'id'>) => {
+    const newFeat: LabManagementFeature = {
+      ...feat,
+      id: `lmf-${Date.now()}`,
+    };
+    setLabManagementFeatures((prev) => [...prev, newFeat]);
+  };
+
+  const updateLabManagementFeature = (id: string, updates: Partial<LabManagementFeature>) => {
+    setLabManagementFeatures((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
+    );
+  };
+
+  const deleteLabManagementFeature = (id: string) => {
+    setLabManagementFeatures((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const resetLabManagementFeatures = () => {
+    setLabManagementFeatures([...DEFAULT_LAB_MANAGEMENT_FEATURES]);
+    try {
+      localStorage.setItem('cms_lab_management_features', JSON.stringify(DEFAULT_LAB_MANAGEMENT_FEATURES));
+    } catch {}
+  };
 
   const [companyFaqs, setCompanyFaqs] = useState<CompanyFaq[]>(() => {
     try {
@@ -4417,6 +4485,11 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addCompanyFeature,
         updateCompanyFeature,
         deleteCompanyFeature,
+        labManagementFeatures,
+        addLabManagementFeature,
+        updateLabManagementFeature,
+        deleteLabManagementFeature,
+        resetLabManagementFeatures,
         companyFaqs,
         addCompanyFaq,
         updateCompanyFaq,

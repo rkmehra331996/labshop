@@ -45,6 +45,11 @@ import {
   Upload,
   Trash2,
   Plus,
+  ShoppingCart,
+  Info,
+  Sparkles,
+  Tag,
+  TestTube,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
@@ -300,6 +305,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedBookTestCategory, setSelectedBookTestCategory] = useState<string>('All');
+  const [selectedTestInfoModal, setSelectedTestInfoModal] = useState<any | null>(null);
+  const [showFullDirectory, setShowFullDirectory] = useState(false);
+  const [cartToast, setCartToast] = useState<{ testName: string; price: number } | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [bookedSuccess, setBookedSuccess] = useState(false);
@@ -540,6 +549,154 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     'Vitamins & Minerals',
     'Urine Analysis',
   ];
+
+  // Section 4: Book Test Section Category Tabs
+  const BOOK_TEST_CATEGORY_TABS = [
+    'All',
+    'Hematology',
+    'Biochemistry',
+    'Thyroid & Hormones',
+    'Diabetes',
+    'Vitamins',
+    'Urine Analysis',
+  ];
+
+  const isTestInBookCategory = (test: any, cat: string) => {
+    if (cat === 'All') return true;
+    const catLower = cat.toLowerCase();
+    const tCat = (test.category || '').toLowerCase();
+    const tName = (test.name || '').toLowerCase();
+    const tCode = (test.code || '').toLowerCase();
+
+    if (cat === 'Hematology') {
+      return (
+        tCat.includes('hematology') ||
+        tCat.includes('blood') ||
+        tName.includes('cbc') ||
+        tName.includes('esr') ||
+        tName.includes('hemogram') ||
+        tCode.includes('hem')
+      );
+    }
+    if (cat === 'Biochemistry') {
+      return (
+        tCat.includes('biochemistry') ||
+        tName.includes('lft') ||
+        tName.includes('kft') ||
+        tName.includes('liver') ||
+        tName.includes('kidney') ||
+        tName.includes('lipid') ||
+        tCode.includes('bio')
+      );
+    }
+    if (cat === 'Thyroid & Hormones') {
+      return (
+        tCat.includes('thyroid') ||
+        tCat.includes('hormone') ||
+        tName.includes('tsh') ||
+        tName.includes('thyroid') ||
+        tName.includes('t3') ||
+        tName.includes('t4') ||
+        tCode.includes('thy')
+      );
+    }
+    if (cat === 'Diabetes') {
+      return (
+        tCat.includes('diabetes') ||
+        tName.includes('hba1c') ||
+        tName.includes('glucose') ||
+        tName.includes('sugar') ||
+        tName.includes('insulin')
+      );
+    }
+    if (cat === 'Vitamins') {
+      return (
+        tCat.includes('vitamin') ||
+        tName.includes('vitamin') ||
+        tName.includes('d3') ||
+        tName.includes('b12') ||
+        tName.includes('calcium') ||
+        tCode.includes('vit')
+      );
+    }
+    if (cat === 'Urine Analysis') {
+      return (
+        tCat.includes('urine') ||
+        tCat.includes('stool') ||
+        tName.includes('urine') ||
+        tName.includes('stool') ||
+        tCode.includes('urn')
+      );
+    }
+    return tCat.includes(catLower) || tName.includes(catLower);
+  };
+
+  const getTestDetails = (test: any) => {
+    const name = test.name || '';
+    const price = test.priceINR || 350;
+    const mrp = test.mrpINR || Math.round(price * 1.85);
+    const discount = Math.max(15, Math.round(((mrp - price) / mrp) * 100));
+    const turnaround = test.turnaroundTime || '4-6 Hours';
+    const sample = test.sampleType || 'Whole Blood (EDTA)';
+    const code = test.code || 'LAB-01';
+
+    const isFastingRequired =
+      name.toLowerCase().includes('lipid') ||
+      name.toLowerCase().includes('sugar') ||
+      name.toLowerCase().includes('glucose') ||
+      name.toLowerCase().includes('fasting') ||
+      name.toLowerCase().includes('kft');
+
+    const fastingLabel = isFastingRequired
+      ? '10-12 Hours Fasting Required'
+      : 'No Fasting Required (Can be given anytime)';
+
+    const fastingDetail = isFastingRequired
+      ? 'Overnight fasting for 10-12 hours is required before sample collection. Do not consume tea, coffee, milk, or breakfast. Plain drinking water is permitted.'
+      : 'No fasting required. You may follow your normal dietary and medication schedule prior to sample collection.';
+
+    let clinicalUse = test.description || 'Clinical diagnostic blood/specimen test used to assess physiological markers and detect medical conditions.';
+    if (name.includes('CBC')) {
+      clinicalUse = 'Complete 24-parameter automated cell counter analysis (Hemoglobin, RBC, WBC, Platelets, MCV). Essential for detecting viral/bacterial infections, anemia, fatigue, and blood disorders.';
+    } else if (name.includes('HbA1c')) {
+      clinicalUse = 'Gold standard 3-month average blood glucose control analysis via HPLC. Highly accurate for diabetic diagnosis, quarterly monitoring, and pre-diabetic risk evaluation.';
+    } else if (name.includes('Thyroid') || name.includes('TSH')) {
+      clinicalUse = 'Assesses Thyroid Stimulating Hormone (TSH), Total T3, and Total T4. Crucial for diagnosing Hypothyroidism, Hyperthyroidism, unexplained weight changes, lethargy, and hair loss.';
+    } else if (name.includes('Lipid')) {
+      clinicalUse = 'Measures Total Cholesterol, HDL (good cholesterol), LDL (bad cholesterol), and Triglycerides. Evaluates cardiac risk, arterial health, and blood vessel wellness.';
+    } else if (name.includes('Vitamin D')) {
+      clinicalUse = '25-Hydroxy Vitamin D level check essential for bone calcium absorption, joint strength, muscle wellness, and immune resistance.';
+    } else if (name.includes('Vitamin B12')) {
+      clinicalUse = 'Serum Cyanocobalamin evaluation vital for nervous system health, red blood cell generation, memory clarity, and preventing tingling sensations.';
+    } else if (name.includes('LFT') || name.includes('Liver')) {
+      clinicalUse = 'Screens liver enzymes (SGOT, SGPT, Bilirubin, Alkaline Phosphatase, Albumin) to evaluate liver health, fatty liver, jaundice, or medication load.';
+    } else if (name.includes('KFT') || name.includes('Kidney')) {
+      clinicalUse = 'Assesses Serum Creatinine, Blood Urea, and Uric Acid to assess kidney filtration, hydration, and renal clearance rate.';
+    } else if (name.includes('Urine')) {
+      clinicalUse = 'Physical, chemical, and microscopic urine screen for pus cells, RBCs, protein, sugar, and crystals. Rapidly flags Urinary Tract Infection (UTI) and kidney stones.';
+    }
+
+    return {
+      price,
+      mrp,
+      discount,
+      turnaround,
+      sample,
+      code,
+      isFastingRequired,
+      fastingLabel,
+      fastingDetail,
+      clinicalUse,
+    };
+  };
+
+  const handleBookTestClick = (e: React.MouseEvent, test: any) => {
+    e.stopPropagation();
+    setSelectedTestOrPackage(`${test.name} (₹${test.priceINR})`);
+    setCartToast({ testName: test.name, price: test.priceINR });
+    setTimeout(() => setCartToast(null), 3500);
+    setIsBookingModalOpen(true);
+  };
 
   const filteredTests = vendorTests.filter((test) => {
     const matchesSearch =
@@ -1638,10 +1795,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         </div>
       </section>
 
-      {/* 4. Popular Preventive Health Packages */}
+      {/* SECTION 3: HEALTH PACKAGES (with Booking Button & Peek Carousel) */}
       <section id="packages" className="py-16 bg-white border-b border-slate-200 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-12">
+          <div className="text-center max-w-2xl mx-auto mb-10">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#123B6D]/10 text-[#123B6D] text-xs font-bold mb-3">
               <span>Preventive Health Packages</span>
             </div>
@@ -1649,283 +1806,763 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               Comprehensive Health Checkups with Up to 60% Savings
             </h2>
             <p className="text-sm text-[#64748B] mt-2">
-              Early diagnosis protects your family. All packages include free home sample pickup, digital NABL reports, and free doctor consultation.
+              सभी पॉपुलर प्रिवेंटिव हेल्थ पैकेजेस (Full Body Checkup, Diabetes Care, Senior Citizen, Women Wellness आदि)। Free home sample pickup, digital NABL reports and free doctor consultation.
             </p>
+
+            {/* Mobile View Peek Hint */}
+            <div className="flex sm:hidden items-center justify-center gap-1.5 text-xs text-slate-500 font-semibold mt-3">
+              <span>👉 Swipe left for next package (2% peek view)</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {vendorPackages.map((pkg, idx) => (
-              <div
-                key={pkg.id || idx}
-                className="bg-[#F8FAFC] rounded-2xl border border-slate-200 hover:border-[#123B6D]/40 p-6 flex flex-col justify-between transition-all hover:shadow-lg relative group"
-              >
-                {(pkg.isPopular || idx === 0) && (
-                  <div className="absolute -top-3 right-6 bg-[#F59E0B] text-slate-950 font-extrabold text-[10px] px-3 py-1 rounded-full uppercase tracking-wider shadow-xs">
-                    Most Popular
-                  </div>
-                )}
+          {/* Section 3 Peek Carousel: 1st card 88%-90% width, next card peeks 2%-5% on mobile */}
+          <div
+            className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 overflow-x-auto md:overflow-visible pb-4 pt-2 snap-x snap-mandatory scrollbar-none"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {vendorPackages.map((pkg, idx) => {
+              const mrp = pkg.mrpINR || Math.round(pkg.priceINR * 2.5);
+              const savePct = Math.round(((mrp - pkg.priceINR) / mrp) * 100);
+              return (
+                <div
+                  key={pkg.id || idx}
+                  className="w-[88%] xs:w-[89%] sm:w-[90%] md:w-auto shrink-0 snap-start bg-[#F8FAFC] rounded-2xl border border-slate-200 hover:border-[#123B6D]/50 p-5 sm:p-6 flex flex-col justify-between transition-all hover:shadow-lg relative group"
+                >
+                  {(pkg.isPopular || idx === 0) && (
+                    <div className="absolute -top-3 right-6 bg-[#F59E0B] text-slate-950 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider shadow-xs">
+                      Most Popular
+                    </div>
+                  )}
 
-                <div>
-                  <div className="text-xs font-bold text-[#0F766E] uppercase tracking-wider mb-1">
-                    {pkg.testsCount} Parameters Covered
-                  </div>
-                  <h3 className="text-lg font-extrabold text-[#123B6D]">{pkg.name}</h3>
-                  <p className="text-xs text-[#64748B] mt-1.5 mb-4 leading-relaxed">
-                    {pkg.description}
-                  </p>
+                  <div>
+                    <div className="text-xs font-bold text-[#0F766E] uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0F766E]"></span>
+                      <span>{pkg.testsCount || 68} Tests / Parameters</span>
+                    </div>
 
-                  <div className="flex items-baseline gap-2 mb-4 pb-4 border-b border-slate-200">
-                    <span className="text-3xl font-black text-[#123B6D]">₹{pkg.priceINR}</span>
-                    <span className="text-sm text-slate-400 line-through">₹{pkg.mrpINR}</span>
-                    <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-                      Save {Math.round(((pkg.mrpINR - pkg.priceINR) / pkg.mrpINR) * 100)}%
-                    </span>
+                    <h3 className="text-lg font-black text-[#123B6D] leading-snug">{pkg.name}</h3>
+
+                    <p className="text-xs text-[#64748B] mt-1.5 mb-4 leading-relaxed">
+                      {pkg.description}
+                    </p>
+
+                    <div className="flex items-baseline gap-2 mb-4 pb-4 border-b border-slate-200">
+                      <span className="text-3xl font-black text-[#123B6D]">₹{pkg.priceINR}</span>
+                      <span className="text-sm text-slate-400 line-through">₹{mrp}</span>
+                      <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                        Save {savePct}%
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 mb-6">
+                      <div className="text-xs font-bold text-slate-800">Key Tests Included:</div>
+                      {pkg.features.map((feat, fIdx) => (
+                        <div key={fIdx} className="flex items-center gap-2 text-xs text-slate-600">
+                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span className="line-clamp-1">{feat}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="space-y-2 mb-6">
-                    <div className="text-xs font-bold text-slate-800">Included In This Package:</div>
-                    {pkg.features.map((feat, fIdx) => (
-                      <div key={fIdx} className="flex items-center gap-2 text-xs text-slate-600">
-                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>{feat}</span>
-                      </div>
-                    ))}
+                  <div className="space-y-2 pt-2 border-t border-slate-200/80">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
+                        setIsBookingModalOpen(true);
+                      }}
+                      className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                    >
+                      <span>Book Package</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleWhatsAppBooking(pkg.name, pkg.priceINR)}
+                      className="w-full bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#075e54] border border-[#25D366]/30 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
+                      <span>WhatsApp Booking</span>
+                    </button>
                   </div>
                 </div>
-
-                <div className="space-y-2 pt-2">
-                  <button
-                    onClick={() => {
-                      setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
-                      setIsBookingModalOpen(true);
-                    }}
-                    className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 rounded-lg text-xs font-bold transition shadow-xs flex items-center justify-center gap-1.5"
-                  >
-                    <span>Book Package Now</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                  </button>
-
-                  <button
-                    onClick={() => handleWhatsAppBooking(pkg.name, pkg.priceINR)}
-                    className="w-full bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#075e54] border border-[#25D366]/30 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
-                    <span>Book on WhatsApp</span>
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* 5. 500+ Diagnostic Tests Directory with Price List */}
-      <section id="test-directory" className="py-16 bg-[#F8FAFC] border-b border-slate-200 scroll-mt-20">
+      {/* SECTION 4: BOOK TEST SECTION (Categories + Cart Icon + Popup + 2-Row Peek Grid) */}
+      <section id="book-test-section" className="py-16 bg-[#F8FAFC] border-b border-slate-200 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          {/* Header */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0F766E]/10 text-[#0F766E] text-xs font-bold mb-2">
-                <span>500+ Pathology Tests</span>
+                <span>Book Diagnostic Test</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
-                Search Blood Tests & View Exact Prices
+                Book Pathology Tests Online with Instant Fasting Info
               </h2>
               <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-                Transparent Indian diagnostic rates with fast turnaround times and NABL certification.
+                Click any test card for clinical usage and fasting preparation instructions, or add directly to booking.
               </p>
             </div>
 
-            {/* Search Input */}
-            <div className="w-full md:w-80 relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search test (e.g. CBC, HbA1c, Thyroid)..."
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none bg-white shadow-xs"
-              />
+            {/* Mobile swipe hint */}
+            <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs self-start md:self-auto">
+              <span className="text-[#123B6D]">💡</span>
+              <span>2 full cards on screen • 3rd card peeks 2%–5% • 50%-50% if 2 cards</span>
             </div>
           </div>
 
-          {/* Category Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${
-                  selectedCategory === cat
-                    ? 'bg-[#123B6D] text-white shadow-xs'
-                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          {/* Category Tabs: All, Hematology, Biochemistry, Thyroid & Hormones, Diabetes, Vitamins, Urine Analysis */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
+            {BOOK_TEST_CATEGORY_TABS.map((cat) => {
+              const isSelected = selectedBookTestCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedBookTestCategory(cat)}
+                  className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 shadow-2xs ${
+                    isSelected
+                      ? 'bg-[#123B6D] text-white ring-2 ring-[#123B6D]/20 shadow-xs'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <span>{cat}</span>
+                  {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Test Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTests.slice(0, 12).map((test) => (
-              <div
-                key={test.id}
-                className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                      {test.category}
+          {/* 2-ROW HORIZONTAL PEEK GRID */}
+          <div className="space-y-6">
+            {/* ROW 1: Test Cards (e.g. CBC, HbA1c, Thyroid, Lipid Profile) */}
+            {(() => {
+              // Row 1 selection logic
+              let r1Tests: any[] = [];
+              if (selectedBookTestCategory === 'All') {
+                r1Tests = vendorTests.filter((t) => {
+                  const n = t.name.toLowerCase();
+                  return n.includes('cbc') || n.includes('hba1c') || n.includes('thyroid') || n.includes('tsh') || n.includes('lipid');
+                });
+                if (r1Tests.length < 2) r1Tests = vendorTests.slice(0, 4);
+              } else {
+                const matched = vendorTests.filter((t) => isTestInBookCategory(t, selectedBookTestCategory));
+                if (matched.length <= 2) {
+                  r1Tests = matched;
+                } else {
+                  r1Tests = matched.slice(0, Math.ceil(matched.length / 2));
+                }
+              }
+
+              const isRow1TwoCards = r1Tests.length <= 2;
+
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#123B6D] flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                      <span>Row 1: {selectedBookTestCategory === 'All' ? 'Primary Blood Tests (CBC, HbA1c, Thyroid, Lipid)' : `${selectedBookTestCategory} (Line 1)`}</span>
                     </span>
-                    <span className="font-mono text-[11px] text-slate-400">{test.code}</span>
+                    <span className="text-[11px] font-bold text-slate-400">
+                      {r1Tests.length} Tests Available
+                    </span>
                   </div>
 
-                  <h4 className="text-sm font-bold text-[#123B6D]">{test.name}</h4>
+                  {/* Horizontal Scroll / Fit Container */}
+                  <div
+                    className={
+                      isRow1TwoCards
+                        ? 'w-full flex gap-3 sm:gap-4'
+                        : 'w-full flex gap-3 sm:gap-4 overflow-x-auto pb-3 pt-1 snap-x snap-mandatory scrollbar-none scroll-smooth'
+                    }
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                  >
+                    {r1Tests.map((test, idx) => {
+                      const details = getTestDetails(test);
+                      return (
+                        <div
+                          key={test.id || `r1-${idx}`}
+                          onClick={() => setSelectedTestInfoModal(test)}
+                          className={`bg-white rounded-2xl border border-slate-200 hover:border-[#123B6D]/50 hover:shadow-md transition-all p-4 sm:p-5 flex flex-col justify-between cursor-pointer group relative ${
+                            isRow1TwoCards
+                              ? 'flex-1 w-[calc(50%-6px)] sm:w-[calc(50%-8px)] min-w-0'
+                              : 'w-[calc(47.5%-6px)] sm:w-[calc(48%-8px)] md:w-[calc(31.5%-10px)] lg:w-[calc(23.5%-12px)] shrink-0 snap-start'
+                          }`}
+                        >
+                          <div>
+                            {/* Card Top: Medical Icon, Code, Info icon */}
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="w-9 h-9 rounded-xl bg-[#123B6D]/10 text-[#123B6D] flex items-center justify-center font-bold text-sm group-hover:bg-[#123B6D] group-hover:text-white transition">
+                                🧪
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-bold">
+                                  {details.code}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedTestInfoModal(test);
+                                  }}
+                                  className="p-1 rounded-lg text-slate-400 hover:text-[#123B6D] hover:bg-slate-100 transition cursor-pointer"
+                                  title="View Test Information & Fasting Prep"
+                                >
+                                  <Info className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
 
-                  <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
-                    <div>
-                      <span className="block text-[10px] text-slate-400">Specimen</span>
-                      <span className="font-medium text-slate-700">{test.sampleType}</span>
-                    </div>
-                    <div>
-                      <span className="block text-[10px] text-slate-400">Report In</span>
-                      <span className="font-medium text-slate-700">{test.turnaroundTime}</span>
-                    </div>
+                            {/* Test Name */}
+                            <h4 className="font-black text-xs sm:text-sm text-[#123B6D] line-clamp-2 leading-snug group-hover:text-blue-700 transition mb-2">
+                              {test.name}
+                            </h4>
+
+                            {/* Specimen & Reporting Time */}
+                            <div className="space-y-1 mb-3 text-[11px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 font-medium">Sample:</span>
+                                <span className="font-bold text-slate-700 truncate max-w-[120px]" title={details.sample}>
+                                  {details.sample}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 font-medium">Reporting:</span>
+                                <span className="font-bold text-emerald-700">⏱️ {details.turnaround}</span>
+                              </div>
+                            </div>
+
+                            {/* Fasting Badge */}
+                            <div className="mb-3">
+                              {details.isFastingRequired ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                                  <span>⚠️</span>
+                                  <span>10-12h Fasting</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                                  <span>✅</span>
+                                  <span>No Fasting Req.</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Price, Discount & Cart/Book Test Button */}
+                          <div className="pt-2 border-t border-slate-100 space-y-2">
+                            <div className="flex items-baseline justify-between">
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="text-base sm:text-lg font-black text-[#123B6D]">₹{details.price}</span>
+                                <span className="text-xs text-slate-400 line-through">₹{details.mrp}</span>
+                              </div>
+                              <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                Save {details.discount}%
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => handleBookTestClick(e, test)}
+                              className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-98 cursor-pointer"
+                              title="Book test online"
+                            >
+                              <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Book Test</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
+              );
+            })()}
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Test Fee</span>
-                    <span className="text-base font-extrabold text-[#123B6D]">₹{test.priceINR}</span>
+            {/* ROW 2: Test Cards (e.g. Vitamin D3, Vitamin B12, LFT, KFT, Urine Routine) */}
+            {(() => {
+              // Row 2 selection logic
+              let r2Tests: any[] = [];
+              if (selectedBookTestCategory === 'All') {
+                r2Tests = vendorTests.filter((t) => {
+                  const n = t.name.toLowerCase();
+                  return (
+                    n.includes('vitamin') ||
+                    n.includes('d3') ||
+                    n.includes('b12') ||
+                    n.includes('lft') ||
+                    n.includes('liver') ||
+                    n.includes('kft') ||
+                    n.includes('kidney') ||
+                    n.includes('urine')
+                  );
+                });
+                if (r2Tests.length < 2) r2Tests = vendorTests.slice(4, 9);
+              } else {
+                const matched = vendorTests.filter((t) => isTestInBookCategory(t, selectedBookTestCategory));
+                if (matched.length > 2) {
+                  r2Tests = matched.slice(Math.ceil(matched.length / 2));
+                }
+              }
+
+              if (r2Tests.length === 0) return null;
+
+              const isRow2TwoCards = r2Tests.length <= 2;
+
+              return (
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs font-black uppercase tracking-wider text-[#123B6D] flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                      <span>Row 2: {selectedBookTestCategory === 'All' ? 'Essential Profiles (Vitamin D3, B12, LFT, KFT, Urine)' : `${selectedBookTestCategory} (Line 2)`}</span>
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-400">
+                      {r2Tests.length} Tests Available
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => handleWhatsAppBooking(test.name, test.priceINR)}
-                      className="p-1.5 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#075e54] border border-[#25D366]/30 transition"
-                      title="Book via WhatsApp"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedTestOrPackage(`${test.name} (₹${test.priceINR})`);
-                        setIsBookingModalOpen(true);
-                      }}
-                      className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3 py-1.5 rounded-lg text-xs font-bold transition"
-                    >
-                      Book Test
-                    </button>
+                  {/* Horizontal Scroll / Fit Container */}
+                  <div
+                    className={
+                      isRow2TwoCards
+                        ? 'w-full flex gap-3 sm:gap-4'
+                        : 'w-full flex gap-3 sm:gap-4 overflow-x-auto pb-3 pt-1 snap-x snap-mandatory scrollbar-none scroll-smooth'
+                    }
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                  >
+                    {r2Tests.map((test, idx) => {
+                      const details = getTestDetails(test);
+                      return (
+                        <div
+                          key={test.id || `r2-${idx}`}
+                          onClick={() => setSelectedTestInfoModal(test)}
+                          className={`bg-white rounded-2xl border border-slate-200 hover:border-[#123B6D]/50 hover:shadow-md transition-all p-4 sm:p-5 flex flex-col justify-between cursor-pointer group relative ${
+                            isRow2TwoCards
+                              ? 'flex-1 w-[calc(50%-6px)] sm:w-[calc(50%-8px)] min-w-0'
+                              : 'w-[calc(47.5%-6px)] sm:w-[calc(48%-8px)] md:w-[calc(31.5%-10px)] lg:w-[calc(23.5%-12px)] shrink-0 snap-start'
+                          }`}
+                        >
+                          <div>
+                            {/* Card Top: Medical Icon, Code, Info icon */}
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold text-sm group-hover:bg-[#123B6D] group-hover:text-white transition">
+                                🔬
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-bold">
+                                  {details.code}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedTestInfoModal(test);
+                                  }}
+                                  className="p-1 rounded-lg text-slate-400 hover:text-[#123B6D] hover:bg-slate-100 transition cursor-pointer"
+                                  title="View Test Information & Fasting Prep"
+                                >
+                                  <Info className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Test Name */}
+                            <h4 className="font-black text-xs sm:text-sm text-[#123B6D] line-clamp-2 leading-snug group-hover:text-blue-700 transition mb-2">
+                              {test.name}
+                            </h4>
+
+                            {/* Specimen & Reporting Time */}
+                            <div className="space-y-1 mb-3 text-[11px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 font-medium">Sample:</span>
+                                <span className="font-bold text-slate-700 truncate max-w-[120px]" title={details.sample}>
+                                  {details.sample}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 font-medium">Reporting:</span>
+                                <span className="font-bold text-emerald-700">⏱️ {details.turnaround}</span>
+                              </div>
+                            </div>
+
+                            {/* Fasting Badge */}
+                            <div className="mb-3">
+                              {details.isFastingRequired ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                                  <span>⚠️</span>
+                                  <span>10-12h Fasting</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                                  <span>✅</span>
+                                  <span>No Fasting Req.</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Price, Discount & Cart/Book Test Button */}
+                          <div className="pt-2 border-t border-slate-100 space-y-2">
+                            <div className="flex items-baseline justify-between">
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="text-base sm:text-lg font-black text-[#123B6D]">₹{details.price}</span>
+                                <span className="text-xs text-slate-400 line-through">₹{details.mrp}</span>
+                              </div>
+                              <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                                Save {details.discount}%
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={(e) => handleBookTestClick(e, test)}
+                              className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-98 cursor-pointer"
+                              title="Book test online"
+                            >
+                              <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Book Test</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* 2 लाइन्स के ठीक नीचे: "View All Tests (500+ Tests Directory) →" बड़ा बटन */}
+          <div className="mt-10 text-center">
+            <button
+              type="button"
+              id="btn-view-all-tests"
+              onClick={() => {
+                setShowFullDirectory(!showFullDirectory);
+                setTimeout(() => {
+                  const el = document.getElementById('full-test-directory-view');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }}
+              className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-[#123B6D] via-[#1E4E8C] to-[#0F766E] hover:from-[#0e2c52] hover:to-[#0d5f58] text-white text-xs sm:text-sm font-black shadow-md hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20"
+            >
+              <span>View All Tests (500+ Tests Directory)</span>
+              <ArrowRight className="w-4 h-4 text-amber-400" />
+            </button>
+          </div>
+
+          {/* Expandable 500+ Tests Complete Directory Section */}
+          {showFullDirectory && (
+            <div id="full-test-directory-view" className="mt-12 pt-8 border-t border-slate-200 space-y-6 animate-in fade-in duration-200">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#123B6D]/10 text-[#123B6D] text-xs font-bold mb-2">
+                    <span>Complete 500+ Pathology Directory</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-[#123B6D]">
+                    Search Blood Tests & View Exact Prices
+                  </h3>
+                  <p className="text-xs text-[#64748B] mt-1">
+                    Transparent rates with fast turnaround times and verified pathologist reporting.
+                  </p>
+                </div>
+
+                {/* Search Input */}
+                <div className="w-full md:w-80 relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search test (e.g. CBC, HbA1c, Thyroid)..."
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none bg-white shadow-xs font-medium"
+                  />
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Full Test Directory Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredTests.map((test) => {
+                  const details = getTestDetails(test);
+                  return (
+                    <div
+                      key={test.id}
+                      onClick={() => setSelectedTestInfoModal(test)}
+                      className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition flex flex-col justify-between cursor-pointer group"
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                            {test.category}
+                          </span>
+                          <span className="font-mono text-[11px] text-slate-400 font-bold">{details.code}</span>
+                        </div>
+
+                        <h4 className="text-sm font-bold text-[#123B6D] group-hover:text-blue-700 transition">{test.name}</h4>
+
+                        <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
+                          <div>
+                            <span className="block text-[10px] text-slate-400">Specimen</span>
+                            <span className="font-medium text-slate-700 truncate block">{details.sample}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[10px] text-slate-400">Report In</span>
+                            <span className="font-medium text-slate-700">{details.turnaround}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-slate-400 block">Test Fee</span>
+                          <span className="text-base font-extrabold text-[#123B6D]">₹{details.price}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleWhatsAppBooking(test.name, details.price);
+                            }}
+                            className="p-1.5 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#075e54] border border-[#25D366]/30 transition cursor-pointer"
+                            title="Book via WhatsApp"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleBookTestClick(e, test)}
+                            className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                          >
+                            <ShoppingCart className="w-3 h-3 text-amber-400" />
+                            <span>Book Test</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="text-center mt-8">
             <a
-              href="https://wa.me/917087033009?text=Hello%20Apex%20Diagnostics,%20I%20want%20to%20inquire%20about%20a%20specific%20blood%20test"
+              href={`https://wa.me/91${cleanWhatsapp}?text=${encodeURIComponent(
+                `Hello ${labName}, I want to inquire about pathology test booking & home sample collection.`
+              )}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-xs font-bold text-[#123B6D] hover:underline"
             >
-              <span>Can't find a test? Ask us directly on WhatsApp (+91 7087033009)</span>
+              <span>Can't find a test? Ask us directly on WhatsApp (+91 {cleanWhatsapp})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
       </section>
 
-      {/* 6. Why Choose Our Laboratory (Vendor Quality Standard) */}
-      <section id="about" className="py-16 bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold">
-                <span>Accreditation & Quality Assured</span>
+      {/* SECTION 5: ABOUT US SECTION (with Founder / Director Image & Lab Story) */}
+      <section id="about" className="py-16 sm:py-20 bg-white border-b border-slate-200 scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 space-y-12">
+          {/* Top Title & Accreditation Badges */}
+          <div className="text-center max-w-3xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold shadow-2xs">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>NABL Accredited &bull; ISO 15189:2022 Certified Medical Laboratory</span>
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-[#123B6D] tracking-tight">
+              About Our Laboratory &amp; Medical Leadership
+            </h2>
+            <p className="text-xs sm:text-sm text-[#64748B] leading-relaxed">
+              Serving patients, referring physicians, and hospital networks with uncompromising diagnostic precision, automated pathology, and compassionate care since {currentLabItem?.establishedYear || 2012}.
+            </p>
+          </div>
+
+          {/* Main 2-Column Grid: Lab Story & Mission + Founder / Director Profile Card */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-stretch">
+            {/* Left 7 Columns: Lab Story, Foundation, NABL/ISO, and Mission */}
+            <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
+              {/* Lab Story & Foundation */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-xl bg-blue-100 text-[#123B6D] flex items-center justify-center font-black text-sm">
+                    🏛️
+                  </span>
+                  <div>
+                    <h3 className="font-extrabold text-lg text-slate-900 leading-snug">
+                      Our Journey &amp; Legacy of Clinical Excellence
+                    </h3>
+                    <span className="text-xs font-semibold text-[#0F766E]">
+                      Established in {currentLabItem?.establishedYear || 2012} &bull; Over a Decade of Trusted Pathology
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Founded in <strong>{currentLabItem?.establishedYear || 2012}</strong>, <strong>{labName}</strong> was established with a singular focus: to bridge the gap between advanced medical science and patient-centric healthcare in India. From a modest routine testing center, our laboratory has grown into a premier clinical pathology reference facility trusted by thousands of families and top consulting doctors.
+                </p>
+
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  We operate in strict compliance with <strong>ISO 15189:2022</strong> and <strong>NABL (National Accreditation Board for Testing and Calibration Laboratories)</strong> standards (Accreditation No: <span className="font-mono font-bold text-[#123B6D]">{labNabl}</span>). Every specimen undergoes rigorous 3-tier internal quality controls (IQC) and participating International External Quality Assessment Schemes (EQAS).
+                </p>
               </div>
 
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight leading-tight">
-                Standard of Care Pathology with 100% NABL Quality Verification
-              </h2>
-
-              <p className="text-sm text-[#64748B] leading-relaxed">
-                At Apex Diagnostics, we leave zero room for error. Every sample is collected in vacuum-sealed sterile vacutainers with unique barcoded labels, analyzed on fully automated 5-part Sysmex & Roche immunoassay analyzers, and verified by our senior MD Pathologist.
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50">
-                  <h4 className="font-bold text-xs text-[#123B6D]">NABL Accredited Facility</h4>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Strict adherence to ISO 15189 standards and regular EQAS quality blind testing.
+              {/* Lab Mission & Core Values */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5 hover:border-blue-300 transition">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-sm">
+                    🎯
+                  </div>
+                  <h4 className="font-extrabold text-xs sm:text-sm text-[#123B6D]">Our Mission (हमारा मिशन)</h4>
+                  <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
+                    To deliver clinical reports of utmost accuracy with rapid turnaround, ensuring early diagnosis, personalized treatments, and accessible healthcare for every citizen.
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50">
-                  <h4 className="font-bold text-xs text-[#123B6D]">Cold-Chain Sample Transport</h4>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Insulated boxes with gel ice packs maintaining 2°C–8°C temperature integrity.
+                <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 space-y-1.5 hover:border-emerald-300 transition">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
+                    ⭐
+                  </div>
+                  <h4 className="font-extrabold text-xs sm:text-sm text-emerald-900">100% NABL Quality Verification</h4>
+                  <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
+                    Zero sample mix-up with automated two-way LIS barcode interfacing, vacuum blood collection, and secondary verification by senior pathologists.
                   </p>
                 </div>
+              </div>
 
-                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50">
-                  <h4 className="font-bold text-xs text-[#123B6D]">Barcoded Vacutainers</h4>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Zero sample mix-up risk. Patient UHID tagged right at the collection chair.
-                  </p>
+              {/* Key Highlights Strip */}
+              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-100 text-center">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div className="text-xl sm:text-2xl font-black text-[#123B6D]">{currentLabItem?.establishedYear || 2012}</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-500 font-semibold mt-0.5">Year Established</div>
                 </div>
-
-                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50">
-                  <h4 className="font-bold text-xs text-[#123B6D]">Instant WhatsApp Delivery</h4>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Verified PDF reports dispatched directly to patient phone with QR authentication.
-                  </p>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div className="text-xl sm:text-2xl font-black text-emerald-700">ISO 15189</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-500 font-semibold mt-0.5">Accreditation Standard</div>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div className="text-xl sm:text-2xl font-black text-amber-600">2,50,000+</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-500 font-semibold mt-0.5">Patients Served</div>
                 </div>
               </div>
             </div>
 
-            {/* Quality Certifications & Stats */}
-            <div className="bg-[#123B6D] text-white rounded-2xl p-8 sm:p-10 space-y-8 shadow-xl">
-              <div>
-                <span className="text-xs uppercase tracking-widest text-amber-300 font-bold">
-                  Diagnostic Excellence
-                </span>
-                <h3 className="text-2xl font-bold mt-1">Over 2,50,000+ Tests Conducted</h3>
-                <p className="text-xs text-slate-300 mt-2">
-                  Serving hospitals, clinics, referring physicians, and families with dependable laboratory results since 2012.
-                </p>
-              </div>
+            {/* Right 5 Columns: Founder / Medical Director Profile Card */}
+            <div className="lg:col-span-5 flex flex-col">
+              <div className="h-full bg-gradient-to-b from-[#F8FAFC] to-white rounded-3xl border-2 border-slate-200/90 hover:border-[#123B6D]/40 p-6 sm:p-7 shadow-lg flex flex-col justify-between relative group transition-all">
+                {/* Director Badge */}
+                <div className="absolute -top-3.5 right-6 bg-[#123B6D] text-white text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Chief Medical Director &amp; Founder</span>
+                </div>
 
-              <div className="grid grid-cols-2 gap-6 border-t border-white/10 pt-6">
-                <div>
-                  <div className="text-3xl font-black text-white">500+</div>
-                  <div className="text-xs text-slate-300 mt-1">Pathology & Immunoassay Tests</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-black text-amber-400">99.8%</div>
-                  <div className="text-xs text-slate-300 mt-1">On-Time Report Turnaround</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-black text-emerald-400">100%</div>
-                  <div className="text-xs text-slate-300 mt-1">NABL Certified Equipment</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-black text-white">6 hrs</div>
-                  <div className="text-xs text-slate-300 mt-1">Average WhatsApp Report Delivery</div>
-                </div>
-              </div>
+                <div className="space-y-5">
+                  {/* Photo & Identity Header */}
+                  <div className="flex items-center gap-4 pt-1">
+                    {/* Founder Real Photo */}
+                    <div className="relative shrink-0">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-emerald-500/80 shadow-md bg-slate-100">
+                        <img
+                          src="/src/assets/images/founder_pathologist_1790345211989.jpg"
+                          alt="Dr. R. K. Sharma - Founder & Chief Medical Director"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                      <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-white font-bold" title="Verified Pathologist">
+                        ✓
+                      </span>
+                    </div>
 
-              <div className="bg-white/10 p-4 rounded-xl flex items-center justify-between text-xs">
-                <span>Need B2B / Doctor Referral Tie-Up?</span>
-                <a
-                  href="https://wa.me/917087033009?text=Hello%20Apex%20Diagnostics,%20I%20am%20a%20doctor/clinic%20interested%20in%20B2B%20diagnostic%20tie-up"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-bold text-amber-300 hover:underline"
-                >
-                  Partner With Us →
-                </a>
+                    {/* Name, Degrees, AIIMS Gold Medalist */}
+                    <div className="space-y-1 min-w-0">
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#0F766E] flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        <span>AIIMS Gold Medalist</span>
+                      </div>
+                      <h3 className="text-lg sm:text-xl font-black text-[#123B6D] leading-tight truncate">
+                        Dr. R. K. Sharma
+                      </h3>
+                      <div className="text-xs font-bold text-slate-800">
+                        MBBS, MD (Pathology)
+                      </div>
+                      <div className="text-[11px] text-slate-500 font-medium">
+                        Chief Pathologist &bull; 18+ Years Clinical Experience
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Founder's Vision Message & Pledge of Accuracy */}
+                  <div className="relative bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-2">
+                    <span className="text-3xl text-blue-200 font-serif absolute -top-3 left-3 select-none pointer-events-none">
+                      &ldquo;
+                    </span>
+                    <div className="text-xs font-bold uppercase tracking-wider text-[#123B6D] flex items-center gap-1.5 pt-1">
+                      <span>Founder&apos;s Vision &amp; Resolution for Accuracy</span>
+                    </div>
+                    <p className="text-xs text-slate-700 leading-relaxed italic">
+                      &ldquo;A pathology report is not merely numbers on paper; a doctor relies on it to prescribe life-saving medicine, and a patient trusts it with their health. At our laboratory, our sacred resolution (संकल्प) is zero-error diagnosis, uncompromising sample purity, and delivering every report with complete transparency.&rdquo;
+                    </p>
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                      <span className="font-extrabold text-[#123B6D]">— Dr. R. K. Sharma</span>
+                      <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        Zero-Error Resolution
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Clinical Credentials List */}
+                  <div className="space-y-1.5 text-xs text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>MD Pathology from AIIMS &bull; Senior Resident Ex-Fellow</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Fellow of Indian College of Pathologists (FICP)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Lead Auditor for NABL / ISO 15189 Quality Systems</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Director Consultation CTA */}
+                <div className="pt-5 mt-4 border-t border-slate-200/90 flex flex-col sm:flex-row items-center gap-2">
+                  <a
+                    href={`https://wa.me/91${cleanWhatsapp}?text=${encodeURIComponent(
+                      `Hello Dr. Sharma / ${labName}, I would like to request expert pathologist consultation for my laboratory test report.`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:flex-1 py-2.5 px-3 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#075e54] font-bold text-xs border border-[#25D366]/30 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
+                    <span>WhatsApp Doctor Desk</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTestOrPackage(
+                        vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Comprehensive Health Checkup (₹999)'
+                      );
+                      setIsBookingModalOpen(true);
+                    }}
+                    className="w-full sm:flex-1 py-2.5 px-3 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                  >
+                    <span>Book Checkup Now</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -3039,6 +3676,148 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         isOpen={isTermsModalOpen}
         onClose={() => setIsTermsModalOpen(false)}
       />
+
+      {/* Test Information & Fasting Preparation Modal */}
+      {selectedTestInfoModal && (() => {
+        const details = getTestDetails(selectedTestInfoModal);
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="test-info-modal-title"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+            onClick={() => setSelectedTestInfoModal(null)}
+          >
+            <div
+              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-slate-800 animate-in zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/80">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-100 text-[#123B6D] flex items-center justify-center text-base">
+                    🧪
+                  </div>
+                  <div>
+                    <span className="font-mono text-[10px] text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded font-bold">
+                      {details.code}
+                    </span>
+                    <h2 id="test-info-modal-title" className="text-sm sm:text-base font-black text-slate-900 leading-tight">
+                      {selectedTestInfoModal.name}
+                    </h2>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedTestInfoModal(null)}
+                  aria-label="Close"
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center text-lg font-bold transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">
+                {/* Fasting & Preparation Alert */}
+                <div className={`p-4 rounded-2xl border ${
+                  details.isFastingRequired
+                    ? 'bg-amber-50 border-amber-200 text-amber-900'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                }`}>
+                  <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider mb-1">
+                    <span className="text-base">{details.isFastingRequired ? '⚠️' : '✅'}</span>
+                    <span>Preparation / तैयारी: {details.isFastingRequired ? '10-12 Hours Fasting Required' : 'No Fasting Required (Normal Diet)'}</span>
+                  </div>
+                  <p className="text-xs leading-relaxed opacity-90 pl-6">
+                    {details.fastingDetail}
+                  </p>
+                </div>
+
+                {/* Clinical Usage / किस काम आता है */}
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1.5">
+                  <div className="flex items-center gap-2 text-slate-900 font-extrabold text-xs uppercase tracking-wider">
+                    <Activity className="w-4 h-4 text-blue-600" />
+                    <span>Clinical Significance &amp; Usage (टेस्ट का उपयोग):</span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed pl-6">
+                    {details.clinicalUse}
+                  </p>
+                </div>
+
+                {/* Key Specimen & Report Details */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-0.5">
+                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                      Sample Type (सैंपल)
+                    </span>
+                    <span className="font-bold text-slate-800 text-xs">{details.sample}</span>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-0.5">
+                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                      Turnaround Time (रिपोर्ट समय)
+                    </span>
+                    <span className="font-bold text-emerald-700 text-xs">⏱️ {details.turnaround}</span>
+                  </div>
+                </div>
+
+                {/* Pricing & Discount */}
+                <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Special Offer Fee</span>
+                    <div className="flex items-baseline gap-2 mt-0.5">
+                      <span className="text-xl font-black text-[#123B6D]">₹{details.price}</span>
+                      <span className="text-xs text-slate-400 line-through">₹{details.mrp}</span>
+                    </div>
+                  </div>
+                  <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-300">
+                    Save {details.discount}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleWhatsAppBooking(selectedTestInfoModal.name, details.price);
+                    setSelectedTestInfoModal(null);
+                  }}
+                  className="px-3.5 py-2.5 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#075e54] font-bold text-xs border border-[#25D366]/30 flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
+                  <span>WhatsApp Booking</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTestInfoModal(null)}
+                    className="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition cursor-pointer"
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const test = selectedTestInfoModal;
+                      setSelectedTestInfoModal(null);
+                      setSelectedTestOrPackage(`${test.name} (₹${details.price})`);
+                      setIsBookingModalOpen(true);
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-98"
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Book Test Now</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Admin Hero Banner Upload & Management Modal */}
       {isBannerManagerOpen && (

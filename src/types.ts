@@ -132,6 +132,14 @@ export interface CompanyFeature {
   badge?: string;
 }
 
+export interface LabManagementFeature {
+  id: string;
+  title: string;
+  desc: string;
+  category?: string;
+  iconName?: string;
+}
+
 export interface CompanyFaq {
   id: string;
   question: string;

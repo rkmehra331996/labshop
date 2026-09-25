@@ -1,4 +1,4 @@
-import { TestItem, Patient, LabReport, BranchStat, AuditEntry, Language, VendorLabDirectoryItem, ReceptionPatientEntry } from '../types';
+import { TestItem, Patient, LabReport, BranchStat, AuditEntry, Language, VendorLabDirectoryItem, ReceptionPatientEntry, LabManagementFeature } from '../types';
 
 export const TEST_CATEGORIES = [
   'All Categories',
@@ -2784,7 +2784,7 @@ export const VENDOR_LABS_DIRECTORY: VendorLabDirectoryItem[] = [
     paymentMode: 'Awaiting Payment Selection',
     paymentNotes: 'Registration form filled online. NABL documents uploaded. Awaiting admin review and subscription activation.',
     joinedDate: '05 Sep 2026',
-    domainPreview: 'healtech.indianlalaji.com',
+    domainPreview: '',
     establishedYear: 2022,
     features: ['Allergy Testing', 'Food Intolerance Panels', 'Hormone Screening'],
   },
@@ -2872,4 +2872,25 @@ export const VENDOR_LABS_DIRECTORY: VendorLabDirectoryItem[] = [
     establishedYear: 2014,
     features: ['24x7 Central Lab', 'All India Courier Support', 'Corporate Health Plans', 'WhatsApp Bot Sync'],
   },
+];
+
+export const DEFAULT_LAB_MANAGEMENT_FEATURES: LabManagementFeature[] = [
+  { id: 'lmf-1', title: 'Patient Management', desc: 'Fast UHID generation, 10-digit mobile lookup & family records', category: 'Front Desk', iconName: 'Users' },
+  { id: 'lmf-2', title: '500+ Test Library', desc: 'Pre-configured NABL tests, reference ranges & custom profiles', category: 'Catalog', iconName: 'BookOpen' },
+  { id: 'lmf-3', title: 'Doctor Reference', desc: 'Maintain referral doctor directory, incentives & direct reports', category: 'B2B Referral', iconName: 'Stethoscope' },
+  { id: 'lmf-4', title: 'Sample Management', desc: 'Barcode tube generation, phlebotomy timestamps & status tracking', category: 'Phlebotomy', iconName: 'TestTubes' },
+  { id: 'lmf-5', title: 'Test Processing', desc: 'Analyzer worklists, batch runs & bidirectional equipment ready', category: 'Analyzer', iconName: 'Activity' },
+  { id: 'lmf-6', title: 'Result Entry', desc: 'Rapid numeric entry with automatic high/low panic value flagging', category: 'Diagnostics', iconName: 'FileEdit' },
+  { id: 'lmf-7', title: 'Report Generation', desc: 'Branded PDF reports with laboratory headers, logos & QR codes', category: 'Reporting', iconName: 'FileCheck2' },
+  { id: 'lmf-8', title: 'Report Verification', desc: 'Pathologist digital signature with tamper-resistant audit trail', category: 'Quality & NABL', iconName: 'ShieldCheck' },
+  { id: 'lmf-9', title: 'Billing & Payments', desc: 'Cash, UPI QR, partial dues, discount approvals & GST receipts', category: 'Finance', iconName: 'IndianRupee' },
+  { id: 'lmf-10', title: 'Patient History', desc: 'Lifetime historical trend charts for repeat clinical visits', category: 'Records', iconName: 'History' },
+  { id: 'lmf-11', title: 'WhatsApp Report Sharing', desc: 'Automated 1-click dispatch to patient mobile upon sign-off', category: 'Automation', iconName: 'MessageSquare' },
+  { id: 'lmf-12', title: 'QR Report Verification', desc: 'Instant authenticity verification without logging into an account', category: 'Security', iconName: 'QrCode' },
+  { id: 'lmf-13', title: 'Online + Offline Mode', desc: 'Continue front-desk operations even when local ISP is down', category: 'Infrastructure', iconName: 'WifiOff' },
+  { id: 'lmf-14', title: 'Automatic Cloud Sync', desc: 'Zero-conflict background synchronization once online', category: 'Cloud', iconName: 'RefreshCw' },
+  { id: 'lmf-15', title: 'Backup & Restore', desc: 'Continuous snapshot backups with one-click Excel data export', category: 'Data Safety', iconName: 'HardDriveDownload' },
+  { id: 'lmf-16', title: 'Standalone Labs', desc: 'Optimized high-speed interface for standalone diagnostic centers', category: 'Operations', iconName: 'Building' },
+  { id: 'lmf-17', title: 'Doctor Referral Accounting', desc: 'Automate doctor incentives, commission slabs & referral statements', category: 'Accounting', iconName: 'TrendingUp' },
+  { id: 'lmf-18', title: 'Staff & Roles', desc: 'Granular permissions for owners, technicians, pathologists & clerks', category: 'Access Control', iconName: 'UserCog' },
 ];

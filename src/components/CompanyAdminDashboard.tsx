@@ -36,7 +36,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
-import { AppView, PricingPlan, CompanyFeature, CompanyFaq, CompanyStat } from '../types';
+import { AppView, PricingPlan, CompanyFeature, CompanyFaq, CompanyStat, LabManagementFeature } from '../types';
 import { VendorManagementTab } from './admin/VendorManagementTab';
 import { WebsiteSectionsTab } from './admin/WebsiteSectionsTab';
 import { HostingerDatabaseCard } from './admin/HostingerDatabaseCard';
@@ -62,6 +62,11 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     addCompanyFeature,
     updateCompanyFeature,
     deleteCompanyFeature,
+    labManagementFeatures,
+    addLabManagementFeature,
+    updateLabManagementFeature,
+    deleteLabManagementFeature,
+    resetLabManagementFeatures,
     companyFaqs,
     addCompanyFaq,
     updateCompanyFaq,
@@ -148,6 +153,18 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     category: 'Core System',
     badge: '',
   });
+
+  // Complete Laboratory Management Features (18 Modules) state
+  const [editingLabFeature, setEditingLabFeature] = useState<LabManagementFeature | null>(null);
+  const [isNewLabFeatureModal, setIsNewLabFeatureModal] = useState(false);
+  const [labFeatureForm, setLabFeatureForm] = useState<Omit<LabManagementFeature, 'id'>>({
+    title: '',
+    desc: '',
+    category: 'Diagnostic Module',
+    iconName: 'Activity',
+  });
+  const [featureSubSection, setFeatureSubSection] = useState<'modules' | 'highlights'>('modules');
+  const [labFeatureSearch, setLabFeatureSearch] = useState('');
 
   const [editingFaq, setEditingFaq] = useState<CompanyFaq | null>(null);
   const [isNewFaqModal, setIsNewFaqModal] = useState(false);
@@ -339,6 +356,71 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     });
   };
 
+  // Complete Laboratory Management Features Handlers
+  const handleOpenAddLabFeature = () => {
+    setLabFeatureForm({
+      title: '',
+      desc: '',
+      category: 'Diagnostic Module',
+      iconName: 'Activity',
+    });
+    setIsNewLabFeatureModal(true);
+  };
+
+  const handleSaveNewLabFeature = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!labFeatureForm.title.trim()) return;
+    addLabManagementFeature(labFeatureForm);
+    setIsNewLabFeatureModal(false);
+    showToast(`Laboratory feature "${labFeatureForm.title}" added successfully!`);
+  };
+
+  const handleOpenEditLabFeature = (feat: LabManagementFeature) => {
+    setEditingLabFeature(feat);
+    setLabFeatureForm({
+      title: feat.title,
+      desc: feat.desc,
+      category: feat.category || 'Diagnostic Module',
+      iconName: feat.iconName || 'Activity',
+    });
+  };
+
+  const handleSaveEditLabFeature = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLabFeature || !labFeatureForm.title.trim()) return;
+    updateLabManagementFeature(editingLabFeature.id, labFeatureForm);
+    setEditingLabFeature(null);
+    showToast(`Feature "${labFeatureForm.title}" updated successfully!`);
+  };
+
+  const handleDeleteLabFeature = (id: string, title: string) => {
+    setDeleteConfirm({
+      isOpen: true,
+      title: 'Delete Laboratory Feature Module',
+      message: `Are you sure you want to delete module "${title}" from the Complete Laboratory Management section?`,
+      confirmText: 'Yes, Delete Module',
+      onConfirm: () => {
+        deleteLabManagementFeature(id);
+        showToast('Module deleted.');
+        setDeleteConfirm(null);
+      },
+    });
+  };
+
+  const handleResetLabFeatures = () => {
+    setDeleteConfirm({
+      isOpen: true,
+      title: 'Reset to Standard 18 Laboratory Modules',
+      message: 'Are you sure you want to restore the default 18 Complete Laboratory Management modules?',
+      confirmText: 'Yes, Reset Modules',
+      onConfirm: () => {
+        resetLabManagementFeatures();
+        showToast('Restored standard 18 laboratory modules!');
+        setDeleteConfirm(null);
+      },
+    });
+  };
+
   // FAQ Handlers
   const handleOpenAddFaq = () => {
     setFaqForm({
@@ -503,6 +585,30 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
               {activeMenu === 'clients' && (
                 <span className="bg-slate-950 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5 shadow-2xs">
                   ✓ Active
+                </span>
+              )}
+            </button>
+
+            {/* Complete Laboratory Management Features Tab */}
+            <button
+              type="button"
+              id="menu-btn-lab-features"
+              onClick={() => {
+                setActiveMenu('home');
+                setHomeSubTab('features');
+                setFeatureSubSection('modules');
+              }}
+              className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-1.5 cursor-pointer ${
+                activeMenu === 'home' && homeSubTab === 'features' && featureSubSection === 'modules'
+                  ? 'bg-amber-400 text-slate-950 shadow-md scale-102'
+                  : 'text-slate-200 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <FlaskConical className="w-4 h-4" />
+              <span>Lab Features ({labManagementFeatures?.length || 18})</span>
+              {activeMenu === 'home' && homeSubTab === 'features' && featureSubSection === 'modules' && (
+                <span className="bg-slate-950 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5 shadow-2xs">
+                  ✓ Edit
                 </span>
               )}
             </button>
@@ -786,15 +892,18 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
                 </button>
 
                 <button
-                  onClick={() => setHomeSubTab('features')}
+                  onClick={() => {
+                    setHomeSubTab('features');
+                    setFeatureSubSection('modules');
+                  }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                     homeSubTab === 'features'
                       ? 'bg-[#123B6D] text-white shadow-xs'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <Layers className="w-3.5 h-3.5" />
-                  <span>Features ({companyFeatures.length})</span>
+                  <FlaskConical className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Complete Lab Features ({labManagementFeatures?.length || 18})</span>
                 </button>
 
                 <button
@@ -1063,65 +1172,223 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
 
         {/* 2. FEATURES TAB */}
         {activeTab === 'features' && (
-          <div className="space-y-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-extrabold text-[#123B6D]">
-                  Software Features & Modules
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Add, edit, or delete capability cards highlighted on the website.
-                </p>
+          <div className="space-y-5">
+            {/* Top Switcher: Complete Laboratory Management Features vs Platform Highlights */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFeatureSubSection('modules')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+                    featureSubSection === 'modules'
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <FlaskConical className="w-4 h-4 text-amber-400" />
+                  <span>Complete Laboratory Management Features ({labManagementFeatures?.length || 18})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFeatureSubSection('highlights')}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer ${
+                    featureSubSection === 'highlights'
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>Platform Highlights ({companyFeatures.length})</span>
+                </button>
               </div>
-              <button
-                onClick={handleOpenAddFeature}
-                className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
-              >
-                <Plus className="w-4 h-4 text-amber-400" />
-                <span>Add New Feature</span>
-              </button>
+
+              {featureSubSection === 'modules' ? (
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                  <button
+                    type="button"
+                    onClick={handleResetLabFeatures}
+                    className="px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                    title="Restore default 18 laboratory modules"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Reset 18 Modules</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenAddLabFeature}
+                    className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 text-amber-400" />
+                    <span>Add Lab Module</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleOpenAddFeature}
+                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-amber-400" />
+                  <span>Add Highlight</span>
+                </button>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {companyFeatures.map((feat) => (
-                <div
-                  key={feat.id}
-                  className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-between"
-                >
+            {/* SUB-SECTION 1: COMPLETE LABORATORY MANAGEMENT FEATURES (18 MODULES) */}
+            {featureSubSection === 'modules' && (
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 p-4 rounded-2xl border border-blue-200/80 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                        {feat.category}
+                    <h3 className="font-extrabold text-sm text-[#123B6D] flex items-center gap-2">
+                      <span>🧪 Complete Laboratory Management Features</span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                        Live on Homepage
                       </span>
-                      {feat.badge && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-[#123B6D]">
-                          {feat.badge}
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-extrabold text-sm text-slate-900">{feat.title}</h3>
-                    <p className="text-xs text-slate-600 mt-1">{feat.description}</p>
+                    </h3>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      ये 18 मॉड्यूल्स मुख्य वेबसाइट के "Complete Laboratory Management Features" सेक्शन में दिखते हैं। आप किसी भी मॉड्यूल का नाम, विवरण, कैटेगरी व आइकन बदल सकते हैं।
+                    </p>
                   </div>
 
-                  <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => handleOpenEditFeature(feat)}
-                      className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1"
-                    >
-                      <Edit2 className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteFeature(feat.id, feat.title)}
-                      className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                      <span>Delete</span>
-                    </button>
+                  {/* Search Modules */}
+                  <div className="w-full md:w-64 relative">
+                    <input
+                      type="text"
+                      value={labFeatureSearch}
+                      onChange={(e) => setLabFeatureSearch(e.target.value)}
+                      placeholder="Search module (e.g. Barcode, Billing)..."
+                      className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs bg-white shadow-2xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {(labManagementFeatures || [])
+                    .filter((feat) => {
+                      if (!labFeatureSearch.trim()) return true;
+                      const q = labFeatureSearch.toLowerCase();
+                      return (
+                        feat.title.toLowerCase().includes(q) ||
+                        feat.desc.toLowerCase().includes(q) ||
+                        (feat.category && feat.category.toLowerCase().includes(q))
+                      );
+                    })
+                    .map((feat, idx) => (
+                      <div
+                        key={feat.id || idx}
+                        className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between hover:border-[#123B6D]/40 transition group"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-[#123B6D] border border-blue-200">
+                              {feat.category || 'Diagnostic Module'}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              #{idx + 1}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <div className="w-7 h-7 rounded-lg bg-[#123B6D]/10 text-[#123B6D] flex items-center justify-center font-bold text-xs shrink-0">
+                              ⚡
+                            </div>
+                            <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-snug">
+                              {feat.title}
+                            </h4>
+                          </div>
+
+                          <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                            {feat.desc}
+                          </p>
+                        </div>
+
+                        <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between">
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            Icon: {feat.iconName || 'Activity'}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditLabFeature(feat)}
+                              className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                              title="Edit this module"
+                            >
+                              <Edit2 className="w-3 h-3 text-blue-600" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteLabFeature(feat.id, feat.title)}
+                              className="p-1 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold cursor-pointer"
+                              title="Delete module"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* SUB-SECTION 2: PLATFORM HIGHLIGHTS (USP CARDS) */}
+            {featureSubSection === 'highlights' && (
+              <div className="space-y-4">
+                <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+                  <h3 className="font-extrabold text-sm text-[#123B6D]">
+                    Platform Highlights & Value Propositions
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Cards displayed in the primary USP overview grid of the platform.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {companyFeatures.map((feat) => (
+                    <div
+                      key={feat.id}
+                      className="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                            {feat.category}
+                          </span>
+                          {feat.badge && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-[#123B6D]">
+                              {feat.badge}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-extrabold text-sm text-slate-900">{feat.title}</h3>
+                        <p className="text-xs text-slate-600 mt-1">{feat.description}</p>
+                      </div>
+
+                      <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditFeature(feat)}
+                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteFeature(feat.id, feat.title)}
+                          className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1824,7 +2091,126 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
         </div>
       )}
 
-      {/* MODAL: ADD / EDIT FAQ */}
+      {/* MODAL: ADD / EDIT COMPLETE LABORATORY MANAGEMENT FEATURE MODULE */}
+      {(isNewLabFeatureModal || editingLabFeature) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#123B6D]/10 text-[#123B6D] flex items-center justify-center font-bold">
+                  🧪
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-[#123B6D]">
+                    {editingLabFeature ? 'Edit Laboratory Management Module' : 'Add New Laboratory Management Module'}
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    Live on Homepage "Complete Laboratory Management Features"
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsNewLabFeatureModal(false);
+                  setEditingLabFeature(null);
+                }}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={editingLabFeature ? handleSaveEditLabFeature : handleSaveNewLabFeature} className="space-y-3">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Module Name / Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={labFeatureForm.title}
+                  onChange={(e) => setLabFeatureForm({ ...labFeatureForm, title: e.target.value })}
+                  placeholder="e.g. Sample Barcode & Phlebotomy Tracking"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-slate-900 focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Category / Tag</label>
+                  <input
+                    type="text"
+                    value={labFeatureForm.category}
+                    onChange={(e) => setLabFeatureForm({ ...labFeatureForm, category: e.target.value })}
+                    placeholder="e.g. Phlebotomy, Finance, NABL"
+                    className="w-full p-2 rounded-xl border border-slate-300"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Icon Style</label>
+                  <select
+                    value={labFeatureForm.iconName || 'Activity'}
+                    onChange={(e) => setLabFeatureForm({ ...labFeatureForm, iconName: e.target.value })}
+                    className="w-full p-2 rounded-xl border border-slate-300 bg-white cursor-pointer"
+                  >
+                    <option value="Activity">⚡ Activity (General Diagnostic)</option>
+                    <option value="Users">👥 Users (Patient Management)</option>
+                    <option value="BookOpen">📖 BookOpen (500+ Test Catalog)</option>
+                    <option value="Stethoscope">🩺 Stethoscope (Doctor Reference)</option>
+                    <option value="TestTubes">🧪 TestTubes (Sample Barcode)</option>
+                    <option value="FileEdit">📝 FileEdit (Result Entry)</option>
+                    <option value="FileCheck2">📄 FileCheck2 (Report PDF Generation)</option>
+                    <option value="ShieldCheck">🛡️ ShieldCheck (NABL Verification)</option>
+                    <option value="IndianRupee">₹ IndianRupee (Billing & Dynamic UPI)</option>
+                    <option value="History">⏳ History (Patient Trend History)</option>
+                    <option value="MessageSquare">💬 MessageSquare (WhatsApp Sharing)</option>
+                    <option value="QrCode">📱 QrCode (QR Report Verification)</option>
+                    <option value="WifiOff">📶 WifiOff (Online + Offline Mode)</option>
+                    <option value="RefreshCw">🔄 RefreshCw (Real-Time Cloud Sync)</option>
+                    <option value="HardDriveDownload">💾 HardDriveDownload (Backup & Restore)</option>
+                    <option value="Building">🏢 Building (Standalone Labs)</option>
+                    <option value="TrendingUp">📈 TrendingUp (Doctor Referral Accounts)</option>
+                    <option value="UserCog">⚙️ UserCog (Staff & Granular Roles)</option>
+                    <option value="FlaskConical">🔬 FlaskConical (Laboratory Science)</option>
+                    <option value="Database">🗄️ Database (Hostinger / SQL)</option>
+                    <option value="Lock">🔒 Lock (Tamper-Proof Security)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Description *</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={labFeatureForm.desc}
+                  onChange={(e) => setLabFeatureForm({ ...labFeatureForm, desc: e.target.value })}
+                  placeholder="e.g. Barcode tube generation, phlebotomy timestamps & status tracking"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-slate-700 leading-relaxed focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsNewLabFeatureModal(false);
+                    setEditingLabFeature(null);
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-[#123B6D] text-white px-4 py-1.5 rounded-xl font-bold hover:bg-[#0e2c52] cursor-pointer shadow-xs"
+                >
+                  {editingLabFeature ? 'Save Changes' : 'Add Module'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {(isNewFaqModal || editingFaq) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-xs">
