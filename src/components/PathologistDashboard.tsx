@@ -37,15 +37,15 @@ export const PathologistDashboard: React.FC<PathologistDashboardProps> = ({
   onOpenReportPortal,
 }) => {
   const { currentUser, labReports, updateLabReport, vendorLabSettings } = useCms();
-  const [selectedReportId, setSelectedReportId] = useState<string | null>(
-    labReports[0]?.reportId || null
-  );
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [filterMode, setFilterMode] = useState<'pending' | 'critical' | 'verified'>('pending');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeImpression, setActiveImpression] = useState<string>('');
   const [actionSuccessMsg, setActionSuccessMsg] = useState<string | null>(null);
 
-  const selectedReport = labReports.find((r) => r.reportId === selectedReportId) || labReports[0];
+  const selectedReport = selectedReportId
+    ? labReports.find((r) => r.reportId === selectedReportId) || null
+    : null;
 
   // Sync impression when selected report changes
   React.useEffect(() => {
@@ -552,10 +552,20 @@ export const PathologistDashboard: React.FC<PathologistDashboardProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500">
-                <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <p className="font-bold text-base text-slate-700">Select a report from the left list</p>
-                <p className="text-xs">Review findings, write clinical remarks, and authorize with digital signature.</p>
+              <div className="bg-white p-12 sm:p-16 rounded-3xl border border-slate-200 text-center text-slate-500 shadow-xs space-y-3">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto mb-2">
+                  <FileText className="w-8 h-8" />
+                </div>
+                <h3 className="font-extrabold text-base text-slate-800">
+                  Select a Report from the List
+                </h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                  Click on any patient report from the queue on the left to review analyzed laboratory parameters, evaluate critical values, and authorize with digital signature.
+                </p>
+                <div className="pt-2 inline-flex items-center gap-2 text-[11px] font-semibold text-indigo-700 bg-indigo-50/70 px-3 py-1.5 rounded-full border border-indigo-200/60">
+                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>NABL ISO 15189 Digital Signatory Console</span>
+                </div>
               </div>
             )}
           </div>

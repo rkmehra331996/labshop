@@ -176,8 +176,8 @@ export default function App() {
       setSelectedVendorLabId(labId);
       selectVendorLab(labId);
     }
-    setSelectedReportId(reportId || '');
-    setSelectedPatientMobile(mobile || '');
+    setSelectedReportId(reportId?.trim() || '');
+    setSelectedPatientMobile(mobile?.trim() || '');
     setCurrentView('patient_portal');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -188,6 +188,8 @@ export default function App() {
   };
 
   const handleBackToWebsite = () => {
+    setSelectedReportId('');
+    setSelectedPatientMobile('');
     if (selectedVendorLabId && selectedVendorLabId !== 'all') {
       setCurrentView('vendor_website');
     } else {
