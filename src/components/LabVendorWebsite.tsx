@@ -103,8 +103,8 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   }, [allReports, currentLabItem?.id, selectedVendorLabId]);
 
   const handleCheckReport = (reportId?: string, mobile?: string) => {
-    const rId = reportId !== undefined ? reportId : (currentVendorReport?.reportId || '');
-    const mob = mobile !== undefined ? mobile : (currentVendorReport?.mobile || '');
+    const rId = reportId || '';
+    const mob = mobile || '';
     onOpenReportPortal(rId, mob, currentLabItem?.id || selectedVendorLabId);
   };
 
@@ -905,7 +905,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 </a>
 
                 <button
-                  onClick={() => handleCheckReport(currentVendorReport?.reportId, currentVendorReport?.mobile)}
+                  onClick={() => handleCheckReport()}
                   className="bg-white hover:bg-slate-50 border-2 border-[#123B6D] text-[#123B6D] px-5 py-3.5 rounded-lg text-sm font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
                   title={`Check & Download Verified Patient Report for ${labName}`}
                 >
@@ -1757,7 +1757,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                         handleCheckReport(inlineReportSearch.trim(), '');
                       }
                     } else {
-                      handleCheckReport(currentVendorReport?.reportId, currentVendorReport?.mobile);
+                      handleCheckReport();
                     }
                   }
                 }}
@@ -1774,7 +1774,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                       handleCheckReport(inlineReportSearch.trim(), '');
                     }
                   } else {
-                    handleCheckReport(currentVendorReport?.reportId, currentVendorReport?.mobile);
+                    handleCheckReport();
                   }
                 }}
                 className="bg-[#0F766E] hover:bg-[#0c615a] text-white px-6 py-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 whitespace-nowrap"
