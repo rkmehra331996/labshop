@@ -39,6 +39,12 @@ import {
   ExternalLink,
   Lock,
   KeyRound,
+  Image as ImageIcon,
+  Users,
+  Maximize2,
+  Upload,
+  Trash2,
+  Plus,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
@@ -46,8 +52,117 @@ import { Language } from '../types';
 import { OnlineTestBookingModal } from './vendor/OnlineTestBookingModal';
 import { HeroBookingForm } from './vendor/HeroBookingForm';
 import { LabWelcomeFirstScreen } from './vendor/LabWelcomeFirstScreen';
+import { TermsConditionsModal } from './TermsConditionsModal';
 import { getTenantWebsiteUrl, getTenantSubdomain, getTenantBrowserUrl, SUPER_ADMIN_DOMAIN } from '../constants/domains';
 import { isTenantMatch } from '../utils/tenantSecurity';
+
+export interface LabGalleryItem {
+  id: string;
+  title: string;
+  category: 'Equipment' | 'Phlebotomy' | 'Facility' | 'Quality';
+  tag: string;
+  description: string;
+  image: string;
+}
+
+export const LAB_GALLERY_ITEMS: LabGalleryItem[] = [
+  {
+    id: 'gal-1',
+    title: 'Sysmex Automated 5-Part Hematology Cell Counter',
+    category: 'Equipment',
+    tag: 'Automated CBC Testing',
+    description: 'Precision automated cell counter delivering complete blood counts with fluorescent flow cytometry flags.',
+    image: 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'gal-2',
+    title: 'Roche Cobas Immunoassay & Biochemistry Platform',
+    category: 'Equipment',
+    tag: 'Clinical Chemistry',
+    description: 'Electrochemiluminescence technology for liver, kidney, hormonal, and cardiac biomarker diagnostics.',
+    image: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'gal-3',
+    title: 'Vacuum-Sealed Sterile Vacutainer Tubes',
+    category: 'Phlebotomy',
+    tag: 'Safe Blood Collection',
+    description: 'Color-coded EDTA, fluoride, and gel-separator vacutainer collection tubes preventing pre-analytical errors.',
+    image: 'https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'gal-4',
+    title: 'High-Resolution Binocular Clinical Microscope',
+    category: 'Equipment',
+    tag: 'Morphology & Histology',
+    description: 'Equipped with plan-achromatic optics for peripheral blood smear examination and cytology analysis.',
+    image: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'gal-5',
+    title: 'Sterile Phlebotomy Blood Collection Chair',
+    category: 'Phlebotomy',
+    tag: 'Patient Comfort',
+    description: 'Ergonomic blood collection chair with adjustable armrests ensuring comfortable and safe venipuncture.',
+    image: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'gal-6',
+    title: 'Cold-Chain Temperature Controlled Transport Carrier',
+    category: 'Phlebotomy',
+    tag: 'Temperature 2°C–8°C',
+    description: 'Insulated sample boxes with calibrated gel ice packs maintaining specimen integrity during transit.',
+    image: 'https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'gal-7',
+    title: 'Air-Conditioned Patient Reception & Waiting Lounge',
+    category: 'Facility',
+    tag: 'Comfort & Cleanliness',
+    description: 'Hygienic, comfortable waiting area with real-time digital token display and drinking water amenities.',
+    image: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'gal-8',
+    title: 'Senior Clinical Pathologist Review Bench',
+    category: 'Quality',
+    tag: 'NABL Verification',
+    description: 'Each report is cross-checked against clinical history and delta checks before applying the digital signature.',
+    image: 'https://images.unsplash.com/photo-1583912267670-6575ad472688?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'gal-9',
+    title: 'Precision Micro-Pipetting & Serology Setup',
+    category: 'Equipment',
+    tag: 'Microliter Accuracy',
+    description: 'Multi-channel micropipettes calibrated weekly with gravimetric checks for allergy and serology tests.',
+    image: 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'gal-10',
+    title: 'Class II Biosafety Laminar Airflow Cabinet',
+    category: 'Quality',
+    tag: 'Sterile Processing',
+    description: 'HEPA filtration protecting lab personnel and infectious samples during culture & microbiological processing.',
+    image: 'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'gal-11',
+    title: 'Automated Barcode Generation & UHID Tracking Station',
+    category: 'Quality',
+    tag: 'Zero Sample Mix-up',
+    description: 'Thermal barcoded labels printed instantaneously at the registration counter linked to the cloud database.',
+    image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    id: 'gal-12',
+    title: 'Digital Consultation & WhatsApp Dispatch Desk',
+    category: 'Facility',
+    tag: 'Instant Delivery',
+    description: 'Dedicated client support desk for inquiries, doctor consultation coordination, and report printouts.',
+    image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=800&q=80',
+  },
+];
 
 interface LabVendorWebsiteProps {
   language?: Language;
@@ -82,6 +197,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     selectedVendorLabId,
     setVendorStatus,
     allReports,
+    updateVendorLabSettings,
   } = useCms();
 
   const [inlineReportSearch, setInlineReportSearch] = useState('');
@@ -189,8 +305,172 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const [bookedSuccess, setBookedSuccess] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isPaymentQrModalOpen, setIsPaymentQrModalOpen] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [selectedGalleryImage, setSelectedGalleryImage] = useState<any | null>(null);
+  const [galleryCategory, setGalleryCategory] = useState<'All' | 'Equipment' | 'Phlebotomy' | 'Facility' | 'Quality'>('All');
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [selectedQrType, setSelectedQrType] = useState<'counter' | 'home'>('counter');
+
+  // Default Pathology & Diagnostic Banners
+  const DEFAULT_HERO_BANNER_IMAGES = React.useMemo(() => [
+    'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=1600&q=80',
+    'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=1600&q=80',
+    'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1600&q=80',
+  ], []);
+
+  // Section 1: Hero Carousel State (Admin Uploadable Photo Banners with 2%-5% Peek Effect)
+  const heroBannersList = React.useMemo(() => {
+    if (vendorLabSettings?.heroBanners && vendorLabSettings.heroBanners.length > 0) {
+      return vendorLabSettings.heroBanners;
+    }
+    return DEFAULT_HERO_BANNER_IMAGES;
+  }, [vendorLabSettings?.heroBanners, DEFAULT_HERO_BANNER_IMAGES]);
+
+  const [activeHeroBanner, setActiveHeroBanner] = useState(0);
+  const [isHeroPaused, setIsHeroPaused] = useState(false);
+  const heroCarouselRef = React.useRef<HTMLDivElement>(null);
+  const touchStartXRef = React.useRef<number | null>(null);
+  const touchEndXRef = React.useRef<number | null>(null);
+
+  // Admin Banner Upload & Management State
+  const [isBannerManagerOpen, setIsBannerManagerOpen] = useState(false);
+  const [tempBannersList, setTempBannersList] = useState<string[]>([]);
+  const [newBannerInputUrl, setNewBannerInputUrl] = useState('');
+  const [bannerSaveNotice, setBannerSaveNotice] = useState('');
+  const bannerFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const openBannerManager = () => {
+    setTempBannersList([...heroBannersList]);
+    setNewBannerInputUrl('');
+    setBannerSaveNotice('');
+    setIsBannerManagerOpen(true);
+  };
+
+  const handleBannerFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setBannerSaveNotice('Please upload a valid image file (JPG, PNG, WebP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setTempBannersList((prev) => [...prev, base64]);
+        setBannerSaveNotice('Image photo added! Click "Save & Publish" to update.');
+      }
+    };
+    reader.readAsDataURL(file);
+    if (e.target) e.target.value = '';
+  };
+
+  const handleAddBannerUrl = () => {
+    const url = newBannerInputUrl.trim();
+    if (!url) return;
+    setTempBannersList((prev) => [...prev, url]);
+    setNewBannerInputUrl('');
+    setBannerSaveNotice('Banner URL added! Click "Save & Publish" to update.');
+  };
+
+  const handleRemoveBanner = (index: number) => {
+    setTempBannersList((prev) => prev.filter((_, i) => i !== index));
+    setBannerSaveNotice('Banner removed from list. Click "Save & Publish" to update.');
+  };
+
+  const handleSaveBanners = () => {
+    const finalBanners = tempBannersList.length > 0 ? tempBannersList : DEFAULT_HERO_BANNER_IMAGES;
+    updateVendorLabSettings({ heroBanners: finalBanners });
+    setBannerSaveNotice('✅ Banners updated successfully!');
+    setTimeout(() => {
+      setIsBannerManagerOpen(false);
+      setBannerSaveNotice('');
+      setActiveHeroBanner(0);
+    }, 900);
+  };
+
+  const handleResetDefaultBanners = () => {
+    setTempBannersList([...DEFAULT_HERO_BANNER_IMAGES]);
+    updateVendorLabSettings({ heroBanners: DEFAULT_HERO_BANNER_IMAGES });
+    setBannerSaveNotice('Reset to default diagnostic promotional banners.');
+  };
+
+  // Auto-slide carousel every 4.5 seconds (resets on interaction)
+  useEffect(() => {
+    if (isHeroPaused || heroBannersList.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveHeroBanner((prev) => (prev + 1) % heroBannersList.length);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [isHeroPaused, heroBannersList.length]);
+
+  // Smooth scroll carousel container to active slide
+  useEffect(() => {
+    if (heroCarouselRef.current) {
+      const container = heroCarouselRef.current;
+      const targetCard = container.children[activeHeroBanner] as HTMLElement;
+      if (targetCard) {
+        container.scrollTo({
+          left: targetCard.offsetLeft - 12,
+          behavior: 'smooth',
+        });
+      }
+    }
+  }, [activeHeroBanner]);
+
+  const handleHeroTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    setIsHeroPaused(true);
+  };
+
+  const handleHeroTouchMove = (e: React.TouchEvent) => {
+    touchEndXRef.current = e.touches[0].clientX;
+  };
+
+  const handleHeroTouchEnd = () => {
+    if (touchStartXRef.current !== null && touchEndXRef.current !== null) {
+      const delta = touchStartXRef.current - touchEndXRef.current;
+      if (Math.abs(delta) > 35) {
+        if (delta > 0) {
+          // swipe left -> next slide
+          setActiveHeroBanner((prev) => (prev + 1) % heroBannersList.length);
+        } else {
+          // swipe right -> previous slide
+          setActiveHeroBanner((prev) => (prev - 1 + heroBannersList.length) % heroBannersList.length);
+        }
+      }
+    }
+    touchStartXRef.current = null;
+    touchEndXRef.current = null;
+    setTimeout(() => setIsHeroPaused(false), 2500);
+  };
+
+  // Section 2: Quick Check Report Box State
+  const [quickReportTab, setQuickReportTab] = useState<'mobile' | 'report_id'>('mobile');
+  const [quickReportInput, setQuickReportInput] = useState('');
+  const [quickReportError, setQuickReportError] = useState('');
+
+  const handleQuickReportSearch = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setQuickReportError('');
+    const val = quickReportInput.trim();
+    if (!val) {
+      handleCheckReport();
+      return;
+    }
+    if (quickReportTab === 'mobile') {
+      const cleanDigits = val.replace(/\D/g, '');
+      if (cleanDigits.length < 10) {
+        setQuickReportError('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+      handleCheckReport('', cleanDigits);
+    } else {
+      handleCheckReport(val, '');
+    }
+  };
 
   // Home collection booking form state
   const [patientName, setPatientName] = useState('');
@@ -562,7 +842,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
       {/* Main Lab Header */}
       <header id="main-website-header" className="sticky top-0 bg-white border-b border-slate-200 z-40 shadow-xs">
-        <div className="max-w-7xl mx-auto px-3 sm:px-8 h-16 sm:h-18 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo & Lab Identity */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
             <button
@@ -575,32 +855,33 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   src={labLogoUrl}
                   alt={labName}
                   referrerPolicy="no-referrer"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-contain bg-white border border-slate-200 p-0.5 shadow-sm group-hover:scale-105 transition shrink-0"
+                  className="w-8 h-8 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-xl object-contain bg-white border border-slate-200 p-0.5 shadow-2xs group-hover:scale-105 transition shrink-0"
                 />
               ) : (
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[#123B6D] text-white flex items-center justify-center font-black text-sm sm:text-lg shadow-sm group-hover:scale-105 transition shrink-0">
+                <div className="w-8 h-8 xs:w-9 xs:h-9 sm:w-10 sm:h-10 rounded-xl bg-[#123B6D] text-white flex items-center justify-center font-black text-xs xs:text-sm sm:text-lg shadow-2xs group-hover:scale-105 transition shrink-0">
                   <span className="text-amber-400">{labName.charAt(0) || 'A'}</span>
-                  {labName.split(' ')[1]?.charAt(0) || 'L'}
+                  <span>{labName.split(' ')[1]?.charAt(0) || 'L'}</span>
                 </div>
               )}
               <div className="flex flex-col justify-center min-w-0">
-                <div className="text-xs sm:text-base lg:text-lg font-black tracking-tight text-[#123B6D] leading-tight truncate max-w-[130px] xs:max-w-[170px] sm:max-w-[240px] md:max-w-none">
+                <div className="text-xs xs:text-sm sm:text-base lg:text-lg font-black tracking-tight text-[#123B6D] leading-tight truncate max-w-[110px] xs:max-w-[150px] sm:max-w-[220px] md:max-w-none">
                   {labName.toUpperCase()}
                 </div>
-                <div className="text-[10px] sm:text-[11px] text-slate-500 font-semibold tracking-wide flex items-center gap-1 whitespace-nowrap mt-0.5">
-                  <span className="hidden sm:inline">Lab Shop ID:</span>
-                  <span className="sm:hidden">ID:</span>
-                  <span className="font-mono font-bold text-[#123B6D] bg-slate-100 px-1.5 py-0.5 rounded text-[10px] border border-slate-200">
+                <div className="text-[9px] xs:text-[10px] sm:text-[11px] text-slate-500 font-semibold tracking-wide flex items-center gap-1 whitespace-nowrap mt-0.5">
+                  <span className="hidden xs:inline">ID:</span>
+                  <span className="font-mono font-bold text-[#123B6D] bg-slate-100 px-1 py-0.2 rounded text-[9px] xs:text-[10px] border border-slate-200">
                     {labShopId}
+                  </span>
+                  <span className="hidden sm:inline-block text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded text-[10px] border border-emerald-200">
+                    • {labNabl}
                   </span>
                 </div>
               </div>
             </button>
           </div>
 
-          {/* Desktop Navigation Links: (home, health package, test's, pathologists, contact us) */}
-          <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-xs lg:text-sm font-semibold text-slate-700 whitespace-nowrap">
-            {/* 1. Simple Home (Vendor Website) */}
+          {/* Desktop Navigation Links: Balanced & Clean */}
+          <nav className="hidden lg:flex items-center gap-4 xl:gap-6 text-xs lg:text-sm font-semibold text-slate-700 whitespace-nowrap">
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
               className="hover:text-[#123B6D] transition cursor-pointer text-[#123B6D] font-bold whitespace-nowrap py-1"
@@ -609,51 +890,63 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               Home
             </button>
 
-            {/* 2. Health Package */}
             <a
               href="#packages"
               className="hover:text-[#123B6D] transition text-slate-700 hover:font-bold whitespace-nowrap py-1"
               id="vendor-nav-packages"
             >
-              Health Package
+              Packages
             </a>
 
-            {/* 3. Test's */}
             <a
               href="#test-directory"
               className="hover:text-[#123B6D] transition text-slate-700 hover:font-bold whitespace-nowrap py-1"
               id="vendor-nav-tests"
             >
-              Test's
+              Tests
             </a>
 
-            {/* 4. Pathologists */}
+            <a
+              href="#about"
+              className="hover:text-[#123B6D] transition text-slate-700 hover:font-bold whitespace-nowrap py-1"
+              id="vendor-nav-about"
+            >
+              About
+            </a>
+
             <a
               href="#doctors"
               className="hover:text-[#123B6D] transition text-slate-700 hover:font-bold whitespace-nowrap py-1"
-              id="vendor-nav-pathologists"
+              id="vendor-nav-team"
             >
-              Pathologists
+              Team
             </a>
 
-            {/* 5. Contact Us */}
+            <a
+              href="#gallery"
+              className="hover:text-[#123B6D] transition text-slate-700 hover:font-bold whitespace-nowrap py-1"
+              id="vendor-nav-gallery"
+            >
+              Gallery
+            </a>
+
             <a
               href="#contact"
               className="hover:text-[#123B6D] transition text-slate-700 hover:font-bold whitespace-nowrap py-1"
               id="vendor-nav-contact"
             >
-              Contact Us
+              Contact
             </a>
           </nav>
 
-          {/* Action Items: (Mobile: Check Report + Book Test + Menu | Desktop: Language + QR + Report + Book + Login) */}
+          {/* Action Items: Mobile (Report + Test + Menu) | Desktop (Language + QR + Report + Test + Login) */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Desktop Language Selector */}
             <div
-              className="hidden xl:flex items-center gap-1 bg-slate-100 hover:bg-slate-200/80 rounded-lg px-2 sm:px-2.5 py-1.5 sm:py-2 border border-slate-200 text-xs text-slate-700 font-semibold transition cursor-pointer shrink-0"
+              className="hidden xl:flex items-center gap-1 bg-slate-100 hover:bg-slate-200/80 rounded-lg px-2 py-1.5 border border-slate-200 text-xs text-slate-700 font-semibold transition cursor-pointer shrink-0"
               title="Change Language / भाषा बदलें"
             >
-              <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#123B6D] shrink-0" />
+              <Globe className="w-3.5 h-3.5 text-[#123B6D] shrink-0" />
               <select
                 id="vendor-header-language-select"
                 aria-label="Select website language"
@@ -670,26 +963,26 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             {/* Desktop Payment QR Button */}
             <button
               onClick={() => setIsPaymentQrModalOpen(true)}
-              className="hidden lg:inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:py-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/90 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0"
+              className="hidden lg:inline-flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0"
               id="header-payment-qr-btn"
               title="Scan Lab Payment QR Code"
             >
-              <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
+              <QrCode className="w-3.5 h-3.5 text-amber-600 shrink-0" />
               <span>Payment QR</span>
             </button>
 
-            {/* Check Report Button (Mobile: logo + check report + book test + menu icon) */}
+            {/* 1. Report Button (Mobile & Desktop: Direct Patient Report Portal / Download Page) */}
             <button
               onClick={() => handleCheckReport()}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-teal-50 hover:bg-teal-100 text-[#0F766E] border border-teal-300/90 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-[#0F766E] border border-teal-300/90 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
               id="header-download-report-btn"
               title={`Check or Download Patient Lab Report for ${labName}`}
             >
-              <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#0F766E] shrink-0" />
-              <span className="text-[11px] sm:text-xs">Check Report</span>
+              <FileText className="w-3.5 h-3.5 text-[#0F766E] shrink-0" />
+              <span>Report</span>
             </button>
 
-            {/* Book Test Button (Mobile: logo + check report + book test + menu icon) */}
+            {/* 2. Test Button (Mobile & Desktop: Direct Test Booking / Home Collection Modal) */}
             <button
               onClick={() => {
                 setSelectedTestOrPackage(
@@ -697,253 +990,653 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 );
                 setIsBookingModalOpen(true);
               }}
-              className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
               id="header-book-test-btn"
-              title="Book Lab Test or Health Package"
+              title="Book Lab Test or Home Collection"
             >
-              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-950 shrink-0" />
-              <span className="text-[11px] sm:text-xs">Book Test</span>
+              <Calendar className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+              <span>Test</span>
             </button>
 
             {/* Desktop Lab Staff / Admin Login Button */}
             <button
               onClick={() => openLoginModal('vendor')}
-              className="hidden lg:inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-98"
+              className="hidden lg:inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-98"
               id="header-lab-login-btn"
               title="Lab Admin, Receptionist & Technician Login"
             >
-              <KeyRound className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
+              <KeyRound className="w-3.5 h-3.5 text-amber-300 shrink-0" />
               <span>Login</span>
             </button>
 
-            {/* Mobile Menu Button (Hamburger) */}
+            {/* 3. Menu Icon (Hamburger: opens Side Drawer on Mobile) */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-1.5 sm:p-2 rounded-lg text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 lg:hidden transition cursor-pointer shrink-0"
-              aria-label="Toggle Navigation Menu"
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-1.5 xs:p-2 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 lg:hidden transition cursor-pointer shrink-0"
+              aria-label="Open Navigation Menu Drawer"
               id="header-mobile-menu-btn"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5 text-slate-800" /> : <Menu className="w-5 h-5 text-slate-800" />}
+              <Menu className="w-5 h-5 text-slate-800" />
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation Drawer */}
+        {/* Mobile Slide-Over Side Drawer with all 9 links & actions */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-3 space-y-1.5 shadow-xl animate-in fade-in duration-200">
-            {/* 1. Simple Home (Vendor Website) */}
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="w-full text-left py-2 px-3 rounded-lg bg-blue-50/70 font-bold text-[#123B6D] flex items-center justify-between text-sm"
-            >
-              <span>Home</span>
-            </button>
-
-            {/* 2. Health Package */}
-            <a
-              href="#packages"
+          <div className="fixed inset-0 z-50 lg:hidden overflow-hidden">
+            {/* Backdrop Overlay */}
+            <div
+              className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
               onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 px-3 rounded-lg hover:bg-slate-50 text-slate-700 font-semibold text-sm"
-            >
-              Health Package
-            </a>
+              aria-hidden="true"
+            />
 
-            {/* 3. Test's */}
-            <a
-              href="#test-directory"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 px-3 rounded-lg hover:bg-slate-50 text-slate-700 font-semibold text-sm"
-            >
-              Test's
-            </a>
+            {/* Slide-over Drawer Panel */}
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-8">
+              <div className="w-screen max-w-xs sm:max-w-sm bg-white shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out animate-in slide-in-from-right">
+                {/* Drawer Header */}
+                <div className="px-5 py-4 bg-[#123B6D] text-white flex items-center justify-between border-b border-blue-900/40">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {labLogoUrl ? (
+                      <img
+                        src={labLogoUrl}
+                        alt={labName}
+                        referrerPolicy="no-referrer"
+                        className="w-9 h-9 rounded-xl object-contain bg-white p-0.5 shadow-xs shrink-0"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-xl bg-white/15 text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
+                        <span className="text-amber-400">{labName.charAt(0) || 'A'}</span>
+                        <span>{labName.split(' ')[1]?.charAt(0) || 'L'}</span>
+                      </div>
+                    )}
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-extrabold text-sm text-white truncate leading-tight">
+                        {labName}
+                      </span>
+                      <span className="text-[10px] text-blue-200 font-mono">
+                        ID: {labShopId} • {labNabl}
+                      </span>
+                    </div>
+                  </div>
 
-            {/* 4. Pathologists */}
-            <a
-              href="#doctors"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 px-3 rounded-lg hover:bg-slate-50 text-slate-700 font-semibold text-sm"
-            >
-              Pathologists
-            </a>
+                  <button
+                    type="button"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white flex items-center justify-center transition cursor-pointer shrink-0"
+                    aria-label="Close Navigation Drawer"
+                  >
+                    <X className="w-5 h-5 text-white" />
+                  </button>
+                </div>
 
-            {/* 5. Contact Us */}
-            <a
-              href="#contact"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 px-3 rounded-lg hover:bg-slate-50 text-slate-700 font-semibold text-sm"
-            >
-              Contact Us
-            </a>
+                {/* Primary Quick Action Buttons */}
+                <div className="p-3.5 bg-slate-50 border-b border-slate-200 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleCheckReport();
+                    }}
+                    className="py-2.5 px-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-[#0F766E] border border-teal-200 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-2xs active:scale-98 cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 text-[#0F766E]" />
+                    <span>Report Portal</span>
+                  </button>
 
-            {/* Action Buttons in Drawer */}
-            <div className="pt-2 border-t border-slate-100 space-y-2">
-              {/* Payment QR */}
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setIsPaymentQrModalOpen(true);
-                }}
-                className="w-full text-left py-2.5 px-3 rounded-lg bg-amber-50 text-amber-900 font-bold border border-amber-200 flex items-center justify-between text-sm"
-              >
-                <span className="flex items-center gap-2">
-                  <QrCode className="w-4 h-4 text-amber-600" />
-                  <span>Lab Payment QR Code</span>
-                </span>
-                <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-black">
-                  UPI
-                </span>
-              </button>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setSelectedTestOrPackage(
+                        vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
+                      );
+                      setIsBookingModalOpen(true);
+                    }}
+                    className="py-2.5 px-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-2xs active:scale-98 cursor-pointer"
+                  >
+                    <Calendar className="w-4 h-4 text-slate-950" />
+                    <span>Book Test</span>
+                  </button>
+                </div>
 
-              {/* Download your report */}
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  handleCheckReport();
-                }}
-                className="w-full text-left py-2.5 px-3 rounded-lg bg-teal-50 text-[#0F766E] font-bold border border-teal-200 flex items-center justify-between text-sm"
-              >
-                <span className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#0F766E]" />
-                  <span>Download your report</span>
-                </span>
-                <span className="text-[10px] bg-teal-200 text-teal-900 px-2 py-0.5 rounded-full font-black">
-                  PDF
-                </span>
-              </button>
+                {/* Scrollable Navigation Links (Home, Packages, Tests, About, Team, Gallery, Contact) */}
+                <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-1 text-sm font-semibold text-slate-700">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-3 pb-1">
+                    Quick Links
+                  </div>
 
-              {/* Lab Staff & Admin Login */}
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  openLoginModal('vendor');
-                }}
-                className="w-full text-left py-2.5 px-3 rounded-lg bg-[#123B6D] text-white font-bold flex items-center justify-between text-sm shadow-xs"
-              >
-                <span className="flex items-center gap-2">
-                  <KeyRound className="w-4 h-4 text-amber-300" />
-                  <span>Lab Staff & Admin Login</span>
-                </span>
-                <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded font-black">
-                  Portal
-                </span>
-              </button>
+                  {/* 1. Home */}
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 transition flex items-center gap-3 text-slate-800 font-bold cursor-pointer"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-blue-50 text-[#123B6D] flex items-center justify-center text-xs">🏠</span>
+                    <span>Home</span>
+                  </button>
 
-              {/* Language Selector in Mobile Drawer */}
-              <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-slate-50 border border-slate-200">
-                <span className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <Globe className="w-4 h-4 text-[#123B6D]" />
-                  <span>Language / भाषा</span>
-                </span>
-                <select
-                  aria-label="Select mobile website language"
-                  value={language}
-                  onChange={(e) => onSelectLanguage?.(e.target.value as Language)}
-                  className="bg-white text-slate-800 text-xs font-bold rounded px-2 py-1 border border-slate-300 focus:outline-none cursor-pointer"
-                >
-                  <option value="en">English</option>
-                  <option value="hi">हिंदी</option>
-                  <option value="pa">ਪੰਜਾਬੀ</option>
-                </select>
+                  {/* 2. Packages */}
+                  <a
+                    href="#packages"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 transition flex items-center gap-3 text-slate-800 font-bold cursor-pointer"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center text-xs">📦</span>
+                    <span>Packages</span>
+                  </a>
+
+                  {/* 3. Tests */}
+                  <a
+                    href="#test-directory"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 transition flex items-center gap-3 text-slate-800 font-bold cursor-pointer"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-xs">🔬</span>
+                    <span>Tests</span>
+                  </a>
+
+                  {/* 4. About */}
+                  <a
+                    href="#about"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 transition flex items-center gap-3 text-slate-800 font-bold cursor-pointer"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center text-xs">ℹ️</span>
+                    <span>About</span>
+                  </a>
+
+                  {/* 5. Team */}
+                  <a
+                    href="#doctors"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 transition flex items-center gap-3 text-slate-800 font-bold cursor-pointer"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center text-xs">👨‍⚕️</span>
+                    <span>Team (Pathologists)</span>
+                  </a>
+
+                  {/* 6. Gallery */}
+                  <a
+                    href="#gallery"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 transition flex items-center gap-3 text-slate-800 font-bold cursor-pointer"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs">🖼️</span>
+                    <span>Gallery (12 Photos)</span>
+                  </a>
+
+                  {/* 7. Contact */}
+                  <a
+                    href="#contact"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 transition flex items-center gap-3 text-slate-800 font-bold cursor-pointer"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center text-xs">📍</span>
+                    <span>Contact &amp; Location</span>
+                  </a>
+
+                  {/* Payment QR Button in Drawer */}
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setIsPaymentQrModalOpen(true);
+                    }}
+                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-amber-50 text-amber-900 border border-amber-200 transition flex items-center justify-between text-xs font-bold cursor-pointer mt-2"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <QrCode className="w-4 h-4 text-amber-600" />
+                      <span>Lab Payment QR Code</span>
+                    </span>
+                    <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-black">
+                      UPI
+                    </span>
+                  </button>
+                </div>
+
+                {/* Drawer Footer Actions (8. Staff Login, 9. T&C, Language, Call Support) */}
+                <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-2.5">
+                  {/* 8. Staff Login */}
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      openLoginModal('vendor');
+                    }}
+                    className="w-full py-2.5 px-3.5 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs flex items-center justify-between shadow-xs transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <KeyRound className="w-4 h-4 text-amber-300" />
+                      <span>Staff Login (Admin / Tech / Rec)</span>
+                    </span>
+                    <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded font-black">
+                      Portal
+                    </span>
+                  </button>
+
+                  {/* 9. Terms & Conditions Modal Opener */}
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setIsTermsModalOpen(true);
+                    }}
+                    className="w-full py-2 px-3 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-semibold text-xs flex items-center justify-between transition cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Terms &amp; Conditions (T&amp;C)</span>
+                    </span>
+                    <span className="text-slate-400 text-xs font-bold">View →</span>
+                  </button>
+
+                  {/* Language Selector */}
+                  <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-white border border-slate-200">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                      <Globe className="w-3.5 h-3.5 text-[#123B6D]" />
+                      <span>Language / भाषा:</span>
+                    </span>
+                    <select
+                      aria-label="Select website language"
+                      value={language}
+                      onChange={(e) => onSelectLanguage?.(e.target.value as Language)}
+                      className="bg-transparent text-slate-800 text-xs font-bold focus:outline-none cursor-pointer pr-1"
+                    >
+                      <option value="en">English</option>
+                      <option value="hi">हिंदी</option>
+                      <option value="pa">ਪੰਜਾਬੀ</option>
+                    </select>
+                  </div>
+
+                  {/* Call Helpline Direct */}
+                  <a
+                    href={`tel:${cleanPhone}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block text-center py-2 px-3 rounded-lg bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs border border-slate-200 shadow-2xs"
+                  >
+                    📞 Call Lab Helpline: +91 {cleanPhone}
+                  </a>
+                </div>
               </div>
-
-              {/* Call Helpline */}
-              <a
-                href={`tel:${labPhone}`}
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-center py-2.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs"
-              >
-                Call Lab Helpline: +91 {labPhone}
-              </a>
             </div>
           </div>
         )}
       </header>
 
-      {/* 3. Hero Section (Patient & Customer Focused) */}
-      <section id="top" className="bg-gradient-to-b from-[#F8FAFC] via-slate-50 to-white py-10 sm:py-16 border-b border-slate-200 scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            {/* Left Content */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Free Home Sample Collection Across City • Call 7087033009</span>
-              </div>
+      {/* SECTION 1: HERO SECTION (Admin Uploaded Image Banners Carousel with 2%-5% Mobile Peek Effect) */}
+      <section id="top" className="bg-gradient-to-b from-[#F8FAFC] via-slate-50 to-white py-3.5 sm:py-6 border-b border-slate-200 scroll-mt-20 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 space-y-3.5 sm:space-y-5">
+          {/* Admin Header Action Strip */}
+          <div className="flex items-center justify-between px-2 sm:px-0">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-bold text-slate-700">
+                100% NABL Accredited Diagnostics • Free Doorstep Collection
+              </span>
+            </div>
 
-              <h1 className="text-3xl sm:text-4xl lg:text-[44px] leading-[1.15] font-extrabold text-[#123B6D] tracking-tight">
-                Accurate Blood Tests & Health Checkups from Home
-              </h1>
+            {/* Admin Upload Banner Button */}
+            <button
+              type="button"
+              onClick={openBannerManager}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#123B6D] border border-blue-200 shadow-2xs text-xs font-black transition cursor-pointer active:scale-95"
+              id="admin-upload-banner-btn"
+              title="Admin: Upload or change Hero Banner photos"
+            >
+              <Upload className="w-3.5 h-3.5 text-[#123B6D]" />
+              <span>Upload Banner (Admin)</span>
+            </button>
+          </div>
 
-              <p className="text-base sm:text-lg text-[#64748B] leading-relaxed max-w-xl">
-                NABL accredited diagnostic center with fully automated analyzers, certified gentle phlebotomists, and digital reports delivered straight to your WhatsApp within 6 hours.
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
+          {/* Main Photo Banner Carousel Container */}
+          <div className="relative">
+            {/* Carousel Track with 2%-5% Peek Effect on Mobile */}
+            <div
+              ref={heroCarouselRef}
+              onTouchStart={handleHeroTouchStart}
+              onTouchMove={handleHeroTouchMove}
+              onTouchEnd={handleHeroTouchEnd}
+              onMouseEnter={() => setIsHeroPaused(true)}
+              onMouseLeave={() => setIsHeroPaused(false)}
+              className="flex overflow-x-auto snap-x snap-mandatory gap-3 sm:gap-4 no-scrollbar px-2 sm:px-0 py-1 scroll-smooth"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {heroBannersList.map((bannerUrl, idx) => (
+                <div
+                  key={idx}
+                  className="w-[94%] xs:w-[95%] sm:w-[95%] lg:w-full shrink-0 snap-center rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg relative bg-slate-950 aspect-[16/8] sm:aspect-[21/9] max-h-[360px] sm:max-h-[440px] group cursor-pointer border border-slate-200/80"
                   onClick={() => {
                     setSelectedTestOrPackage('Full Body Health Checkup (₹999)');
                     setIsBookingModalOpen(true);
                   }}
-                  className="bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 px-6 py-3.5 rounded-lg text-sm font-bold shadow-md transition flex items-center gap-2"
+                  title="Click to Book Lab Tests"
                 >
-                  <Calendar className="w-4 h-4 text-slate-950" />
-                  <span>Book Free Home Collection</span>
-                </button>
-
-                <a
-                  href="https://wa.me/917087033009?text=Hello%20Apex%20Diagnostics,%20I%20want%20to%20book%20a%20blood%20test%20from%20home"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-5 py-3.5 rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-xs"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Book via WhatsApp</span>
-                </a>
-
-                <button
-                  onClick={() => handleCheckReport()}
-                  className="bg-white hover:bg-slate-50 border-2 border-[#123B6D] text-[#123B6D] px-5 py-3.5 rounded-lg text-sm font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
-                  title={`Check & Download Verified Patient Report for ${labName}`}
-                >
-                  <FileText className="w-4 h-4 text-[#123B6D]" />
-                  <span>Download My Report</span>
-                </button>
-              </div>
-
-              {/* Trust Strip */}
-              <div className="pt-6 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-semibold text-[#172033]">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[#0F766E] shrink-0" />
-                  <span>NABL Accredited</span>
+                  <img
+                    src={bannerUrl}
+                    alt={`${labName} Promotional Banner ${idx + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-101"
+                    loading={idx === 0 ? 'eager' : 'lazy'}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-40 pointer-events-none" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-[#25D366] shrink-0" />
-                  <span>Same-Day WhatsApp PDF</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-[#123B6D] shrink-0" />
-                  <span>7 AM – 9 PM Testing</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4 text-[#F59E0B] shrink-0" />
-                  <span>MD Pathologist Verified</span>
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* Right: Lab Test Booking / Sample Collection Form */}
-            <div className="lg:col-span-5">
+            {/* Desktop Navigation Arrows */}
+            {heroBannersList.length > 1 && (
+              <div className="hidden lg:flex items-center justify-between absolute top-1/2 -translate-y-1/2 left-3 right-3 pointer-events-none">
+                <button
+                  type="button"
+                  onClick={() => setActiveHeroBanner((prev) => (prev - 1 + heroBannersList.length) % heroBannersList.length)}
+                  className="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md flex items-center justify-center transition cursor-pointer pointer-events-auto active:scale-95 border border-slate-200 backdrop-blur-xs"
+                  aria-label="Previous Slide"
+                >
+                  <ChevronLeft className="w-5 h-5 text-slate-700" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveHeroBanner((prev) => (prev + 1) % heroBannersList.length)}
+                  className="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-slate-800 shadow-md flex items-center justify-center transition cursor-pointer pointer-events-auto active:scale-95 border border-slate-200 backdrop-blur-xs"
+                  aria-label="Next Slide"
+                >
+                  <ChevronRight className="w-5 h-5 text-slate-700" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Carousel Indicators & Swipe Notification */}
+          <div className="flex items-center justify-between px-3">
+            {/* Pill Indicator Dots */}
+            <div className="flex items-center gap-2">
+              {heroBannersList.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActiveHeroBanner(idx)}
+                  className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                    activeHeroBanner === idx
+                      ? 'w-8 bg-[#123B6D] shadow-xs'
+                      : 'w-2.5 bg-slate-300 hover:bg-slate-400'
+                  }`}
+                  aria-label={`Go to banner slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* Mobile swipe hint */}
+            <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500">
+              <span className="sm:hidden text-slate-400 font-medium">👉 Swipe for next banner (2% peek)</span>
+              <span className="hidden sm:inline">Banner {activeHeroBanner + 1} of {heroBannersList.length}</span>
+            </div>
+          </div>
+
+          {/* 1-Step Lab Test Booking Form & Trust Highlights Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start pt-2">
+            {/* Left: Quick Booking Form */}
+            <div className="lg:col-span-7">
               <HeroBookingForm onOpenReportPortal={() => handleCheckReport()} />
+            </div>
+
+            {/* Right: Quick Features & Trust Credentials */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-4">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                    Why Patients Trust {labName}
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                    <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
+                      <span>🧪</span>
+                      <span>Zero Mix-Up Barcode</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Sample vacutainers tagged with patient UHID right at collection.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                    <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
+                      <span>❄️</span>
+                      <span>Cold-Chain Integrity</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Temperature maintained at 2°C–8°C in insulated gel boxes.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                    <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
+                      <span>📱</span>
+                      <span>Instant WhatsApp PDF</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Signed reports sent directly to your phone in 4 to 6 hours.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                    <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
+                      <span>👨‍⚕️</span>
+                      <span>MD Pathologist Sign-Off</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      100% human doctor validation on every critical test parameter.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-[#123B6D]" />
+                    <span className="font-semibold text-slate-700">Need immediate booking?</span>
+                  </div>
+                  <a
+                    href={`tel:${cleanPhone}`}
+                    className="font-bold text-[#123B6D] hover:underline"
+                  >
+                    +91 {cleanPhone} →
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* SECTION 2: CHECK REPORT QUICK SECTION (Directly Below Hero Section) */}
+      <section
+        id="check-report-quick"
+        className="py-6 sm:py-8 bg-gradient-to-r from-slate-900 via-[#123B6D] to-slate-900 text-white scroll-mt-20 border-b border-slate-800 relative overflow-hidden"
+      >
+        {/* Subtle decorative medical ambient light */}
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 relative z-10">
+          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-5 sm:p-8 border border-white/15 shadow-2xl space-y-4 sm:space-y-5">
+            {/* Top Header Badge & Text */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 text-xs font-black uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Instant 10-Second Report Access</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Check &amp; Download Patient Lab Report
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300">
+                  Access your ISO 15189 verified medical reports for <strong>{labName}</strong> directly without password or login.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto text-xs text-slate-300">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="font-semibold">NABL Accredited • 256-Bit Encrypted</span>
+              </div>
+            </div>
+
+            {/* Error Message if Any */}
+            {quickReportError && (
+              <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-400/40 text-rose-200 text-xs flex items-center gap-2 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{quickReportError}</span>
+              </div>
+            )}
+
+            {/* Search Mode Tabs: Mobile Number vs Token / Report ID */}
+            <div className="flex items-center gap-2 bg-slate-950/40 p-1 rounded-2xl max-w-md">
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickReportTab('mobile');
+                  setQuickReportError('');
+                }}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  quickReportTab === 'mobile'
+                    ? 'bg-white text-[#123B6D] shadow-sm'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <Phone className="w-3.5 h-3.5" />
+                <span>Search by Mobile</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickReportTab('report_id');
+                  setQuickReportError('');
+                }}
+                className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  quickReportTab === 'report_id'
+                    ? 'bg-white text-[#123B6D] shadow-sm'
+                    : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Search by Report ID</span>
+              </button>
+            </div>
+
+            {/* Fast Form Input Box */}
+            <form onSubmit={handleQuickReportSearch} className="space-y-3">
+              <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
+                <div className="relative flex-1">
+                  {quickReportTab === 'mobile' ? (
+                    <>
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <span className="text-xs sm:text-sm font-bold text-slate-300">+91</span>
+                      </div>
+                      <input
+                        type="tel"
+                        maxLength={10}
+                        value={quickReportInput}
+                        onChange={(e) => {
+                          setQuickReportInput(e.target.value.replace(/\D/g, '').slice(0, 10));
+                          if (quickReportError) setQuickReportError('');
+                        }}
+                        placeholder="Enter 10-digit registered mobile number"
+                        className="w-full pl-12 pr-10 py-3.5 bg-slate-950/60 border border-white/20 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 focus:border-emerald-400 font-medium transition"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                        <FileText className="w-4 h-4 text-slate-400" />
+                      </div>
+                      <input
+                        type="text"
+                        value={quickReportInput}
+                        onChange={(e) => {
+                          setQuickReportInput(e.target.value);
+                          if (quickReportError) setQuickReportError('');
+                        }}
+                        placeholder="Enter Report ID (e.g. RPT-2026-001 or Token #)"
+                        className="w-full pl-10 pr-10 py-3.5 bg-slate-950/60 border border-white/20 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 focus:border-emerald-400 font-medium transition"
+                      />
+                    </>
+                  )}
+
+                  {quickReportInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuickReportInput('');
+                        setQuickReportError('');
+                      }}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Primary Action Button */}
+                <button
+                  type="submit"
+                  className="bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black px-6 py-3.5 rounded-2xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/30 cursor-pointer shrink-0"
+                >
+                  <FileText className="w-4 h-4 text-slate-950" />
+                  <span>Check / Download Report</span>
+                  <ArrowRight className="w-4 h-4 text-slate-950" />
+                </button>
+              </div>
+
+              {/* Demo Shortcut Chips & WhatsApp Alternative */}
+              <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 text-xs text-slate-400">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-semibold text-slate-300">Quick Samples:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickReportTab('report_id');
+                      setQuickReportInput('RPT-2026-001');
+                      handleCheckReport('RPT-2026-001', '');
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-blue-200 border border-white/15 text-[11px] font-bold transition cursor-pointer"
+                  >
+                    RPT-2026-001 (Rahul)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuickReportTab('report_id');
+                      setQuickReportInput('RPT-2026-002');
+                      handleCheckReport('RPT-2026-002', '');
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-emerald-200 border border-white/15 text-[11px] font-bold transition cursor-pointer"
+                  >
+                    RPT-2026-002 (Sunita)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCheckReport()}
+                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-amber-200 border border-white/15 text-[11px] font-bold transition cursor-pointer"
+                  >
+                    Open Direct Portal →
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
+                  <span>Send "REPORT" to WhatsApp:</span>
+                  <a
+                    href={stickyWhatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-400 hover:underline font-bold"
+                  >
+                    +91 {cleanWhatsapp}
+                  </a>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
 
       {/* 4. Popular Preventive Health Packages */}
       <section id="packages" className="py-16 bg-white border-b border-slate-200 scroll-mt-20">
@@ -1269,7 +1962,181 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         </div>
       </section>
 
-      {/* 8. Dedicated Contact Us & Lab Location Section */}
+      {/* 8. Laboratory & Infrastructure Photo Gallery Section (12 High-Res Photos) */}
+      <section id="gallery" className="py-16 sm:py-20 bg-white border-b border-slate-200 scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          {/* Section Header */}
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold mb-3 border border-emerald-200">
+              <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+              <span>NABL Certified Diagnostic Center Tour</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
+              Laboratory &amp; Pathology Infrastructure
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+              Take a visual tour of our advanced clinical chemistry analyzers, sterile phlebotomy stations, temperature-controlled cold-chain sample logistics, and patient consultation lounge.
+            </p>
+
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-6">
+              {(['All', 'Equipment', 'Phlebotomy', 'Facility', 'Quality'] as const).map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setGalleryCategory(cat)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition cursor-pointer active:scale-95 ${
+                    galleryCategory === cat
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {cat === 'All' ? 'All Photos (12)' : cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 12 Image Gallery Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {LAB_GALLERY_ITEMS.filter(
+              (item) => galleryCategory === 'All' || item.category === galleryCategory
+            ).map((item) => (
+              <div
+                key={item.id}
+                onClick={() => setSelectedGalleryImage(item)}
+                className="group bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden shadow-2xs hover:shadow-md hover:border-slate-300 transition-all duration-200 cursor-pointer flex flex-col"
+              >
+                {/* Photo with Overlay Zoom */}
+                <div className="relative aspect-4/3 overflow-hidden bg-slate-900">
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 opacity-80 group-hover:opacity-90 transition-opacity" />
+                  
+                  {/* Category Badge */}
+                  <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/95 text-slate-900 shadow-2xs">
+                    {item.category}
+                  </span>
+
+                  {/* Zoom Trigger Button */}
+                  <div className="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 text-slate-900 flex items-center justify-center shadow-xs group-hover:scale-110 transition-transform">
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                {/* Card Meta Content */}
+                <div className="p-4 flex-1 flex flex-col justify-between space-y-2">
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#0F766E] bg-teal-50 px-2 py-0.5 rounded border border-teal-200/60 inline-block mb-1">
+                      {item.tag}
+                    </span>
+                    <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 leading-snug group-hover:text-[#123B6D] transition-colors">
+                      {item.title}
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-2">
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Quick CTA inside Gallery */}
+          <div className="mt-10 p-5 rounded-2xl bg-gradient-to-r from-blue-50 via-slate-50 to-teal-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#123B6D] text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <ShieldCheck className="w-5 h-5 text-amber-300" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-sm text-slate-900">
+                  Strict ISO 15189 Quality Protocol &amp; NABL Accreditation
+                </h4>
+                <p className="text-xs text-slate-500">
+                  All equipment calibrated daily with commercial controls and verified by qualified technologists.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedTestOrPackage(
+                  vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
+                );
+                setIsBookingModalOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 shrink-0 whitespace-nowrap"
+            >
+              <Calendar className="w-3.5 h-3.5 text-amber-300" />
+              <span>Book Test at this Lab</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Gallery Image Lightbox Modal */}
+        {selectedGalleryImage && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150"
+            onClick={() => setSelectedGalleryImage(null)}
+          >
+            <div
+              className="relative w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-white/20 animate-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setSelectedGalleryImage(null)}
+                className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center transition cursor-pointer"
+                aria-label="Close photo preview"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="max-h-[60vh] overflow-hidden bg-slate-950 flex items-center justify-center">
+                <img
+                  src={selectedGalleryImage.image}
+                  alt={selectedGalleryImage.title}
+                  className="w-full max-h-[60vh] object-cover"
+                />
+              </div>
+
+              <div className="p-5 sm:p-6 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-teal-100 text-teal-900 px-2.5 py-0.5 rounded-full">
+                    {selectedGalleryImage.category}
+                  </span>
+                  <span className="text-[11px] font-bold text-slate-500">
+                    {selectedGalleryImage.tag}
+                  </span>
+                </div>
+                <h3 className="font-extrabold text-base sm:text-lg text-slate-900">
+                  {selectedGalleryImage.title}
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {selectedGalleryImage.description}
+                </p>
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedGalleryImage(null)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition cursor-pointer"
+                  >
+                    Close Preview
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* 9. Dedicated Contact Us & Lab Location Section */}
       <section id="contact" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
           {/* Section Header */}
@@ -1723,7 +2590,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       </section>
 
       {/* Patient Report Download Banner with Inline Search */}
-      <section id="download-report" className="py-12 bg-slate-900 text-white scroll-mt-20">
+      <section id="download-report-footer" className="py-12 bg-slate-900 text-white scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 bg-slate-800/80 rounded-3xl p-6 sm:p-8 border border-slate-700/70 shadow-xl">
             <div className="max-w-xl space-y-2">
@@ -2166,6 +3033,194 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         initialSelection={selectedTestOrPackage}
         onOpenReportPortal={handleCheckReport}
       />
+
+      {/* Terms & Conditions Modal */}
+      <TermsConditionsModal
+        isOpen={isTermsModalOpen}
+        onClose={() => setIsTermsModalOpen(false)}
+      />
+
+      {/* Admin Hero Banner Upload & Management Modal */}
+      {isBannerManagerOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="banner-manager-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto"
+          onClick={() => setIsBannerManagerOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-slate-800 animate-in zoom-in-95 duration-150 my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 bg-gradient-to-r from-[#123B6D] to-[#1E4E8C] text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center">
+                  <Upload className="w-4 h-4 text-amber-300" />
+                </div>
+                <div>
+                  <h2 id="banner-manager-modal-title" className="text-base font-extrabold leading-tight">
+                    Manage Hero Photo Banners (Admin)
+                  </h2>
+                  <p className="text-[11px] text-blue-100">
+                    Upload photos from your computer/phone or enter image web links
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsBannerManagerOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white flex items-center justify-center transition cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+              {/* Notice Banner */}
+              {bannerSaveNotice && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{bannerSaveNotice}</span>
+                </div>
+              )}
+
+              {/* Upload Input Area */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 1. Device File Upload */}
+                <div
+                  className="p-4 rounded-2xl border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/50 hover:bg-blue-50 transition text-center flex flex-col items-center justify-center space-y-2 cursor-pointer"
+                  onClick={() => bannerFileInputRef.current?.click()}
+                >
+                  <input
+                    ref={bannerFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBannerFileUpload}
+                    className="hidden"
+                  />
+                  <div className="w-10 h-10 rounded-full bg-blue-100 text-[#123B6D] flex items-center justify-center shadow-2xs">
+                    <Upload className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-black text-[#123B6D] block">
+                      Upload from Computer / Mobile
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      Supports JPG, PNG, WebP (Max 5MB)
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Web Image URL Input */}
+                <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50 flex flex-col justify-between space-y-2">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    Or Paste Image URL:
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="https://example.com/banner.jpg"
+                      value={newBannerInputUrl}
+                      onChange={(e) => setNewBannerInputUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddBannerUrl();
+                        }
+                      }}
+                      className="flex-1 bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#123B6D]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddBannerUrl}
+                      disabled={!newBannerInputUrl.trim()}
+                      className="px-3 py-1.5 rounded-xl bg-[#123B6D] text-white text-xs font-bold hover:bg-[#0e2c52] disabled:opacity-50 transition cursor-pointer shrink-0"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-slate-400">
+                    Recommended dimension: 1600×700 or 1200×600
+                  </span>
+                </div>
+              </div>
+
+              {/* Current Banners Grid Preview */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                  <span>Current Active Banners ({tempBannersList.length})</span>
+                  <button
+                    type="button"
+                    onClick={handleResetDefaultBanners}
+                    className="text-[#0F766E] hover:underline cursor-pointer text-[11px]"
+                  >
+                    Reset to Default Images
+                  </button>
+                </div>
+
+                {tempBannersList.length === 0 ? (
+                  <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-400">
+                    No banners added. Please upload at least one photo banner.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {tempBannersList.map((url, idx) => (
+                      <div
+                        key={idx}
+                        className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 aspect-[16/9] shadow-2xs"
+                      >
+                        <img
+                          src={url}
+                          alt={`Banner ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white font-mono text-[10px] font-bold">
+                          #{idx + 1}
+                        </div>
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBanner(idx)}
+                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-md transition cursor-pointer active:scale-90"
+                          title="Remove this banner"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 bg-slate-50 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setIsBannerManagerOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveBanners}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black transition flex items-center gap-1.5 shadow-md cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>Save &amp; Publish Banners</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Side Sticky Floating Action Buttons: WhatsApp & Call */}
       <aside
         aria-label="Quick contact buttons"

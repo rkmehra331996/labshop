@@ -255,6 +255,11 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
   qrCode2Url: '',
   homeCollectionCharge: 100,
   sections: DEFAULT_VENDOR_SECTIONS,
+  heroBanners: [
+    'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=1600&q=80',
+    'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=1600&q=80',
+    'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1600&q=80',
+  ],
 };
 
 export const DEFAULT_ALL_VENDOR_PACKAGES: VendorPackage[] = [
@@ -796,6 +801,11 @@ export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
     qrCode2Url: '',
     homeCollectionCharge: 100,
     sections: { ...DEFAULT_VENDOR_SECTIONS },
+    heroBanners: [
+      'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=1600&q=80',
+      'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=1600&q=80',
+      'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1600&q=80',
+    ],
     isWebsiteApproved: Boolean(dirItem.isWebsiteApproved ?? (dirItem.status === 'Active')),
     status: dirItem.status || 'Draft',
   };
