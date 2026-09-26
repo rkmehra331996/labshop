@@ -232,6 +232,7 @@ export interface VendorPackage {
   isPopular?: boolean;
   features: string[];
   labId?: string;
+  imageUrl?: string;
 }
 
 export interface VendorDoctor {
