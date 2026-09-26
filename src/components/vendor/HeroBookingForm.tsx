@@ -824,7 +824,8 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 font-bold text-slate-900 text-xs uppercase tracking-wider">
               <FlaskConical className="w-4 h-4 text-[#0F766E]" />
-              <span>Select Diagnostic Tests (Mark with ✓)</span>
+              <span className="sm:hidden">Select Diagnostic Tests</span>
+              <span className="hidden sm:inline">Select Diagnostic Tests (Mark with ✓)</span>
             </div>
             {selectedTestIds.length > 0 && (
               <button
@@ -901,7 +902,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                           : 'bg-white border-slate-200 hover:bg-slate-100/80'
                       }`}
                     >
-                      {/* Left: Checkmark box & Test Name */}
+                      {/* Left: Checkmark box & Test Name (On mobile: only test name, no code or extra details) */}
                       <div className="flex items-start gap-2.5 min-w-0">
                         <div className="mt-0.5 shrink-0">
                           {isSelected ? (
@@ -917,14 +918,14 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                           <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5 flex-wrap">
                             <span>{t.name}</span>
                             {t.code && (
-                              <span className="text-[9px] font-mono bg-slate-100 text-slate-600 px-1 py-0.2 rounded">
+                              <span className="text-[9px] font-mono bg-slate-100 text-slate-600 px-1 py-0.2 rounded hidden sm:inline">
                                 {t.code}
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5 flex-wrap">
+                          <div className="hidden sm:flex items-center gap-2 text-[10px] text-slate-500 mt-0.5 flex-wrap">
                             {t.category && (
-                              <span className="text-[#123B6D] font-medium hidden sm:inline">{t.category}</span>
+                              <span className="text-[#123B6D] font-medium">{t.category}</span>
                             )}
                             {t.sampleType && (
                               <span>• {t.sampleType}</span>
