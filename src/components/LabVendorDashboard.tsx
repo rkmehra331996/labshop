@@ -56,6 +56,7 @@ import {
   QrCode,
   Zap,
   Type,
+  Truck,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -77,6 +78,8 @@ import { VendorDashboardsTab } from './vendor/VendorDashboardsTab';
 import { VendorDomainRequestTab } from './vendor/VendorDomainRequestTab';
 import { VendorSiteSettingsTab } from './vendor/VendorSiteSettingsTab';
 import { VendorAdminSettingsTab } from './vendor/VendorAdminSettingsTab';
+import { VendorBookingSettingsTab } from './vendor/VendorBookingSettingsTab';
+import { VendorStaffManagementTab } from './vendor/VendorStaffManagementTab';
 import { DoctorCommissionModal } from './vendor/DoctorCommissionModal';
 
 interface LabVendorDashboardProps {
@@ -124,7 +127,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   } = useCms();
 
   const [activeTab, setActiveTab] = useState<
-    'website' | 'billing' | 'tests' | 'packages' | 'forms' | 'dashboard' | 'domain' | 'doctors' | 'profile' | 'staff' | 'settings' | 'admin_settings'
+    'website' | 'billing' | 'tests' | 'packages' | 'forms' | 'dashboard' | 'domain' | 'doctors' | 'profile' | 'staff' | 'settings' | 'admin_settings' | 'booking_settings'
   >('website');
 
   const [websiteSubTab, setWebsiteSubTab] = useState<
@@ -144,6 +147,10 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const [settingsSubTab, setSettingsSubTab] = useState<'all' | 'logo' | 'name' | 'description' | 'feature' | 'payment_qr' | 'plan'>('all');
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(true);
   const [isAdminSettingsMenuOpen, setIsAdminSettingsMenuOpen] = useState(true);
+  const [bookingSettingsSubTab, setBookingSettingsSubTab] = useState<'all' | 'charges' | 'timing'>('all');
+  const [isBookingSettingsMenuOpen, setIsBookingSettingsMenuOpen] = useState(true);
+  const [staffSubTab, setStaffSubTab] = useState<'list' | 'add'>('list');
+  const [isStaffMenuOpen, setIsStaffMenuOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [isDoctorCommissionModalOpen, setIsDoctorCommissionModalOpen] = useState(false);
@@ -797,7 +804,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
           <div className="text-right">
             <span className="text-[10px] font-bold text-slate-400 block uppercase">Current View</span>
             <span className="text-xs font-black text-[#123B6D]">
-              {activeTab === 'website' ? `🌐 Website: ${websiteSubTab}` : activeTab === 'settings' ? `⚙️ Site Settings: ${settingsSubTab}` : activeTab === 'admin_settings' ? '🔐 Admin Settings: PIN & Pass' : activeTab.toUpperCase()}
+              {activeTab === 'website' ? `🌐 Website: ${websiteSubTab}` : activeTab === 'settings' ? `⚙️ Site Settings: ${settingsSubTab}` : activeTab === 'admin_settings' ? '🔐 Admin Settings: PIN & Pass' : activeTab === 'booking_settings' ? '📋 Booking Settings' : activeTab.toUpperCase()}
             </span>
           </div>
         </div>
@@ -1887,6 +1894,192 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 )}
               </div>
 
+              {/* SECTION 9: BOOKING FORM SETTINGS (Home Sample Charges — Edit, Booking Timing — Edit) */}
+              <div className="rounded-xl border border-amber-300/80 bg-amber-50/50 overflow-hidden shadow-2xs">
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('booking_settings');
+                    setIsBookingSettingsMenuOpen(!isBookingSettingsMenuOpen);
+                  }}
+                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                    activeTab === 'booking_settings'
+                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
+                      : 'bg-amber-100/70 text-slate-900 font-bold hover:bg-amber-200/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <CalendarCheck className={`w-4 h-4 shrink-0 ${activeTab === 'booking_settings' ? 'text-amber-400' : 'text-amber-700'}`} />
+                    <span className="text-xs font-black truncate">9. Booking Form Settings</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      activeTab === 'booking_settings' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
+                    }`}>
+                      2 Items
+                    </span>
+                    {isBookingSettingsMenuOpen ? (
+                      <ChevronDown className={`w-4 h-4 ${activeTab === 'booking_settings' ? 'text-white' : 'text-slate-800'}`} />
+                    ) : (
+                      <ChevronRight className={`w-4 h-4 ${activeTab === 'booking_settings' ? 'text-white' : 'text-slate-800'}`} />
+                    )}
+                  </div>
+                </button>
+
+                {/* Sub-Items: Home Sample Charges — Edit, Booking Timing — Edit */}
+                {isBookingSettingsMenuOpen && (
+                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-amber-200/70">
+                    {/* 1. Home Sample Charges — Edit */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('booking_settings');
+                        setBookingSettingsSubTab('charges');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'booking_settings' && bookingSettingsSubTab === 'charges'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-amber-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Truck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'booking_settings' && bookingSettingsSubTab === 'charges' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                        <span className="truncate">Home Sample Charges — Edit</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'booking_settings' && bookingSettingsSubTab === 'charges'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      }`}>
+                        ₹{vendorLabSettings.homeCollectionCharge ?? 100}
+                      </span>
+                    </button>
+
+                    {/* 2. Booking Timing — Edit */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('booking_settings');
+                        setBookingSettingsSubTab('timing');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'booking_settings' && bookingSettingsSubTab === 'timing'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-amber-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Clock className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'booking_settings' && bookingSettingsSubTab === 'timing' ? 'text-amber-400' : 'text-blue-600'}`} />
+                        <span className="truncate">Booking Timing — Edit</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'booking_settings' && bookingSettingsSubTab === 'timing'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-blue-50 text-blue-800 border border-blue-200'
+                      }`}>
+                        Timing &gt;
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 10: STAFF MANAGEMENT (RECEPTIONIST & TECHNICIAN) */}
+              <div className="rounded-xl border border-teal-300/80 bg-teal-50/50 overflow-hidden shadow-2xs">
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('staff');
+                    setIsStaffMenuOpen(!isStaffMenuOpen);
+                  }}
+                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                    activeTab === 'staff'
+                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
+                      : 'bg-teal-100/70 text-slate-900 font-bold hover:bg-teal-200/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Users className={`w-4 h-4 shrink-0 ${activeTab === 'staff' ? 'text-amber-400' : 'text-teal-700'}`} />
+                    <span className="text-xs font-black truncate">10. Staff Management</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      activeTab === 'staff' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
+                    }`}>
+                      {staffAccounts.length} Staff
+                    </span>
+                    {isStaffMenuOpen ? (
+                      <ChevronDown className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white' : 'text-slate-800'}`} />
+                    ) : (
+                      <ChevronRight className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white' : 'text-slate-800'}`} />
+                    )}
+                  </div>
+                </button>
+
+                {/* Sub-Items: Add New Staff, Staff List (Edit Staff — Name & Change Password, / Delete) */}
+                {isStaffMenuOpen && (
+                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-teal-200/70">
+                    {/* 1. Add New Staff */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('staff');
+                        setStaffSubTab('add');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'staff' && staffSubTab === 'add'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-teal-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <UserPlus className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'staff' && staffSubTab === 'add' ? 'text-amber-400' : 'text-teal-600'}`} />
+                        <span className="truncate">Add New Staff</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'staff' && staffSubTab === 'add'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-teal-50 text-teal-800 border border-teal-200'
+                      }`}>
+                        + Add
+                      </span>
+                    </button>
+
+                    {/* 2. Staff List */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('staff');
+                        setStaffSubTab('list');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'staff' && staffSubTab === 'list'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-teal-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Users className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'staff' && staffSubTab === 'list' ? 'text-amber-400' : 'text-blue-600'}`} />
+                        <span className="truncate">Staff List (Edit/Delete)</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'staff' && staffSubTab === 'list'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-slate-100 text-slate-800'
+                      }`}>
+                        {staffAccounts.length}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* SECTION: LAB OPERATIONS & BILLING */}
               <div className="space-y-1">
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 block mb-1">
@@ -2182,6 +2375,21 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 </button>
 
                 <button
+                  onClick={() => {
+                    setActiveTab('booking_settings');
+                    setBookingSettingsSubTab('all');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'booking_settings'
+                      ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                      : 'bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <CalendarCheck className="w-3.5 h-3.5 text-amber-700" />
+                  <span>9. Booking Settings</span>
+                </button>
+
+                <button
                   onClick={() => setActiveTab('doctors')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                     activeTab === 'doctors'
@@ -2293,6 +2501,14 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
         {/* 8. ADMIN SETTINGS (PIN CODE & PASSWORD — EDIT) TAB */}
         {activeTab === 'admin_settings' && (
           <VendorAdminSettingsTab
+            onNavigateView={onNavigateView}
+          />
+        )}
+
+        {/* 9. BOOKING FORM SETTINGS (HOME SAMPLE CHARGES & BOOKING TIMING) TAB */}
+        {activeTab === 'booking_settings' && (
+          <VendorBookingSettingsTab
+            initialSubTab={bookingSettingsSubTab}
             onNavigateView={onNavigateView}
           />
         )}

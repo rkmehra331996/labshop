@@ -154,10 +154,12 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = () => {
     return selectedTestsList.reduce((acc, t) => acc + (t.priceINR || 0), 0);
   }, [selectedTestsList]);
 
-  // Admin controlled Home Collection Charge
+  // Admin controlled Home Collection Charge (respects waiver threshold if set)
   const homeCollectionCharge =
     collectionType === 'Home'
-      ? (vendorLabSettings.homeCollectionCharge ?? 100)
+      ? (vendorLabSettings.freeHomeCollectionThreshold && vendorLabSettings.freeHomeCollectionThreshold > 0 && testsTotal >= vendorLabSettings.freeHomeCollectionThreshold
+          ? 0
+          : (vendorLabSettings.homeCollectionCharge ?? 100))
       : 0;
 
   // Grand Total Calculation
@@ -755,10 +757,19 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = () => {
                     onChange={(e) => setPreferredTimeSlot(e.target.value)}
                     className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none bg-white cursor-pointer"
                   >
-                    <option>Tomorrow: 6:30 AM - 8:30 AM (Fasting Preferred)</option>
-                    <option>Tomorrow: 8:30 AM - 10:30 AM</option>
-                    <option>Tomorrow: 10:30 AM - 12:30 PM</option>
-                    <option>Today: Urgent Sample Collection (Within 1 Hour)</option>
+                    {(vendorLabSettings.bookingTimeSlots && vendorLabSettings.bookingTimeSlots.length > 0
+                      ? vendorLabSettings.bookingTimeSlots
+                      : [
+                          'Tomorrow: 6:30 AM - 8:30 AM (Fasting Preferred)',
+                          'Tomorrow: 8:30 AM - 10:30 AM',
+                          'Tomorrow: 10:30 AM - 12:30 PM',
+                          'Today: Urgent Sample Collection (Within 1 Hour)',
+                        ]
+                    ).map((slot, sIdx) => (
+                      <option key={sIdx} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>

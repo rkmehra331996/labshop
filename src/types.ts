@@ -275,6 +275,11 @@ export interface VendorLabSettings {
   planExpiresAt?: string;
   planDurationDays?: number;
   remainingVisibilityDays?: number;
+  // Booking Form Settings
+  bookingTiming?: string;
+  bookingTimeSlots?: string[];
+  freeHomeCollectionThreshold?: number;
+  statCollectionCharge?: number;
 }
 
 export interface VendorPackage {
