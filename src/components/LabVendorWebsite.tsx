@@ -3237,9 +3237,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header (Center-aligned on mobile and desktop) */}
           <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
-              Get In Touch
-            </span>
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#0F766E]/10 text-[#0F766E] text-xs font-bold mb-2.5">
+              <MessageSquare className="w-3.5 h-3.5 text-[#0F766E]" />
+              <span>Get In Touch</span>
+            </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
               Contact Us
             </h2>
