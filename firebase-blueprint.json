@@ -118,9 +118,30 @@
         "registrationNumber": { "type": "string" }
       },
       "required": ["id", "labId", "name"]
+    },
+    "domainRequest": {
+      "title": "Vendor Custom Domain Request",
+      "description": "Custom domain or subdomain request submitted by laboratory vendor to Super Admin for approval and DNS routing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "labId": { "type": "string" },
+        "labName": { "type": "string" },
+        "domainType": { "type": "string" },
+        "requestedDomain": { "type": "string" },
+        "status": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "contactPhone": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "labId", "requestedDomain", "status"]
     }
   },
   "firestore": {
+    "/domain_requests/{requestId}": {
+      "schema": { "$ref": "#/entities/domainRequest" },
+      "description": "All domain and subdomain requests submitted by vendors for Super Admin review, approval, and DNS binding"
+    },
     "/reception_entries/{entryId}": {
       "schema": { "$ref": "#/entities/receptionEntry" },
       "description": "All patient token and billing registrations synchronized in real time across reception and client devices"

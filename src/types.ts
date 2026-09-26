@@ -571,3 +571,31 @@ export interface ReceptionPatientEntry {
   publishedAt?: string;
   publishedBy?: string;
 }
+
+export type DomainRequestType = 'custom_domain' | 'subdomain';
+export type DomainRequestStatus = 'Pending' | 'Approved' | 'Rejected' | 'Active';
+
+export interface DomainRequest {
+  id: string;
+  labId: string;
+  labName: string;
+  domainType: DomainRequestType;
+  requestedDomain: string; // e.g., 'apexpathology.in' or 'apex.indianlalaji.com'
+  currentDomain?: string; // previous or default subdomain e.g. 'apexdiagnostics.indianlalaji.com'
+  contactPerson: string;
+  contactPhone: string;
+  contactEmail?: string;
+  registrar?: string; // e.g. 'GoDaddy', 'Hostinger', 'Namecheap', 'Cloudflare'
+  cnameTarget?: string; // default e.g. 'indianlalaji.com'
+  aRecordIp?: string; // e.g. '34.149.120.45'
+  dnsStatus?: 'Configured & Verified' | 'Pending DNS Propagation' | 'Pending Verification';
+  sslStatus?: 'Active' | 'Pending Provisioning' | 'Failed';
+  notes?: string;
+  status: DomainRequestStatus;
+  adminRemarks?: string;
+  createdAt: string;
+  updatedAt?: string;
+  approvedAt?: string;
+  approvedBy?: string;
+}
+

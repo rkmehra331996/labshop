@@ -45,6 +45,9 @@ service cloud.firestore {
     match /contact_submissions/{submissionId} {
       allow read, write: if true;
     }
+    match /domain_requests/{requestId} {
+      allow read, write: if true;
+    }
     match /{document=**} {
       allow read, write: if true;
     }

@@ -24,6 +24,7 @@ import {
   Patient,
   LabManagementFeature,
   ContactSubmission,
+  DomainRequest,
 } from '../types';
 import { MOCK_TESTS, FAQ_LIST, SAMPLE_REPORT, INITIAL_REPORTS, VENDOR_LABS_DIRECTORY, INITIAL_RECEPTION_ENTRIES, DEFAULT_LAB_MANAGEMENT_FEATURES } from '../data/mockData';
 export { VENDOR_LABS_DIRECTORY };
@@ -39,6 +40,9 @@ import {
   syncContactSubmissionToCloud,
   deleteContactSubmissionFromCloud,
   subscribeToContactSubmissions,
+  syncDomainRequestToCloud,
+  deleteDomainRequestFromCloud,
+  subscribeToDomainRequests,
   syncLabSettingsToCloud,
   subscribeToLabSettings,
   fetchAllLabSettingsFromCloud,
@@ -1320,6 +1324,50 @@ export const DEFAULT_CONTACT_SUBMISSIONS: ContactSubmission[] = [
   },
 ];
 
+export const DEFAULT_DOMAIN_REQUESTS: DomainRequest[] = [
+  {
+    id: 'dom-req-101',
+    labId: 'lab-apex',
+    labName: 'Apex Diagnostic & Imaging Center',
+    domainType: 'custom_domain',
+    requestedDomain: 'apexdiagnostics.in',
+    currentDomain: 'apexdiagnostics.indianlalaji.com',
+    contactPerson: 'Dr. R. K. Sharma',
+    contactPhone: '+91 7087033009',
+    contactEmail: 'admin@apexdiagnostics.in',
+    registrar: 'GoDaddy',
+    cnameTarget: 'indianlalaji.com',
+    aRecordIp: '34.149.120.45',
+    dnsStatus: 'Pending DNS Propagation',
+    sslStatus: 'Pending Provisioning',
+    notes: 'We have purchased apexdiagnostics.in on GoDaddy. We have added the CNAME pointing to indianlalaji.com. Kindly approve and activate SSL.',
+    status: 'Pending',
+    createdAt: 'Today, 10:15 AM',
+  },
+  {
+    id: 'dom-req-102',
+    labId: 'lab-citycare',
+    labName: 'CityCare Clinical Laboratories',
+    domainType: 'custom_domain',
+    requestedDomain: 'citycarelabs.com',
+    currentDomain: 'citycare.indianlalaji.com',
+    contactPerson: 'Dr. Sameer Gupta',
+    contactPhone: '+91 9876543210',
+    contactEmail: 'contact@citycarelabs.com',
+    registrar: 'Hostinger',
+    cnameTarget: 'indianlalaji.com',
+    aRecordIp: '34.149.120.45',
+    dnsStatus: 'Configured & Verified',
+    sslStatus: 'Active',
+    notes: 'Configured via Hostinger DNS manager with automatic Let\'s Encrypt SSL certificate.',
+    status: 'Approved',
+    adminRemarks: 'DNS CNAME verified successfully. Custom domain mapped to CityCare tenant.',
+    createdAt: '3 days ago',
+    approvedAt: '2 days ago',
+    approvedBy: 'Super Admin',
+  },
+];
+
 export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
   // --- SUPER ADMIN & GLOBAL PORTAL OWNER (rkmehra331996@gmail.com) ---
   {
@@ -1833,6 +1881,17 @@ interface CmsContextType {
   toggleContactReadStatus: (id: string) => void;
   deleteContactSubmission: (id: string) => void;
   clearContactSubmissions: () => void;
+
+  // Domain Requests (6. Domain request: Add - request to super Admin, change/delete)
+  domainRequests: DomainRequest[];
+  allDomainRequests: DomainRequest[];
+  addDomainRequest: (
+    req: Omit<DomainRequest, 'id' | 'createdAt' | 'status'>
+  ) => DomainRequest;
+  updateDomainRequest: (id: string, updates: Partial<DomainRequest>) => void;
+  deleteDomainRequest: (id: string) => void;
+  approveDomainRequest: (id: string, adminRemarks?: string) => void;
+  rejectDomainRequest: (id: string, adminRemarks?: string) => void;
 
   // Multi-Vendor Labs Directory & Switching
   selectedVendorLabId: string;
@@ -2349,6 +2408,23 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
+  const [allDomainRequests, setAllDomainRequests] = useState<DomainRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_domain_requests');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map((r: any) => r.id));
+          const missing = DEFAULT_DOMAIN_REQUESTS.filter((r) => !existingIds.has(r.id));
+          return [...parsed, ...missing];
+        }
+      }
+      return DEFAULT_DOMAIN_REQUESTS;
+    } catch {
+      return DEFAULT_DOMAIN_REQUESTS;
+    }
+  });
+
   const [allStaffAccounts, setAllStaffAccounts] = useState<LabStaffAccount[]>(() => {
     try {
       const saved = localStorage.getItem('cms_lab_staff_accounts');
@@ -2434,6 +2510,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('cms_contact_submissions', JSON.stringify(allContactSubmissions));
     } catch {}
   }, [allContactSubmissions]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_domain_requests', JSON.stringify(allDomainRequests));
+    } catch {}
+  }, [allDomainRequests]);
 
   useEffect(() => {
     try {
@@ -2644,6 +2726,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
+    // 16. Subscribe to Domain Requests
+    const unsubscribeDomainRequests = subscribeToDomainRequests((cloudReqs) => {
+      if (cloudReqs) {
+        setAllDomainRequests(cloudReqs);
+        try {
+          localStorage.setItem('cms_domain_requests', JSON.stringify(cloudReqs));
+        } catch {}
+      }
+    });
+
     return () => {
       unsubscribeSettings();
       unsubscribeTests();
@@ -2659,6 +2751,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       unsubscribePricing();
       unsubscribeStaff();
       unsubscribeContact();
+      unsubscribeDomainRequests();
     };
   }, []);
 
@@ -2731,6 +2824,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const targetLab = selectedVendorLabId || (currentUser?.role !== 'admin' ? currentUser?.labId : superAdminTenantScope) || 'lab-apex';
     return allContactSubmissions.filter((c) => isTenantMatch(c, targetLab));
   }, [allContactSubmissions, selectedVendorLabId, currentUser, superAdminTenantScope]);
+
+  const domainRequests = useMemo(() => {
+    if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && !selectedVendorLabId) {
+      return allDomainRequests;
+    }
+    const targetLab = selectedVendorLabId || (currentUser?.role !== 'admin' ? currentUser?.labId : superAdminTenantScope) || 'lab-apex';
+    return allDomainRequests.filter((r) => isTenantMatch(r, targetLab));
+  }, [allDomainRequests, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   const staffAccounts = useMemo(() => {
     if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && !selectedVendorLabId) {
@@ -4425,6 +4526,149 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Domain Requests Mutators (6. Domain request: Add - request to super Admin, change/delete)
+  const addDomainRequest = (
+    req: Omit<DomainRequest, 'id' | 'createdAt' | 'status'>
+  ): DomainRequest => {
+    const effectiveTenant = req.labId || (activeTenantId === 'all' ? 'lab-apex' : activeTenantId);
+    const currentSettings = getLabSettings(effectiveTenant);
+    const cleanDomain = req.requestedDomain.toLowerCase().trim().replace(/^https?:\/\//, '');
+
+    const newReq: DomainRequest = {
+      ...req,
+      id: `dom-req-${Date.now()}`,
+      labId: effectiveTenant,
+      labName: req.labName || currentSettings.labName || 'Apex Diagnostic Center',
+      requestedDomain: cleanDomain,
+      currentDomain: req.currentDomain || currentSettings.domainPreview || `${effectiveTenant}.indianlalaji.com`,
+      domainType: req.domainType || (cleanDomain.includes('.') && !cleanDomain.endsWith('.indianlalaji.com') ? 'custom_domain' : 'subdomain'),
+      status: 'Pending',
+      dnsStatus: req.dnsStatus || 'Pending DNS Propagation',
+      sslStatus: req.sslStatus || 'Pending Provisioning',
+      cnameTarget: req.cnameTarget || 'indianlalaji.com',
+      aRecordIp: req.aRecordIp || '34.149.120.45',
+      contactPerson: req.contactPerson || currentSettings.founderName || 'Lab Administrator',
+      contactPhone: req.contactPhone || currentSettings.phone || currentSettings.helplinePhone || '+91 7087033009',
+      contactEmail: req.contactEmail || currentSettings.email || 'admin@indianlalaji.com',
+      registrar: req.registrar || 'GoDaddy / Hostinger',
+      notes: req.notes || 'Custom domain routing request submitted to Super Admin.',
+      createdAt: `Today, ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`,
+      updatedAt: new Date().toISOString(),
+    };
+
+    setAllDomainRequests((prev) => [newReq, ...prev]);
+    syncDomainRequestToCloud(newReq);
+    return newReq;
+  };
+
+  const updateDomainRequest = (id: string, updates: Partial<DomainRequest>) => {
+    let synced: DomainRequest | null = null;
+    setAllDomainRequests((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          synced = {
+            ...r,
+            ...updates,
+            requestedDomain: updates.requestedDomain
+              ? updates.requestedDomain.toLowerCase().trim().replace(/^https?:\/\//, '')
+              : r.requestedDomain,
+            updatedAt: new Date().toISOString(),
+          };
+          return synced;
+        }
+        return r;
+      })
+    );
+    if (synced) {
+      syncDomainRequestToCloud(synced);
+    }
+  };
+
+  const deleteDomainRequest = (id: string) => {
+    setAllDomainRequests((prev) => prev.filter((r) => r.id !== id));
+    deleteDomainRequestFromCloud(id);
+  };
+
+  const approveDomainRequest = (id: string, adminRemarks?: string) => {
+    let updatedReq: DomainRequest | null = null;
+    const nowStamp = `Today, ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+
+    setAllDomainRequests((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          updatedReq = {
+            ...r,
+            status: 'Approved',
+            adminRemarks: adminRemarks || 'Domain request approved by Super Admin. DNS CNAME routing active.',
+            dnsStatus: 'Configured & Verified',
+            sslStatus: 'Active',
+            approvedAt: nowStamp,
+            approvedBy: 'Super Admin',
+            updatedAt: new Date().toISOString(),
+          };
+          return updatedReq;
+        }
+        return r;
+      })
+    );
+
+    if (updatedReq) {
+      syncDomainRequestToCloud(updatedReq);
+      const targetLabId = updatedReq.labId;
+      const cleanNewDomain = updatedReq.requestedDomain.toLowerCase().trim().replace(/^https?:\/\//, '');
+
+      // 1. Automatically update vendorLabSettingsMap for that lab so website reflects new domain
+      setVendorLabSettingsMap((prev) => {
+        const existing = prev[targetLabId] || DEFAULT_VENDOR_SETTINGS_MAP[targetLabId] || DEFAULT_VENDOR_LAB_SETTINGS;
+        const updated: VendorLabSettings = {
+          ...existing,
+          domainPreview: cleanNewDomain,
+          websiteDomain: cleanNewDomain,
+          websiteUrl: `https://${cleanNewDomain}`,
+        };
+        syncLabSettingsToCloud(targetLabId, updated);
+        return { ...prev, [targetLabId]: updated };
+      });
+
+      // 2. Automatically update vendorLabsList directory entry
+      setVendorLabsList((prev) =>
+        prev.map((lab) => {
+          if (lab.id === targetLabId) {
+            const updatedLab: VendorLabDirectoryItem = {
+              ...lab,
+              domainPreview: cleanNewDomain,
+              websiteUrl: `https://${cleanNewDomain}`,
+            };
+            syncVendorLabToCloud(updatedLab);
+            return updatedLab;
+          }
+          return lab;
+        })
+      );
+    }
+  };
+
+  const rejectDomainRequest = (id: string, adminRemarks?: string) => {
+    let updatedReq: DomainRequest | null = null;
+    setAllDomainRequests((prev) =>
+      prev.map((r) => {
+        if (r.id === id) {
+          updatedReq = {
+            ...r,
+            status: 'Rejected',
+            adminRemarks: adminRemarks || 'Domain request rejected. Please verify DNS CNAME pointing to indianlalaji.com and resubmit.',
+            updatedAt: new Date().toISOString(),
+          };
+          return updatedReq;
+        }
+        return r;
+      })
+    );
+    if (updatedReq) {
+      syncDomainRequestToCloud(updatedReq);
+    }
+  };
+
   // Vendor Lab Directory Management
   const addVendorLab = (vendor: Omit<VendorLabDirectoryItem, 'id'>): VendorLabDirectoryItem => {
     // New labs always start in Draft mode until Super Admin publishes/approves
@@ -4987,6 +5231,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleContactReadStatus,
         deleteContactSubmission,
         clearContactSubmissions,
+
+        domainRequests,
+        allDomainRequests,
+        addDomainRequest,
+        updateDomainRequest,
+        deleteDomainRequest,
+        approveDomainRequest,
+        rejectDomainRequest,
 
         selectedVendorLabId,
         setSelectedVendorLabId,

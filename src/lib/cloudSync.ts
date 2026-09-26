@@ -25,7 +25,8 @@ import {
   VendorLabDirectoryItem,
   PricingPlan,
   LabStaffAccount,
-  ContactSubmission
+  ContactSubmission,
+  DomainRequest
 } from '../types';
 
 // Collection identifiers in Cloud Firestore
@@ -44,6 +45,7 @@ export const COLLECTIONS = {
   VENDOR_LABS: 'vendor_labs',
   PRICING_PLANS: 'pricing_plans',
   CONTACT_SUBMISSIONS: 'contact_submissions',
+  DOMAIN_REQUESTS: 'domain_requests',
 } as const;
 
 export enum OperationType {
@@ -1084,6 +1086,61 @@ export function subscribeToContactSubmissions(
     );
   } catch (err) {
     handleFirestoreError(err, OperationType.LIST, COLLECTIONS.CONTACT_SUBMISSIONS);
+    return () => {};
+  }
+}
+
+/* ==========================================================================
+   14. DOMAIN REQUESTS (Real-time Cross-Device Sync)
+   ========================================================================== */
+
+export async function syncDomainRequestToCloud(req: DomainRequest): Promise<void> {
+  try {
+    if (!db || !req.id) return;
+    const clean = sanitizeForFirestore({
+      ...req,
+      _updatedAt: new Date().toISOString(),
+    });
+    const ref = doc(db, COLLECTIONS.DOMAIN_REQUESTS, req.id);
+    await setDoc(ref, clean, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `${COLLECTIONS.DOMAIN_REQUESTS}/${req.id}`);
+  }
+}
+
+export async function deleteDomainRequestFromCloud(requestId: string): Promise<void> {
+  try {
+    if (!db || !requestId) return;
+    const ref = doc(db, COLLECTIONS.DOMAIN_REQUESTS, requestId);
+    await deleteDoc(ref);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `${COLLECTIONS.DOMAIN_REQUESTS}/${requestId}`);
+  }
+}
+
+export function subscribeToDomainRequests(
+  onData: (requests: DomainRequest[]) => void,
+  onError?: (err: any) => void
+): () => void {
+  try {
+    if (!db) return () => {};
+    const colRef = collection(db, COLLECTIONS.DOMAIN_REQUESTS);
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        const list: DomainRequest[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as DomainRequest);
+        });
+        onData(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, COLLECTIONS.DOMAIN_REQUESTS);
+        if (onError) onError(error);
+      }
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, COLLECTIONS.DOMAIN_REQUESTS);
     return () => {};
   }
 }

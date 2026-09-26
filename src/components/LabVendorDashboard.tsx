@@ -50,6 +50,8 @@ import {
   Menu,
   PlusCircle,
   ListFilter,
+  LayoutDashboard,
+  Sliders,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -67,6 +69,8 @@ import { VendorBillingTab } from './vendor/VendorBillingTab';
 import { VendorTestsTab } from './vendor/VendorTestsTab';
 import { VendorPackagesTab } from './vendor/VendorPackagesTab';
 import { VendorFormsTab } from './vendor/VendorFormsTab';
+import { VendorDashboardsTab } from './vendor/VendorDashboardsTab';
+import { VendorDomainRequestTab } from './vendor/VendorDomainRequestTab';
 import { DoctorCommissionModal } from './vendor/DoctorCommissionModal';
 
 interface LabVendorDashboardProps {
@@ -109,10 +113,12 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
     updateVendorLabCredentials,
     activeTenantId,
     contactSubmissions,
+    domainRequests,
+    reports,
   } = useCms();
 
   const [activeTab, setActiveTab] = useState<
-    'website' | 'billing' | 'tests' | 'packages' | 'forms' | 'doctors' | 'profile' | 'staff'
+    'website' | 'billing' | 'tests' | 'packages' | 'forms' | 'dashboard' | 'domain' | 'doctors' | 'profile' | 'staff'
   >('website');
 
   const [websiteSubTab, setWebsiteSubTab] = useState<
@@ -125,6 +131,10 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const [isPackagesMenuOpen, setIsPackagesMenuOpen] = useState(true);
   const [formSubTab, setFormSubTab] = useState<'bookings' | 'contacts'>('bookings');
   const [isFormsMenuOpen, setIsFormsMenuOpen] = useState(true);
+  const [dashboardSubTab, setDashboardSubTab] = useState<'reception' | 'technician' | 'overview'>('reception');
+  const [isDashboardMenuOpen, setIsDashboardMenuOpen] = useState(true);
+  const [domainSubTab, setDomainSubTab] = useState<'add' | 'list'>('add');
+  const [isDomainMenuOpen, setIsDomainMenuOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [isDoctorCommissionModalOpen, setIsDoctorCommissionModalOpen] = useState(false);
@@ -1324,9 +1334,9 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                     >
                       <div className="flex items-center gap-2 truncate">
                         <CalendarCheck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'forms' && formSubTab === 'bookings' ? 'text-amber-400' : 'text-teal-600'}`} />
-                        <span className="truncate">1. Booking Submissions</span>
+                        <span className="truncate">1. Booking Submission List</span>
                       </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                         activeTab === 'forms' && formSubTab === 'bookings'
                           ? 'bg-amber-400 text-slate-950 font-black'
                           : 'bg-teal-50 text-teal-800 border border-teal-200'
@@ -1353,12 +1363,250 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                         <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'forms' && formSubTab === 'contacts' ? 'text-amber-400' : 'text-blue-600'}`} />
                         <span className="truncate">2. Contact Form</span>
                       </div>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                         activeTab === 'forms' && formSubTab === 'contacts'
                           ? 'bg-amber-400 text-slate-950 font-black'
                           : 'bg-blue-50 text-blue-800 border border-blue-200'
                       }`}>
                         Read / Delete
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 5: DASHBOARD (- RECEPTION DASHBOARD, - TECHNICIAN DASHBOARD) */}
+              <div className="rounded-xl border border-indigo-300/80 bg-indigo-50/50 overflow-hidden shadow-2xs">
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('dashboard');
+                    setIsDashboardMenuOpen(!isDashboardMenuOpen);
+                  }}
+                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                    activeTab === 'dashboard'
+                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
+                      : 'bg-indigo-100/70 text-slate-900 font-bold hover:bg-indigo-200/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <LayoutDashboard className={`w-4 h-4 shrink-0 ${activeTab === 'dashboard' ? 'text-amber-400' : 'text-indigo-700'}`} />
+                    <span className="text-xs font-black truncate">5. Dashboard</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      activeTab === 'dashboard' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
+                    }`}>
+                      2 Desks
+                    </span>
+                    {isDashboardMenuOpen ? (
+                      <ChevronDown className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-white' : 'text-slate-800'}`} />
+                    ) : (
+                      <ChevronRight className={`w-4 h-4 ${activeTab === 'dashboard' ? 'text-white' : 'text-slate-800'}`} />
+                    )}
+                  </div>
+                </button>
+
+                {/* Sub-Items: - Reception Dashboard, - Technician Dashboard */}
+                {isDashboardMenuOpen && (
+                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-indigo-200/70">
+                    {/* - Reception Dashboard */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('dashboard');
+                        setDashboardSubTab('reception');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer group ${
+                        activeTab === 'dashboard' && dashboardSubTab === 'reception'
+                          ? 'bg-teal-700 text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-teal-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-sm">🖥️</span>
+                        <div className="truncate">
+                          <span className={`block truncate font-extrabold ${
+                            activeTab === 'dashboard' && dashboardSubTab === 'reception'
+                              ? 'text-white'
+                              : 'text-slate-800 group-hover:text-teal-700'
+                          }`}>
+                            - Reception Dashboard
+                          </span>
+                          <span className={`text-[9px] font-medium block truncate ${
+                            activeTab === 'dashboard' && dashboardSubTab === 'reception'
+                              ? 'text-teal-100'
+                              : 'text-slate-400'
+                          }`}>
+                            Tokens, Billing &amp; Counter
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigateView('reception_dashboard');
+                            setIsMobileSidebarOpen(false);
+                          }}
+                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 transition cursor-pointer ${
+                            activeTab === 'dashboard' && dashboardSubTab === 'reception'
+                              ? 'bg-white/20 text-white hover:bg-white/30'
+                              : 'bg-teal-50 text-teal-800 border border-teal-200 hover:bg-teal-600 hover:text-white'
+                          }`}
+                          title="Open Full Screen Reception Desk"
+                        >
+                          <span>Open</span>
+                          <ArrowRight className="w-2.5 h-2.5" />
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* - Technician Dashboard */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('dashboard');
+                        setDashboardSubTab('technician');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer group ${
+                        activeTab === 'dashboard' && dashboardSubTab === 'technician'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-emerald-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="text-sm">🔬</span>
+                        <div className="truncate">
+                          <span className={`block truncate font-extrabold ${
+                            activeTab === 'dashboard' && dashboardSubTab === 'technician'
+                              ? 'text-white'
+                              : 'text-slate-800 group-hover:text-emerald-700'
+                          }`}>
+                            - Technician Dashboard
+                          </span>
+                          <span className={`text-[9px] font-medium block truncate ${
+                            activeTab === 'dashboard' && dashboardSubTab === 'technician'
+                              ? 'text-amber-200'
+                              : 'text-slate-400'
+                          }`}>
+                            Analyzer, Tests &amp; Reports
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigateView('technician_dashboard');
+                            setIsMobileSidebarOpen(false);
+                          }}
+                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 transition cursor-pointer ${
+                            activeTab === 'dashboard' && dashboardSubTab === 'technician'
+                              ? 'bg-white/20 text-white hover:bg-white/30'
+                              : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-600 hover:text-white'
+                          }`}
+                          title="Open Full Screen Technician Console"
+                        >
+                          <span>Open</span>
+                          <ArrowRight className="w-2.5 h-2.5" />
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 6: DOMAIN REQUEST (1. ADD - REQUEST TO SUPER ADMIN, 2. CHANGE / DELETE) */}
+              <div className="rounded-xl border border-sky-300/80 bg-sky-50/50 overflow-hidden shadow-2xs">
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('domain');
+                    setIsDomainMenuOpen(!isDomainMenuOpen);
+                  }}
+                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                    activeTab === 'domain'
+                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
+                      : 'bg-sky-100/70 text-slate-900 font-bold hover:bg-sky-200/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Globe className={`w-4 h-4 shrink-0 ${activeTab === 'domain' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
+                    <span className="text-xs font-black truncate">6. Domain Request</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      activeTab === 'domain' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
+                    }`}>
+                      {domainRequests.length} Req
+                    </span>
+                    {isDomainMenuOpen ? (
+                      <ChevronDown className={`w-4 h-4 ${activeTab === 'domain' ? 'text-white' : 'text-slate-800'}`} />
+                    ) : (
+                      <ChevronRight className={`w-4 h-4 ${activeTab === 'domain' ? 'text-white' : 'text-slate-800'}`} />
+                    )}
+                  </div>
+                </button>
+
+                {/* Sub-Items: 1. Add - Request to super Admin, 2. Change / Delete */}
+                {isDomainMenuOpen && (
+                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-sky-200/70">
+                    {/* 1. Add - request to super Admin */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('domain');
+                        setDomainSubTab('add');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'domain' && domainSubTab === 'add'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-sky-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'domain' && domainSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                        <span className="truncate">1. Add - Request to Super Admin</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'domain' && domainSubTab === 'add'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      }`}>
+                        Request &gt;
+                      </span>
+                    </button>
+
+                    {/* 2. Change / Delete */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('domain');
+                        setDomainSubTab('list');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'domain' && domainSubTab === 'list'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-sky-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Sliders className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'domain' && domainSubTab === 'list' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
+                        <span className="truncate">2. Change / Delete</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'domain' && domainSubTab === 'list'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-blue-50 text-blue-800 border border-blue-200'
+                      }`}>
+                        Change / Delete
                       </span>
                     </button>
                   </div>
@@ -1599,7 +1847,37 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Forms ({vendorBookings.length + contactSubmissions.length})</span>
+                  <span>4. Forms ({vendorBookings.length + contactSubmissions.length})</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('dashboard');
+                    setDashboardSubTab('reception');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'dashboard'
+                      ? 'bg-indigo-700 text-white shadow-xs font-black'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5 text-amber-300" />
+                  <span>5. Dashboards (2 Desks)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('domain');
+                    setDomainSubTab('add');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'domain'
+                      ? 'bg-[#123B6D] text-white shadow-xs font-black'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5 text-blue-400" />
+                  <span>6. Domain Request</span>
                 </button>
 
                 <button
@@ -1683,6 +1961,23 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
             activeSubTab={formSubTab}
             onSubTabChange={(tab) => setFormSubTab(tab)}
             onNavigateView={onNavigateView}
+          />
+        )}
+
+        {/* 5. DEPARTMENT DASHBOARDS (RECEPTION & TECHNICIAN DASHBOARDS) */}
+        {activeTab === 'dashboard' && (
+          <VendorDashboardsTab
+            activeSubTab={dashboardSubTab}
+            onSubTabChange={(tab) => setDashboardSubTab(tab)}
+            onNavigateView={onNavigateView}
+          />
+        )}
+
+        {/* 6. DOMAIN REQUEST (ADD - REQUEST TO SUPER ADMIN, CHANGE/DELETE) */}
+        {activeTab === 'domain' && (
+          <VendorDomainRequestTab
+            initialSubTab={domainSubTab}
+            onNavigateSubTab={(tab) => setDomainSubTab(tab)}
           />
         )}
 
