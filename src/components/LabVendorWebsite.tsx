@@ -3208,6 +3208,15 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       {/* Test Information & Fasting Preparation Modal */}
       {selectedTestInfoModal && (() => {
         const details = getTestDetails(selectedTestInfoModal);
+        const testIdentifier = String(
+          selectedTestInfoModal.id || selectedTestInfoModal.code || selectedTestInfoModal.name
+        );
+        const isItemInCart = cartItems.some(
+          (ci) =>
+            ci.id === testIdentifier ||
+            ci.name.toLowerCase() === selectedTestInfoModal.name.toLowerCase()
+        );
+
         return (
           <div
             role="dialog"
@@ -3220,164 +3229,77 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-slate-800 animate-in zoom-in-95 duration-200"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
+              {/* Header: Name only (no test icon or short code) */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/80">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-100 text-[#123B6D] flex items-center justify-center text-base">
-                    🧪
-                  </div>
-                  <div>
-                    <span className="font-mono text-[10px] text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded font-bold">
-                      {details.code}
-                    </span>
-                    <h2 id="test-info-modal-title" className="text-sm sm:text-base font-black text-slate-900 leading-tight">
-                      {selectedTestInfoModal.name}
-                    </h2>
-                  </div>
-                </div>
+                <h2 id="test-info-modal-title" className="text-base sm:text-lg font-black text-slate-900 leading-tight pr-4">
+                  {selectedTestInfoModal.name}
+                </h2>
 
                 <button
                   type="button"
                   onClick={() => setSelectedTestInfoModal(null)}
                   aria-label="Close"
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center text-lg font-bold transition cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center text-lg font-bold transition cursor-pointer shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Body */}
-              <div className="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">
-                {/* Fasting & Preparation Alert */}
+              {/* Body: Preparation & Uses */}
+              <div className="p-6 space-y-4 text-xs max-h-[70vh] overflow-y-auto">
+                {/* Preparation */}
                 <div className={`p-4 rounded-2xl border ${
                   details.isFastingRequired
                     ? 'bg-amber-50 border-amber-200 text-amber-900'
                     : 'bg-emerald-50 border-emerald-200 text-emerald-900'
                 }`}>
-                  <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider mb-1">
-                    <span className="text-base">{details.isFastingRequired ? '⚠️' : '✅'}</span>
-                    <span>Preparation / तैयारी: {details.isFastingRequired ? '10-12 Hours Fasting Required' : 'No Fasting Required (Normal Diet)'}</span>
+                  <div className="font-bold text-xs uppercase tracking-wider mb-1">
+                    Preparation / तैयारी: {details.isFastingRequired ? '10-12 Hours Fasting' : 'No Fasting Required'}
                   </div>
-                  <p className="text-xs leading-relaxed opacity-90 pl-6">
+                  <p className="text-xs leading-relaxed opacity-90">
                     {details.fastingDetail}
                   </p>
                 </div>
 
-                {/* Clinical Usage / किस काम आता है */}
+                {/* Uses */}
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-1.5">
-                  <div className="flex items-center gap-2 text-slate-900 font-extrabold text-xs uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 text-slate-900 font-extrabold text-xs uppercase tracking-wider">
                     <Activity className="w-4 h-4 text-blue-600" />
-                    <span>Clinical Significance &amp; Usage (टेस्ट का उपयोग):</span>
+                    <span>Clinical Significance &amp; Uses (टेस्ट का उपयोग):</span>
                   </div>
-                  <p className="text-xs text-slate-600 leading-relaxed pl-6">
+                  <p className="text-xs text-slate-600 leading-relaxed">
                     {details.clinicalUse}
                   </p>
                 </div>
-
-                {/* Key Specimen & Report Details */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-0.5">
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
-                      Sample Type (सैंपल)
-                    </span>
-                    <span className="font-bold text-slate-800 text-xs">{details.sample}</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-0.5">
-                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
-                      Turnaround Time (रिपोर्ट समय)
-                    </span>
-                    <span className="font-bold text-emerald-700 text-xs">⏱️ {details.turnaround}</span>
-                  </div>
-                </div>
-
-                {/* Single Price (No sale price or MRP) */}
-                <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-100 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Test Fee</span>
-                    <div className="flex items-baseline gap-2 mt-0.5">
-                      <span className="text-xl font-black text-[#123B6D]">₹{details.price}</span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-[#123B6D] bg-white px-3 py-1 rounded-full border border-blue-200">
-                    Standard Rate
-                  </span>
-                </div>
               </div>
 
-              {/* Footer Actions */}
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+              {/* Footer: Inline Do Button (Price and + Cart Icon) */}
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
+                <div className="px-4 py-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-[#123B6D] font-black text-base sm:text-lg flex items-center justify-center shrink-0">
+                  ₹{details.price}
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => {
-                    handleWhatsAppBooking(selectedTestInfoModal.name, details.price);
-                    setSelectedTestInfoModal(null);
-                  }}
-                  className="px-3.5 py-2.5 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#075e54] font-bold text-xs border border-[#25D366]/30 flex items-center gap-1.5 transition cursor-pointer"
+                  onClick={() => handleToggleCartItem(selectedTestInfoModal)}
+                  className={`flex-1 py-2.5 px-4 rounded-xl font-black text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 ${
+                    isItemInCart
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'bg-[#123B6D] hover:bg-[#0e2c52] text-white'
+                  }`}
                 >
-                  <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
-                  <span>WhatsApp Booking</span>
+                  {isItemInCart ? (
+                    <>
+                      <Check className="w-4 h-4 text-white stroke-[2.5]" />
+                      <span>Added in Cart (Remove)</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="w-4 h-4 text-amber-400" />
+                      <span>+ Add to Cart</span>
+                    </>
+                  )}
                 </button>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedTestInfoModal(null)}
-                    className="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition cursor-pointer"
-                  >
-                    Close
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleToggleCartItem(selectedTestInfoModal);
-                    }}
-                    className={`px-3.5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
-                      cartItems.some((ci) => ci.name === selectedTestInfoModal.name)
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300'
-                    }`}
-                  >
-                    {cartItems.some((ci) => ci.name === selectedTestInfoModal.name) ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>In Multi-Cart</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-3.5 h-3.5 text-slate-600" />
-                        <span>Add to Cart</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const test = selectedTestInfoModal;
-                      const testId = String(test.id || test.code || test.name);
-                      const testPrice = details.price;
-                      if (!cartItems.some((ci) => ci.id === testId || ci.name === test.name)) {
-                        setCartItems((prev) => [
-                          ...prev,
-                          {
-                            id: testId,
-                            name: test.name,
-                            price: testPrice,
-                            code: details.code,
-                            category: test.category,
-                            sampleType: details.sample,
-                            turnaroundTime: details.turnaround,
-                          },
-                        ]);
-                      }
-                      setSelectedTestInfoModal(null);
-                      setIsBookingModalOpen(true);
-                    }}
-                    className="px-4 py-2.5 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-98"
-                  >
-                    <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Proceed to Book</span>
-                  </button>
-                </div>
               </div>
             </div>
           </div>
