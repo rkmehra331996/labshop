@@ -53,7 +53,7 @@ import {
   Tag,
   TestTube,
 } from 'lucide-react';
-import { useCms } from '../context/CmsContext';
+import { useCms, DEFAULT_ALL_VENDOR_DOCTORS } from '../context/CmsContext';
 import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
 import { Language } from '../types';
 import { OnlineTestBookingModal } from './vendor/OnlineTestBookingModal';
@@ -180,6 +180,29 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     `Hello ${labName}, I would like to inquire about medical lab tests & home sample collection.`
   )}`;
   const stickyTelUrl = `tel:+91${cleanPhone}`;
+
+  // Multi-number support for WhatsApp & Calling
+  const whatsappNumberList = React.useMemo(() => {
+    const raw = vendorLabSettings?.whatsapp || labWhatsapp || '7087033009';
+    const splitNums = raw.split(/[,/|&]+/).map((s: string) => s.trim()).filter(Boolean);
+    const unique = Array.from(new Set(splitNums));
+    return unique.length > 0 ? unique : ['7087033009'];
+  }, [vendorLabSettings?.whatsapp, labWhatsapp]);
+
+  const callNumberList = React.useMemo(() => {
+    const rawList: string[] = [];
+    if (vendorLabSettings?.phone) {
+      rawList.push(...vendorLabSettings.phone.split(/[,/|&]+/));
+    }
+    if (vendorLabSettings?.helplinePhone && vendorLabSettings.helplinePhone !== vendorLabSettings.phone) {
+      rawList.push(...vendorLabSettings.helplinePhone.split(/[,/|&]+/));
+    }
+    if (rawList.length === 0 && labPhone) {
+      rawList.push(...labPhone.split(/[,/|&]+/));
+    }
+    const cleanList = Array.from(new Set(rawList.map((s: string) => s.trim()).filter(Boolean)));
+    return cleanList.length > 0 ? cleanList : ['7087033009'];
+  }, [vendorLabSettings?.phone, vendorLabSettings?.helplinePhone, labPhone]);
 
   // Dynamic Open Graph, Page Title & Metadata Synchronization for Current Tenant/Shop
   useEffect(() => {
@@ -2258,11 +2281,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             </p>
           </div>
 
-          {/* Main 2-Column Grid: Lab Story & Mission + Founder / Director Profile Card */}
+          {/* Main 2-Column Grid: Lab Story & Legacy + Founder / Director Profile Card */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-stretch">
-            {/* Left 7 Columns: Lab Story, Foundation, NABL/ISO, and Mission */}
-            <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
-              {/* Lab Story & Foundation */}
+            {/* Left 7 Columns: Lab Story & Clinical Heritage */}
+            <div className="lg:col-span-7 flex flex-col justify-center space-y-5">
               <div className="space-y-4">
                 <div className="flex items-center gap-2.5">
                   <span className="w-8 h-8 rounded-xl bg-blue-100 text-[#123B6D] flex items-center justify-center font-black text-sm">
@@ -2273,57 +2295,22 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                       Our Journey &amp; Legacy of Clinical Excellence
                     </h3>
                     <span className="text-xs font-semibold text-[#0F766E]">
-                      Established in {currentLabItem?.establishedYear || 2012} &bull; Over a Decade of Trusted Pathology
+                      Trusted Laboratory &amp; Diagnostic Pathology Services
                     </span>
                   </div>
                 </div>
 
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Founded in <strong>{currentLabItem?.establishedYear || 2012}</strong>, <strong>{labName}</strong> was established with a singular focus: to bridge the gap between advanced medical science and patient-centric healthcare in India. From a modest routine testing center, our laboratory has grown into a premier clinical pathology reference facility trusted by thousands of families and top consulting doctors.
+                  Founded with a singular dedication to diagnostic excellence, <strong>{labName}</strong> bridges the gap between modern clinical science and patient-centered healthcare. From routine health panels to specialized diagnostic assays, our laboratory is trusted by families, clinicians, and medical networks.
                 </p>
 
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  We operate in strict compliance with <strong>ISO 15189:2022</strong> and <strong>NABL (National Accreditation Board for Testing and Calibration Laboratories)</strong> standards (Accreditation No: <span className="font-mono font-bold text-[#123B6D]">{labNabl}</span>). Every specimen undergoes rigorous 3-tier internal quality controls (IQC) and participating International External Quality Assessment Schemes (EQAS).
+                  We operate in strict compliance with <strong>ISO 15189:2022</strong> and <strong>NABL (National Accreditation Board for Testing and Calibration Laboratories)</strong> standards (Accreditation No: <span className="font-mono font-bold text-[#123B6D]">{labNabl}</span>). Every specimen undergoes rigorous multi-tier internal quality controls (IQC) and participating International External Quality Assessment Schemes (EQAS).
                 </p>
-              </div>
 
-              {/* Lab Mission & Core Values */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5 hover:border-blue-300 transition">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-sm">
-                    🎯
-                  </div>
-                  <h4 className="font-extrabold text-xs sm:text-sm text-[#123B6D]">Our Mission (हमारा मिशन)</h4>
-                  <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
-                    To deliver clinical reports of utmost accuracy with rapid turnaround, ensuring early diagnosis, personalized treatments, and accessible healthcare for every citizen.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 space-y-1.5 hover:border-emerald-300 transition">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
-                    ⭐
-                  </div>
-                  <h4 className="font-extrabold text-xs sm:text-sm text-emerald-900">100% NABL Quality Verification</h4>
-                  <p className="text-[11px] sm:text-xs text-slate-600 leading-relaxed">
-                    Zero sample mix-up with automated two-way LIS barcode interfacing, vacuum blood collection, and secondary verification by senior pathologists.
-                  </p>
-                </div>
-              </div>
-
-              {/* Key Highlights Strip */}
-              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-100 text-center">
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div className="text-xl sm:text-2xl font-black text-[#123B6D]">{currentLabItem?.establishedYear || 2012}</div>
-                  <div className="text-[10px] sm:text-[11px] text-slate-500 font-semibold mt-0.5">Year Established</div>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div className="text-xl sm:text-2xl font-black text-emerald-700">ISO 15189</div>
-                  <div className="text-[10px] sm:text-[11px] text-slate-500 font-semibold mt-0.5">Accreditation Standard</div>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div className="text-xl sm:text-2xl font-black text-amber-600">2,50,000+</div>
-                  <div className="text-[10px] sm:text-[11px] text-slate-500 font-semibold mt-0.5">Patients Served</div>
-                </div>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                  Equipped with advanced fully-automated biochemistry analyzers, 5-part hematology counters, and bidirectionally interfaced barcode systems, we maintain sample integrity and deliver verified digital reports on time.
+                </p>
               </div>
             </div>
 
@@ -2371,22 +2358,20 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     </div>
                   </div>
 
-                  {/* Founder's Vision Message & Pledge of Accuracy */}
+                  {/* Founder's Message & Resolution */}
                   <div className="relative bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-2">
                     <span className="text-3xl text-blue-200 font-serif absolute -top-3 left-3 select-none pointer-events-none">
                       &ldquo;
                     </span>
                     <div className="text-xs font-bold uppercase tracking-wider text-[#123B6D] flex items-center gap-1.5 pt-1">
-                      <span>Founder&apos;s Vision &amp; Resolution for Accuracy</span>
+                      <span>Message from Chief Medical Director</span>
                     </div>
                     <p className="text-xs text-slate-700 leading-relaxed italic">
-                      &ldquo;A pathology report is not merely numbers on paper; a doctor relies on it to prescribe life-saving medicine, and a patient trusts it with their health. At our laboratory, our sacred resolution (संकल्प) is zero-error diagnosis, uncompromising sample purity, and delivering every report with complete transparency.&rdquo;
+                      &ldquo;A pathology report is not merely numbers on paper; a doctor relies on it to prescribe life-saving medicine, and a patient trusts it with their health. At our laboratory, our sacred commitment is diagnostic accuracy, uncompromising sample purity, and delivering every report with complete transparency.&rdquo;
                     </p>
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                       <span className="font-extrabold text-[#123B6D]">— Dr. R. K. Sharma</span>
-                      <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        Zero-Error Resolution
-                      </span>
+                      <span className="text-slate-500 font-medium">Consultant Pathologist</span>
                     </div>
                   </div>
 
@@ -2406,35 +2391,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     </div>
                   </div>
                 </div>
-
-                {/* Director Consultation CTA */}
-                <div className="pt-5 mt-4 border-t border-slate-200/90 flex flex-col sm:flex-row items-center gap-2">
-                  <a
-                    href={`https://wa.me/91${cleanWhatsapp}?text=${encodeURIComponent(
-                      `Hello Dr. Sharma / ${labName}, I would like to request expert pathologist consultation for my laboratory test report.`
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full sm:flex-1 py-2.5 px-3 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#075e54] font-bold text-xs border border-[#25D366]/30 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
-                    <span>WhatsApp Doctor Desk</span>
-                  </a>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedTestOrPackage(
-                        vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Comprehensive Health Checkup (₹999)'
-                      );
-                      setIsBookingModalOpen(true);
-                    }}
-                    className="w-full sm:flex-1 py-2.5 px-3 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-                  >
-                    <span>Book Checkup Now</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -2445,634 +2401,424 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       <section id="doctors" className="py-16 sm:py-20 bg-[#F8FAFC] border-b border-slate-200 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
           {/* Section Header */}
-          <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-14">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-100/80 text-[#123B6D] text-xs font-black mb-3 border border-blue-200/80 shadow-2xs">
               <Users className="w-3.5 h-3.5 text-blue-700" />
               <span>Qualified Clinical &amp; Laboratory Team</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#123B6D] tracking-tight">
-              Experienced Pathologists, Biochemists &amp; Senior Technicians
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
+              Our Medical &amp; Laboratory Experts
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2.5 leading-relaxed">
-              लैब के अनुभवी पैथोलॉजिस्ट्स, बायोकेमिस्ट्स और सीनियर लैब टेक्नीशियन्स — Every test sample undergoes rigorous multi-tier verification before digital sign-off and dispatch.
+            <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+              Experienced Pathologists, Biochemists &amp; Senior Technicians ensuring accurate diagnostics and timely reports.
             </p>
           </div>
 
           {/* Qualified Team Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-            {vendorDoctors.map((doc, idx) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {((vendorDoctors && vendorDoctors.length > 0)
+              ? vendorDoctors
+              : DEFAULT_ALL_VENDOR_DOCTORS.filter((d) => isTenantMatch(d, vendorLabSettings?.labId || selectedVendorLabId || 'lab-apex')).length > 0
+              ? DEFAULT_ALL_VENDOR_DOCTORS.filter((d) => isTenantMatch(d, vendorLabSettings?.labId || selectedVendorLabId || 'lab-apex'))
+              : DEFAULT_ALL_VENDOR_DOCTORS.slice(0, 3)
+            ).map((doc, idx) => {
+              // Doctor values with robust fallbacks
+              const docName = doc.name || 'Medical Specialist';
+              const docQualification = doc.qualification || doc.degrees || 'MBBS, MD (Pathology)';
+              const docSpeciality =
+                doc.specialization ||
+                doc.specialty ||
+                doc.specialExpertise ||
+                doc.designation ||
+                doc.roleCategory ||
+                'Clinical Pathology & Diagnostics';
+
+              // Clean experience for side badge
+              const docExp = doc.experience || '';
+              const expMatch = docExp.match(/(\d+\+?\s*(?:years?|yrs?))/i);
+              const cleanExp = expMatch
+                ? `${expMatch[1]} Exp`
+                : docExp
+                ? docExp.length > 15
+                  ? docExp.split('•').pop()?.trim() || docExp
+                  : docExp
+                : '';
+
               // Fallback image based on role
               let fallbackImg = '/src/assets/images/team_pathologist_woman_1790345423035.jpg';
-              if (doc.roleCategory === 'Biochemist' || doc.specialization?.toLowerCase().includes('biochem')) {
+              if (doc.roleCategory === 'Biochemist' || docSpeciality.toLowerCase().includes('biochem')) {
                 fallbackImg = '/src/assets/images/team_biochemist_1790345449541.jpg';
-              } else if (doc.roleCategory === 'Phlebotomist' || doc.specialization?.toLowerCase().includes('phlebotom')) {
+              } else if (doc.roleCategory === 'Phlebotomist' || docSpeciality.toLowerCase().includes('phlebotom')) {
                 fallbackImg = '/src/assets/images/team_phlebotomist_1790345465190.jpg';
-              } else if (doc.roleCategory === 'Technician' || doc.specialization?.toLowerCase().includes('technic')) {
+              } else if (doc.roleCategory === 'Technician' || docSpeciality.toLowerCase().includes('technic')) {
                 fallbackImg = '/src/assets/images/team_technologist_1790345481173.jpg';
               } else if (idx === 0) {
                 fallbackImg = '/src/assets/images/founder_pathologist_1790345211989.jpg';
               }
               const displayImage = doc.imageUrl || fallbackImg;
 
-              const roleBadgeColor =
-                doc.roleCategory === 'Pathologist'
-                  ? 'bg-blue-100 text-blue-900 border-blue-200'
-                  : doc.roleCategory === 'Biochemist'
-                  ? 'bg-emerald-100 text-emerald-900 border-emerald-200'
-                  : doc.roleCategory === 'Phlebotomist'
-                  ? 'bg-amber-100 text-amber-900 border-amber-200'
-                  : 'bg-purple-100 text-purple-900 border-purple-200';
-
               return (
                 <div
                   key={doc.id || idx}
-                  className="bg-white rounded-3xl border border-slate-200/90 hover:border-[#123B6D]/50 p-5 sm:p-6 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
+                  className="bg-white rounded-2xl border border-slate-200 hover:border-[#123B6D]/40 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group relative"
                 >
-                  {/* Top Bar Accent */}
-                  <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#123B6D] via-[#0F766E] to-blue-500 opacity-90 group-hover:h-2 transition-all" />
-
-                  <div>
-                    {/* Photo + Designation Badge Container */}
-                    <div className="flex items-start gap-4 mb-4">
-                      {/* Doctor / Staff Photo in Medical Coat */}
+                  {/* Top: Photo, Name & Experience Side Badge */}
+                  <div className="flex items-start justify-between gap-2.5 mb-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {/* 1. Image */}
                       <div className="relative shrink-0">
-                        <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-md group-hover:border-[#123B6D] transition-colors bg-slate-100">
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-2xs group-hover:border-[#123B6D] transition-colors bg-slate-100">
                           <img
                             src={displayImage}
-                            alt={doc.name}
+                            alt={docName}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"
                           />
                         </div>
-                        <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-black border-2 border-white shadow-xs" title="NABL Verified Clinician">
+                        <span
+                          className="absolute -bottom-1 -right-1 w-4.5 h-4.5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-black border-2 border-white shadow-2xs"
+                          title="Verified Specialist"
+                        >
                           ✓
                         </span>
                       </div>
 
-                      {/* Name, Degrees & Designation */}
+                      {/* 2. Name */}
                       <div className="min-w-0 flex-1">
-                        <span className={`inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${roleBadgeColor} mb-1`}>
-                          {doc.roleCategory || 'Clinical Specialist'}
-                        </span>
-                        <h3 className="font-black text-base sm:text-lg text-[#123B6D] leading-snug group-hover:text-blue-700 transition truncate">
-                          {doc.name}
+                        <h3 className="font-extrabold text-sm sm:text-base text-[#123B6D] leading-snug group-hover:text-blue-700 transition">
+                          {docName}
                         </h3>
-                        <div className="text-xs font-bold text-slate-800 line-clamp-1">
-                          {doc.degrees}
-                        </div>
-                        <div className="text-[11px] font-semibold text-[#0F766E] mt-0.5 line-clamp-1">
-                          {doc.designation || doc.specialization}
-                        </div>
                       </div>
                     </div>
 
-                    {/* Experience & Qualification Highlights */}
-                    <div className="bg-slate-50 rounded-2xl p-3 border border-slate-100 space-y-1.5 mb-3.5 text-xs">
-                      {/* Experience */}
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-400 font-semibold text-[11px]">Experience:</span>
-                        <span className="font-extrabold text-[#123B6D] bg-white px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs">
-                          ⏱️ {doc.experience}
-                        </span>
-                      </div>
-
-                      {/* Special Qualification */}
-                      {doc.qualification && (
-                        <div className="flex items-start justify-between gap-1 pt-1 border-t border-slate-200/60 text-[11px]">
-                          <span className="text-slate-400 font-semibold shrink-0">Credentials:</span>
-                          <span className="font-bold text-slate-700 text-right line-clamp-1" title={doc.qualification}>
-                            🎓 {doc.qualification}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Special Expertise */}
-                      {doc.specialExpertise && (
-                        <div className="flex items-start justify-between gap-1 pt-1 border-t border-slate-200/60 text-[11px]">
-                          <span className="text-slate-400 font-semibold shrink-0">Specialty:</span>
-                          <span className="font-bold text-emerald-800 text-right line-clamp-1" title={doc.specialExpertise}>
-                            🔬 {doc.specialExpertise}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Short Clinical Bio */}
-                    <p className="text-xs text-slate-600 leading-relaxed line-clamp-2 mb-4">
-                      {doc.bio}
-                    </p>
+                    {/* 5. Experience (Side me chhota sa badge) */}
+                    {cleanExp && (
+                      <span className="shrink-0 text-[10px] sm:text-[11px] font-bold text-[#123B6D] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full shadow-2xs whitespace-nowrap mt-0.5">
+                        ⏱️ {cleanExp}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Card Bottom: WhatsApp Consult & Booking Action */}
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <a
-                      href={`https://wa.me/91${cleanWhatsapp}?text=${encodeURIComponent(
-                        `Hello ${doc.name} (${labName}), I would like to consult regarding a lab report / diagnostic guidance.`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 py-2 px-2.5 rounded-xl bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#075e54] font-bold text-xs border border-[#25D366]/30 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                      title="Chat on WhatsApp"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
-                      <span>WhatsApp Consult</span>
-                    </a>
+                  {/* Bottom: 3. Qualification + 4. Speciality */}
+                  <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-xs">
+                    {/* Qualification */}
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-slate-400 font-medium shrink-0">Qualification:</span>
+                      <span className="font-bold text-slate-800 break-words">
+                        {docQualification}
+                      </span>
+                    </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedTestOrPackage(
-                          vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Comprehensive Diagnostic Panel (₹999)'
-                        );
-                        setIsBookingModalOpen(true);
-                      }}
-                      className="py-2 px-3 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs shadow-xs transition flex items-center gap-1 cursor-pointer active:scale-95"
-                      title="Book Test Online"
-                    >
-                      <span>Book Test</span>
-                      <ArrowRight className="w-3 h-3 text-amber-300" />
-                    </button>
+                    {/* Speciality */}
+                    <div className="flex items-baseline gap-1.5 text-[#0F766E]">
+                      <span className="text-slate-400 font-medium shrink-0">Speciality:</span>
+                      <span className="font-bold text-[#0F766E] break-words">
+                        {docSpeciality}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
-
-          {/* Trust Banner Under Team Grid */}
-          <div className="mt-12 bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <h4 className="font-extrabold text-sm text-[#123B6D]">
-                  Dual-Doctor Verification for Critical &amp; Panic Value Reports
-                </h4>
-                <p className="text-slate-500 mt-0.5">
-                  Any abnormal, critical, or panic value is immediately re-tested on a backup analyzer and reviewed by two qualified pathologists prior to dispatch.
-                </p>
-              </div>
-            </div>
-
-            <a
-              href={`tel:${cleanPhone}`}
-              className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0"
-            >
-              <Phone className="w-3.5 h-3.5 text-[#123B6D]" />
-              <span>Direct Doctor Line: +91 {cleanPhone}</span>
-            </a>
-          </div>
         </div>
       </section>
 
-      {/* 9. Dedicated Contact Us & Lab Location Section */}
-      <section id="contact" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200 scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+      {/* 9. Minimal Contact Us Section */}
+      <section id="contact" className="py-12 sm:py-16 bg-white border-b border-slate-200 scroll-mt-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section Header */}
-          <div className="text-center max-w-2xl mx-auto mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-[#123B6D] text-xs font-bold mb-3 border border-blue-200">
-              <Phone className="w-3.5 h-3.5 text-[#123B6D]" />
-              <span>Direct Laboratory Support & Location</span>
-            </div>
+          <div className="mb-8">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Get In Touch</span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
-              Contact Us & Visit Our Diagnostic Lab
+              Contact Us
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2.5 leading-relaxed">
-              Have questions about blood test preparations, fasting guidelines, package prices, or home sample collection? 
-              Reach out to our clinical staff via phone, WhatsApp, email, or visit our central lab counter.
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              Connect with our laboratory desk or submit an inquiry form below.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left Column: Direct Channels & Social Media Links (7 Cols on lg) */}
-            <div className="lg:col-span-7 space-y-6">
-              {/* 4 Core Channel Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* 1. Phone Helpline */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center font-bold mb-3.5">
-                      <Phone className="w-5 h-5 text-amber-700" />
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Lab Phone Helpline</span>
-                    <a
-                      href={`tel:+91${cleanPhone}`}
-                      className="text-base font-extrabold text-[#123B6D] hover:underline block mt-1 tracking-tight"
-                    >
-                      +91 {labPhone}
-                    </a>
-                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                      {labHours}
-                    </p>
-                    <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
-                      <span>⚡ {labEmergency}</span>
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
-                    <a
-                      href={`tel:+91${cleanPhone}`}
-                      className="flex-1 bg-[#123B6D] hover:bg-[#0e2f57] text-white py-2 px-3 rounded-lg text-xs font-bold transition text-center flex items-center justify-center gap-1.5"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      <span>Call Now</span>
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyText(`+91 ${labPhone}`, 'phone')}
-                      title="Copy phone number"
-                      className="p-2 border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-600 transition cursor-pointer shrink-0"
-                    >
-                      {copiedPhone ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            {/* Left Side: 5 Minimal Contact Lines */}
+            <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-6 sm:p-7 space-y-5">
+              {/* 1. Line: WhatsApp Number (may be multi) */}
+              <div className="flex items-start gap-3.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200/60 flex items-center justify-center shrink-0 mt-0.5">
+                  <MessageSquare className="w-4 h-4" />
                 </div>
-
-                {/* 2. WhatsApp Support */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-900 flex items-center justify-center font-bold mb-3.5">
-                      <MessageSquare className="w-5 h-5 text-emerald-700" />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">WhatsApp Desk</span>
-                      <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                        Instant Reply
-                      </span>
-                    </div>
-                    <a
-                      href={stickyWhatsappUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-base font-extrabold text-emerald-700 hover:underline block mt-1 tracking-tight"
-                    >
-                      +91 {cleanWhatsapp}
-                    </a>
-                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                      Instant WhatsApp test booking, price inquiries & digital PDF report download support.
-                    </p>
-                    <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
-                      <span>💬 Direct Chat Available</span>
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100">
-                    <a
-                      href={stickyWhatsappUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full bg-[#25D366] hover:bg-[#20ba59] text-white py-2 px-3 rounded-lg text-xs font-bold transition text-center flex items-center justify-center gap-1.5 shadow-xs"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      <span>Chat on WhatsApp</span>
-                    </a>
-                  </div>
-                </div>
-
-                {/* 3. Address & Location */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#123B6D] flex items-center justify-center font-bold mb-3.5">
-                      <MapPin className="w-5 h-5 text-[#123B6D]" />
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Laboratory Address</span>
-                    <p className="text-xs font-bold text-slate-800 mt-1 leading-relaxed">
-                      {labAddress}
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-1.5">
-                      Accreditation: <span className="font-semibold text-slate-700">NABL {labNabl}</span>
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100">
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${labName} ${labAddress}`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 py-2 px-3 rounded-lg text-xs font-bold transition text-center flex items-center justify-center gap-1.5 border border-slate-200"
-                    >
-                      <Navigation className="w-3.5 h-3.5 text-[#123B6D]" />
-                      <span>Google Maps Directions</span>
-                    </a>
-                  </div>
-                </div>
-
-                {/* 4. Official Email Support */}
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-900 flex items-center justify-center font-bold mb-3.5">
-                      <Mail className="w-5 h-5 text-indigo-700" />
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Official Email</span>
-                    <a
-                      href={`mailto:${labEmail}`}
-                      className="text-xs font-extrabold text-[#123B6D] hover:underline block mt-1 break-all"
-                    >
-                      {labEmail}
-                    </a>
-                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                      For corporate health checkups, doctor tie-ups, B2B samples & general medical feedback.
-                    </p>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
-                    <a
-                      href={`mailto:${labEmail}`}
-                      className="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-950 py-2 px-3 rounded-lg text-xs font-bold transition text-center flex items-center justify-center gap-1.5 border border-indigo-200"
-                    >
-                      <Mail className="w-3.5 h-3.5" />
-                      <span>Send Email</span>
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyText(labEmail, 'email')}
-                      title="Copy email"
-                      className="p-2 border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-600 transition cursor-pointer shrink-0"
-                    >
-                      {copiedEmail ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                    </button>
+                <div className="min-w-0">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">WhatsApp Number</span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                    {whatsappNumberList.map((num, idx) => {
+                      const clean = num.replace(/\D/g, '');
+                      return (
+                        <a
+                          key={idx}
+                          href={`https://wa.me/91${clean}?text=${encodeURIComponent(`Hello ${labName}, I would like to inquire about tests & services.`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs sm:text-sm font-bold text-emerald-700 hover:text-emerald-800 hover:underline inline-flex items-center gap-1"
+                        >
+                          <span>+91 {num}</span>
+                        </a>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
 
-              {/* Social Media Links Card */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                  <div>
-                    <h3 className="font-extrabold text-sm text-[#123B6D] flex items-center gap-2">
-                      <Share2 className="w-4 h-4 text-[#123B6D]" />
-                      <span>Connect With Our Laboratory on Social Media</span>
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Follow for seasonal health alerts, preventive wellness camps & special blood test packages.
-                    </p>
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Official Handles
-                  </span>
+              {/* 2. Line: Call Number (maybe multi) */}
+              <div className="flex items-start gap-3.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#123B6D] border border-blue-200/60 flex items-center justify-center shrink-0 mt-0.5">
+                  <Phone className="w-4 h-4" />
                 </div>
+                <div className="min-w-0">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Call Number</span>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                    {callNumberList.map((num, idx) => {
+                      const clean = num.replace(/\D/g, '');
+                      return (
+                        <a
+                          key={idx}
+                          href={`tel:+91${clean}`}
+                          className="text-xs sm:text-sm font-bold text-[#123B6D] hover:underline inline-flex items-center gap-1"
+                        >
+                          <span>+91 {num}</span>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
-                  {/* WhatsApp */}
+              {/* 3. Line: Email ID */}
+              <div className="flex items-start gap-3.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-200/60 flex items-center justify-center shrink-0 mt-0.5">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Email ID</span>
                   <a
-                    href={stickyWhatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 transition text-center group cursor-pointer"
-                    title={`Chat on WhatsApp: +91 ${cleanWhatsapp}`}
+                    href={`mailto:${labEmail}`}
+                    className="text-xs sm:text-sm font-bold text-slate-800 hover:text-[#123B6D] hover:underline mt-0.5 block break-all"
                   >
-                    <div className="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
-                      <MessageSquare className="w-4 h-4" />
-                    </div>
-                    <span className="text-[11px] font-bold">WhatsApp</span>
+                    {labEmail}
                   </a>
+                </div>
+              </div>
 
-                  {/* Facebook */}
-                  <a
-                    href="https://facebook.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 transition text-center group cursor-pointer"
-                    title="Follow on Facebook"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-[#1877F2] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
-                      <Facebook className="w-4 h-4" />
-                    </div>
-                    <span className="text-[11px] font-bold">Facebook</span>
-                  </a>
+              {/* 4. Line: Address in text only (not google location) */}
+              <div className="flex items-start gap-3.5">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 border border-slate-200 flex items-center justify-center shrink-0 mt-0.5">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Address</span>
+                  <p className="text-xs sm:text-sm font-medium text-slate-700 mt-0.5 leading-relaxed">
+                    {labAddress}
+                  </p>
+                </div>
+              </div>
 
-                  {/* Instagram */}
-                  <a
-                    href="https://instagram.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 transition text-center group cursor-pointer"
-                    title="Follow on Instagram"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
-                      <Instagram className="w-4 h-4" />
-                    </div>
-                    <span className="text-[11px] font-bold">Instagram</span>
-                  </a>
-
-                  {/* Twitter / X */}
-                  <a
-                    href="https://twitter.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 transition text-center group cursor-pointer"
-                    title="Follow on X (Twitter)"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
-                      <Twitter className="w-4 h-4" />
-                    </div>
-                    <span className="text-[11px] font-bold">Twitter / X</span>
-                  </a>
-
-                  {/* YouTube */}
-                  <a
-                    href="https://youtube.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-900 border border-red-200 transition text-center group cursor-pointer"
-                    title="Watch on YouTube"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-[#FF0000] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
-                      <Youtube className="w-4 h-4" />
-                    </div>
-                    <span className="text-[11px] font-bold">YouTube</span>
-                  </a>
-
-                  {/* LinkedIn */}
-                  <a
-                    href="https://linkedin.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-900 border border-sky-200 transition text-center group cursor-pointer"
-                    title="Connect on LinkedIn"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-[#0A66C2] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
-                      <Linkedin className="w-4 h-4" />
-                    </div>
-                    <span className="text-[11px] font-bold">LinkedIn</span>
-                  </a>
+              {/* 5. Line: Social Media Small Icons */}
+              <div className="flex items-start gap-3.5 pt-3 border-t border-slate-200">
+                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0">
+                  <Share2 className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Social Media</span>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={stickyWhatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="WhatsApp"
+                      className="w-7 h-7 rounded-full bg-white hover:bg-emerald-50 text-emerald-600 border border-slate-200 hover:border-emerald-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                    </a>
+                    <a
+                      href="https://facebook.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Facebook"
+                      className="w-7 h-7 rounded-full bg-white hover:bg-blue-50 text-[#1877F2] border border-slate-200 hover:border-blue-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                    >
+                      <Facebook className="w-3.5 h-3.5" />
+                    </a>
+                    <a
+                      href="https://instagram.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Instagram"
+                      className="w-7 h-7 rounded-full bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                    >
+                      <Instagram className="w-3.5 h-3.5" />
+                    </a>
+                    <a
+                      href="https://twitter.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Twitter / X"
+                      className="w-7 h-7 rounded-full bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 hover:border-slate-400 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                    >
+                      <Twitter className="w-3.5 h-3.5" />
+                    </a>
+                    <a
+                      href="https://youtube.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="YouTube"
+                      className="w-7 h-7 rounded-full bg-white hover:bg-red-50 text-red-600 border border-slate-200 hover:border-red-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                    >
+                      <Youtube className="w-3.5 h-3.5" />
+                    </a>
+                    <a
+                      href="https://linkedin.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="LinkedIn"
+                      className="w-7 h-7 rounded-full bg-white hover:bg-sky-50 text-[#0A66C2] border border-slate-200 hover:border-sky-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                    >
+                      <Linkedin className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Basic Contact & Inquiry Form (5 Cols on lg) */}
-            <div className="lg:col-span-5">
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-                <div className="mb-6">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold uppercase tracking-wider mb-2">
-                    <span>Direct Desk Assistance</span>
+            {/* Right Side: Form (name, phone, subject, message) */}
+            <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 sm:p-7 shadow-xs">
+              <h3 className="text-base sm:text-lg font-bold text-[#123B6D] mb-1">
+                Send Us a Message
+              </h3>
+              <p className="text-xs text-slate-500 mb-5">
+                Leave your details below and our diagnostic coordinator will assist you.
+              </p>
+
+              {contactSubmitted ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center space-y-3">
+                  <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-6 h-6" />
                   </div>
-                  <h3 className="font-extrabold text-xl text-[#123B6D] tracking-tight">
-                    Send Us an Inquiry
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Leave your details and message. Our phlebotomy coordinator will respond within 15–30 minutes.
-                  </p>
+                  <div>
+                    <h4 className="font-bold text-sm text-emerald-950">Message Sent Successfully!</h4>
+                    <p className="text-xs text-emerald-800 mt-1">
+                      Thank you, <span className="font-bold">{contactName}</span>. Your message regarding{' '}
+                      <span className="font-semibold">"{contactSubject || 'General Inquiry'}"</span> has been received.
+                    </p>
+                    <p className="text-[11px] font-mono text-emerald-700 mt-1">
+                      Reference Token: {contactRefId}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContactSubmitted(false);
+                      setContactName('');
+                      setContactPhone('');
+                      setContactSubject('');
+                      setContactMessage('');
+                    }}
+                    className="text-xs font-bold text-slate-700 hover:text-slate-900 underline cursor-pointer pt-1 block mx-auto"
+                  >
+                    Submit Another Message
+                  </button>
                 </div>
-
-                {contactSubmitted ? (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center space-y-4">
-                    <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-xs">
-                      <CheckCircle2 className="w-7 h-7" />
+              ) : (
+                <form onSubmit={handleContactSubmit} className="space-y-4">
+                  {contactError && (
+                    <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                      <span>{contactError}</span>
                     </div>
-                    <div>
-                      <h4 className="font-extrabold text-base text-emerald-950">Inquiry Submitted Successfully!</h4>
-                      <p className="text-xs text-emerald-800 mt-1">
-                        Thank you, <span className="font-bold">{contactName}</span>. Your query regarding{' '}
-                        <span className="font-semibold">"{contactSubject}"</span> has been registered.
-                      </p>
-                    </div>
+                  )}
 
-                    <div className="bg-white p-3 rounded-lg border border-emerald-200 text-xs text-slate-700">
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Inquiry Reference Token</div>
-                      <div className="font-mono font-black text-sm text-[#123B6D] mt-0.5">{contactRefId}</div>
-                      <div className="text-[11px] text-slate-500 mt-1">
-                        Our reception desk will contact you on <span className="font-bold text-slate-800">+91 {contactPhone}</span>.
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 pt-2">
-                      <a
-                        href={`https://wa.me/91${cleanWhatsapp}?text=${encodeURIComponent(
-                          `Hello ${labName}, I just submitted inquiry ${contactRefId} regarding "${contactSubject}" for patient ${contactName}. Message: ${contactMessage || 'Please call back.'}`
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full bg-[#25D366] hover:bg-[#20ba59] text-white py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs"
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                        <span>Send Message via WhatsApp</span>
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setContactSubmitted(false);
-                          setContactName('');
-                          setContactPhone('');
-                          setContactEmail('');
-                          setContactMessage('');
-                        }}
-                        className="w-full py-2 text-xs font-bold text-slate-600 hover:text-slate-900 transition cursor-pointer"
-                      >
-                        Submit Another Message
-                      </button>
+                  {/* 1. Name */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Name <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                      <input
+                        type="text"
+                        required
+                        value={contactName}
+                        onChange={(e) => setContactName(e.target.value)}
+                        placeholder="Your full name"
+                        className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                      />
                     </div>
                   </div>
-                ) : (
-                  <form onSubmit={handleContactSubmit} className="space-y-4">
-                    {contactError && (
-                      <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                        <span>{contactError}</span>
-                      </div>
-                    )}
 
+                  {/* 2. Phone & 3. Subject */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* Phone */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Full Name <span className="text-rose-500">*</span>
+                        Phone <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative">
-                        <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                        <span className="text-xs font-bold text-slate-400 absolute left-3 top-2">+91</span>
                         <input
-                          type="text"
+                          type="tel"
                           required
-                          value={contactName}
-                          onChange={(e) => setContactName(e.target.value)}
-                          placeholder="e.g. Ramesh Kumar"
-                          className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                          maxLength={10}
+                          value={contactPhone}
+                          onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, ''))}
+                          placeholder="98765 43210"
+                          className="w-full pl-10 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          Phone Number <span className="text-rose-500">*</span>
-                        </label>
-                        <div className="relative">
-                          <span className="text-xs font-bold text-slate-400 absolute left-3 top-2.5">+91</span>
-                          <input
-                            type="tel"
-                            required
-                            maxLength={10}
-                            value={contactPhone}
-                            onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, ''))}
-                            placeholder="98765 43210"
-                            className="w-full pl-11 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          Email Address <span className="text-slate-400 font-normal">(Optional)</span>
-                        </label>
-                        <div className="relative">
-                          <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                          <input
-                            type="email"
-                            value={contactEmail}
-                            onChange={(e) => setContactEmail(e.target.value)}
-                            placeholder="patient@example.com"
-                            className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
+                    {/* Subject */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Inquiry Topic / Reason
+                        Subject
                       </label>
-                      <select
+                      <input
+                        type="text"
                         value={contactSubject}
                         onChange={(e) => setContactSubject(e.target.value)}
-                        className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
-                      >
-                        <option value="Test Inquiry & Pricing">Test Inquiry & Price Estimate</option>
-                        <option value="Home Sample Collection Request">Home Sample Collection Request</option>
-                        <option value="Report Status & Delivery Help">Report Status & Delivery Help</option>
-                        <option value="Fasting & Test Preparation Instructions">Fasting & Test Preparation Instructions</option>
-                        <option value="Doctor Prescription Consultation">Doctor Prescription / Second Opinion</option>
-                        <option value="Corporate / Health Camp Tie-up">Corporate / Health Camp Tie-up</option>
-                        <option value="General Feedback & Other">General Feedback & Other</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Message / Test Details <span className="text-slate-400 font-normal">(Optional)</span>
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={contactMessage}
-                        onChange={(e) => setContactMessage(e.target.value)}
-                        placeholder="Mention test names (e.g. CBC, Thyroid, HbA1c), doctor recommendation, or preferred collection time..."
-                        className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                        placeholder="e.g. Test Inquiry, Pricing"
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
                       />
                     </div>
+                  </div>
 
-                    <button
-                      type="submit"
-                      disabled={contactSubmitting}
-                      className="w-full bg-[#123B6D] hover:bg-[#0e2f57] text-white py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-75"
-                    >
-                      {contactSubmitting ? (
-                        <span>Submitting inquiry...</span>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4 text-amber-400" />
-                          <span>Send Inquiry to Laboratory Reception</span>
-                        </>
-                      )}
-                    </button>
-                    <p className="text-[11px] text-center text-slate-400 mt-2">
-                      🔒 Your medical inquiries and contact details remain strictly confidential under HIPAA / DISHA guidelines.
-                    </p>
-                  </form>
-                )}
-              </div>
+                  {/* 4. Message */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Message
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={contactMessage}
+                      onChange={(e) => setContactMessage(e.target.value)}
+                      placeholder="Write your message or inquiry..."
+                      className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                    />
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={contactSubmitting}
+                    className="w-full bg-[#123B6D] hover:bg-[#0e2f57] text-white py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-75 active:scale-99"
+                  >
+                    {contactSubmitting ? (
+                      <span>Sending...</span>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Send Message</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>
