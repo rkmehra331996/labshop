@@ -57,6 +57,8 @@ import {
   Zap,
   Type,
   Truck,
+  Headphones,
+  Database,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -80,6 +82,8 @@ import { VendorSiteSettingsTab } from './vendor/VendorSiteSettingsTab';
 import { VendorAdminSettingsTab } from './vendor/VendorAdminSettingsTab';
 import { VendorBookingSettingsTab } from './vendor/VendorBookingSettingsTab';
 import { VendorStaffManagementTab } from './vendor/VendorStaffManagementTab';
+import { VendorBackupReportsTab } from './vendor/VendorBackupReportsTab';
+import { VendorTechSupportTab } from './vendor/VendorTechSupportTab';
 import { DoctorCommissionModal } from './vendor/DoctorCommissionModal';
 
 interface LabVendorDashboardProps {
@@ -127,7 +131,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   } = useCms();
 
   const [activeTab, setActiveTab] = useState<
-    'website' | 'billing' | 'tests' | 'packages' | 'forms' | 'dashboard' | 'domain' | 'doctors' | 'profile' | 'staff' | 'settings' | 'admin_settings' | 'booking_settings'
+    'website' | 'billing' | 'tests' | 'packages' | 'forms' | 'dashboard' | 'domain' | 'doctors' | 'profile' | 'staff' | 'settings' | 'admin_settings' | 'booking_settings' | 'backup' | 'support'
   >('website');
 
   const [websiteSubTab, setWebsiteSubTab] = useState<
@@ -804,7 +808,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
           <div className="text-right">
             <span className="text-[10px] font-bold text-slate-400 block uppercase">Current View</span>
             <span className="text-xs font-black text-[#123B6D]">
-              {activeTab === 'website' ? `🌐 Website: ${websiteSubTab}` : activeTab === 'settings' ? `⚙️ Site Settings: ${settingsSubTab}` : activeTab === 'admin_settings' ? '🔐 Admin Settings: PIN & Pass' : activeTab === 'booking_settings' ? '📋 Booking Settings' : activeTab.toUpperCase()}
+              {activeTab === 'website' ? `🌐 Website: ${websiteSubTab}` : activeTab === 'settings' ? `⚙️ Site Settings: ${settingsSubTab}` : activeTab === 'admin_settings' ? '🔐 Admin Settings: PIN & Pass' : activeTab === 'booking_settings' ? '📋 Booking Settings' : activeTab === 'backup' ? '💾 10. Backup & Reports' : activeTab === 'support' ? '🎧 12. Tech Support' : activeTab.toUpperCase()}
             </span>
           </div>
         </div>
@@ -1987,255 +1991,78 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 )}
               </div>
 
-              {/* SECTION 10: STAFF MANAGEMENT (RECEPTIONIST & TECHNICIAN) */}
-              <div className="rounded-xl border border-teal-300/80 bg-teal-50/50 overflow-hidden shadow-2xs">
-                {/* Accordion Header */}
+              {/* SECTION 10: BACKUP & REPORTS */}
+              <div className="rounded-xl border border-indigo-200/80 bg-indigo-50/40 overflow-hidden shadow-2xs">
                 <button
                   type="button"
+                  id="tab-btn-backup-reports"
                   onClick={() => {
-                    setActiveTab('staff');
-                    setIsStaffMenuOpen(!isStaffMenuOpen);
+                    setActiveTab('backup');
+                    setIsMobileSidebarOpen(false);
                   }}
                   className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
-                    activeTab === 'staff'
+                    activeTab === 'backup'
                       ? 'bg-[#123B6D] text-white font-black shadow-xs'
-                      : 'bg-teal-100/70 text-slate-900 font-bold hover:bg-teal-200/60'
+                      : 'bg-indigo-100/70 text-slate-900 font-bold hover:bg-indigo-200/60'
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <Users className={`w-4 h-4 shrink-0 ${activeTab === 'staff' ? 'text-amber-400' : 'text-teal-700'}`} />
-                    <span className="text-xs font-black truncate">10. Staff Management</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                      activeTab === 'staff' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
-                    }`}>
-                      {staffAccounts.length} Staff
-                    </span>
-                    {isStaffMenuOpen ? (
-                      <ChevronDown className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white' : 'text-slate-800'}`} />
-                    ) : (
-                      <ChevronRight className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white' : 'text-slate-800'}`} />
-                    )}
-                  </div>
-                </button>
-
-                {/* Sub-Items: Add New Staff, Staff List (Edit Staff — Name & Change Password, / Delete) */}
-                {isStaffMenuOpen && (
-                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-teal-200/70">
-                    {/* 1. Add New Staff */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('staff');
-                        setStaffSubTab('add');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'staff' && staffSubTab === 'add'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <UserPlus className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'staff' && staffSubTab === 'add' ? 'text-amber-400' : 'text-teal-600'}`} />
-                        <span className="truncate">Add New Staff</span>
-                      </div>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'staff' && staffSubTab === 'add'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-teal-50 text-teal-800 border border-teal-200'
-                      }`}>
-                        + Add
-                      </span>
-                    </button>
-
-                    {/* 2. Staff List */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('staff');
-                        setStaffSubTab('list');
-                        setIsMobileSidebarOpen(false);
-                      }}
-                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
-                        activeTab === 'staff' && staffSubTab === 'list'
-                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                          : 'text-slate-700 hover:bg-teal-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <Users className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'staff' && staffSubTab === 'list' ? 'text-amber-400' : 'text-blue-600'}`} />
-                        <span className="truncate">Staff List (Edit/Delete)</span>
-                      </div>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-                        activeTab === 'staff' && staffSubTab === 'list'
-                          ? 'bg-amber-400 text-slate-950 font-black'
-                          : 'bg-slate-100 text-slate-800'
-                      }`}>
-                        {staffAccounts.length}
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* SECTION: LAB OPERATIONS & BILLING */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 block mb-1">
-                  Lab Operations
-                </span>
-
-                {/* Billing */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('billing');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition cursor-pointer ${
-                    activeTab === 'billing'
-                      ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <DollarSign className={`w-4 h-4 ${activeTab === 'billing' ? 'text-emerald-300' : 'text-emerald-600'}`} />
-                    <span className="truncate">💳 Billing &amp; QR Codes</span>
-                  </div>
-                </button>
-
-                {/* Tests */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('tests');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition cursor-pointer ${
-                    activeTab === 'tests'
-                      ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <FlaskConical className={`w-4 h-4 ${activeTab === 'tests' ? 'text-indigo-300' : 'text-indigo-600'}`} />
-                    <span className="truncate">🧪 Tests Catalog</span>
+                    <Database className={`w-4 h-4 shrink-0 ${activeTab === 'backup' ? 'text-amber-400' : 'text-indigo-700'}`} />
+                    <span className="text-xs font-black truncate">10. Backup & Reports</span>
                   </div>
                   <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    activeTab === 'tests' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                    activeTab === 'backup' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
                   }`}>
-                    {vendorTests.length}
-                  </span>
-                </button>
-
-                {/* Packages */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('packages');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition cursor-pointer ${
-                    activeTab === 'packages'
-                      ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <Package className={`w-4 h-4 ${activeTab === 'packages' ? 'text-amber-300' : 'text-amber-600'}`} />
-                    <span className="truncate">📦 Health Packages</span>
-                  </div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    activeTab === 'packages' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {vendorPackages.length}
-                  </span>
-                </button>
-
-                {/* Doctors */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('doctors');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition cursor-pointer ${
-                    activeTab === 'doctors'
-                      ? 'bg-[#123B6D] text-white shadow-2xs font-black'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <Users className={`w-4 h-4 ${activeTab === 'doctors' ? 'text-blue-300' : 'text-blue-600'}`} />
-                    <span className="truncate">👨‍⚕️ Doctor Commissions</span>
-                  </div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    activeTab === 'doctors' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {vendorDoctors.length}
-                  </span>
-                </button>
-
-                {/* Staff Passwords & Roles */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTab('staff');
-                    setIsMobileSidebarOpen(false);
-                  }}
-                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition cursor-pointer ${
-                    activeTab === 'staff'
-                      ? 'bg-rose-600 text-white shadow-2xs font-black'
-                      : 'text-rose-800 bg-rose-50/70 hover:bg-rose-100 border border-rose-200/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <KeyRound className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white' : 'text-rose-600'}`} />
-                    <span className="truncate">🔐 Staff Passwords &amp; Access</span>
-                  </div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                    activeTab === 'staff' ? 'bg-white/20 text-white' : 'bg-rose-200 text-rose-900'
-                  }`}>
-                    {staffAccounts.length}
+                    Backup
                   </span>
                 </button>
               </div>
 
-              {/* SECTION 3: QUICK PORTAL JUMPS & PREVIEW */}
-              <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 block mb-1">
-                  Quick Portals
-                </span>
-
+              {/* SECTION 11: LOGOUT (REDIRECT TO HOME PAGE) */}
+              <div className="rounded-xl border border-rose-200/80 bg-rose-50/40 overflow-hidden shadow-2xs">
                 <button
                   type="button"
-                  onClick={() => onNavigateView('technician_dashboard')}
-                  className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center justify-between transition cursor-pointer"
+                  id="tab-btn-logout-redirect"
+                  onClick={() => {
+                    logout();
+                    onNavigateView('vendor_website');
+                  }}
+                  className="w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer bg-rose-100/70 hover:bg-rose-200/80 text-rose-900 font-bold active:scale-[0.98]"
                 >
-                  <span>🔬 Technician Dept</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-emerald-600" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onNavigateView('reception_dashboard')}
-                  className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 flex items-center justify-between transition cursor-pointer"
-                >
-                  <span>🖥️ Reception Counter</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-teal-600" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onNavigateView('vendor_website')}
-                  className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-[#123B6D] border border-blue-200 flex items-center justify-between transition cursor-pointer"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Eye className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Live Website Preview</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <LogOut className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span className="text-xs font-black truncate">11. Logout (Home Page)</span>
+                  </div>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-800">
+                    Exit ➔
                   </span>
-                  <ExternalLink className="w-3.5 h-3.5 text-[#123B6D]" />
+                </button>
+              </div>
+
+              {/* SECTION 12: TECH SUPPORT */}
+              <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/40 overflow-hidden shadow-2xs">
+                <button
+                  type="button"
+                  id="tab-btn-tech-support"
+                  onClick={() => {
+                    setActiveTab('support');
+                    setIsMobileSidebarOpen(false);
+                  }}
+                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                    activeTab === 'support'
+                      ? 'bg-emerald-700 text-white font-black shadow-xs'
+                      : 'bg-emerald-100/70 text-slate-900 font-bold hover:bg-emerald-200/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Headphones className={`w-4 h-4 shrink-0 ${activeTab === 'support' ? 'text-amber-300' : 'text-emerald-700'}`} />
+                    <span className="text-xs font-black truncate">12. Tech Support</span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    activeTab === 'support' ? 'bg-white/20 text-white' : 'bg-emerald-200 text-emerald-900'
+                  }`}>
+                    Helpdesk
+                  </span>
                 </button>
               </div>
             </div>
@@ -2245,10 +2072,12 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
           {/* MAIN CONTENT PANEL */}
           {/* ======================================================== */}
           <main className="flex-1 w-full min-w-0 space-y-6">
-            {/* Top Quick Strip (Active Section & Direct Jumps) */}
-            <div className="bg-white rounded-2xl p-2.5 border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+            {/* Top Quick Strip (Numbered Sections 1 to 12) */}
+            <div className="bg-white rounded-2xl p-2.5 border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 flex-wrap">
+                {/* 1. Website */}
                 <button
+                  type="button"
                   onClick={() => setActiveTab('website')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
                     activeTab === 'website' || activeTab === 'profile'
@@ -2257,52 +2086,46 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                   }`}
                 >
                   <Globe className="w-3.5 h-3.5 text-amber-950" />
-                  <span>🌐 Website Section</span>
+                  <span>1. Website</span>
                 </button>
 
+                {/* 2. Online Test */}
                 <button
-                  onClick={() => setActiveTab('billing')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                    activeTab === 'billing'
-                      ? 'bg-[#123B6D] text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>💳 Billing</span>
-                </button>
-
-                <button
+                  type="button"
                   onClick={() => {
                     setActiveTab('tests');
                     setTestSubTab('list');
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                     activeTab === 'tests'
-                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      ? 'bg-[#123B6D] text-white shadow-xs font-black'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <FlaskConical className="w-3.5 h-3.5 text-indigo-300" />
-                  <span>🧪 Online Tests ({vendorTests.length})</span>
+                  <FlaskConical className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>2. Online Test</span>
                 </button>
 
+                {/* 3. Packages */}
                 <button
+                  type="button"
                   onClick={() => {
                     setActiveTab('packages');
                     setPackageSubTab('list');
                   }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                     activeTab === 'packages'
-                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      ? 'bg-[#123B6D] text-white shadow-xs font-black'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <Package className="w-3.5 h-3.5" />
-                  <span>Packages ({vendorPackages.length})</span>
+                  <Package className="w-3.5 h-3.5 text-amber-500" />
+                  <span>3. Package</span>
                 </button>
 
+                {/* 4. Forms */}
                 <button
+                  type="button"
                   onClick={() => {
                     setActiveTab('forms');
                     setFormSubTab('bookings');
@@ -2314,10 +2137,12 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5 text-sky-400" />
-                  <span>4. Forms ({vendorBookings.length + contactSubmissions.length})</span>
+                  <span>4. Forms</span>
                 </button>
 
+                {/* 5. Dashboard */}
                 <button
+                  type="button"
                   onClick={() => {
                     setActiveTab('dashboard');
                     setDashboardSubTab('reception');
@@ -2328,11 +2153,13 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  <LayoutDashboard className="w-3.5 h-3.5 text-amber-300" />
-                  <span>5. Dashboards (2 Desks)</span>
+                  <LayoutDashboard className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>5. Dashboards</span>
                 </button>
 
+                {/* 6. Domain */}
                 <button
+                  type="button"
                   onClick={() => {
                     setActiveTab('domain');
                     setDomainSubTab('add');
@@ -2344,10 +2171,12 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                   }`}
                 >
                   <Globe className="w-3.5 h-3.5 text-blue-400" />
-                  <span>6. Domain Request</span>
+                  <span>6. Domain</span>
                 </button>
 
+                {/* 7. Site Settings */}
                 <button
+                  type="button"
                   onClick={() => {
                     setActiveTab('settings');
                     setSettingsSubTab('all');
@@ -2359,22 +2188,26 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                   }`}
                 >
                   <Settings className="w-3.5 h-3.5 text-indigo-700" />
-                  <span>7. Site Settings</span>
+                  <span>7. Settings</span>
                 </button>
 
+                {/* 8. Admin Settings */}
                 <button
+                  type="button"
                   onClick={() => setActiveTab('admin_settings')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                     activeTab === 'admin_settings'
-                      ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                      ? 'bg-rose-600 text-white font-black shadow-xs'
                       : 'bg-rose-50 text-rose-900 border border-rose-200 hover:bg-rose-100'
                   }`}
                 >
-                  <ShieldAlert className="w-3.5 h-3.5 text-rose-700" />
-                  <span>8. Admin Settings</span>
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+                  <span>8. Admin</span>
                 </button>
 
+                {/* 9. Booking Settings */}
                 <button
+                  type="button"
                   onClick={() => {
                     setActiveTab('booking_settings');
                     setBookingSettingsSubTab('all');
@@ -2386,48 +2219,51 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                   }`}
                 >
                   <CalendarCheck className="w-3.5 h-3.5 text-amber-700" />
-                  <span>9. Booking Settings</span>
+                  <span>9. Booking</span>
                 </button>
 
+                {/* 10. Backup & Reports */}
                 <button
-                  onClick={() => setActiveTab('doctors')}
+                  type="button"
+                  onClick={() => setActiveTab('backup')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                    activeTab === 'doctors'
-                      ? 'bg-[#123B6D] text-white shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100'
+                    activeTab === 'backup'
+                      ? 'bg-[#123B6D] text-white shadow-xs font-black'
+                      : 'bg-indigo-50 text-indigo-900 border border-indigo-200 hover:bg-indigo-100'
                   }`}
                 >
-                  <Users className="w-3.5 h-3.5" />
-                  <span>Doctors ({vendorDoctors.length})</span>
+                  <Database className="w-3.5 h-3.5 text-amber-400" />
+                  <span>10. Backup &amp; Reports</span>
                 </button>
 
+                {/* 12. Tech Support */}
                 <button
-                  onClick={() => setActiveTab('staff')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
-                    activeTab === 'staff'
-                      ? 'bg-rose-600 text-white shadow-xs'
-                      : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'
+                  type="button"
+                  onClick={() => setActiveTab('support')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'support'
+                      ? 'bg-emerald-700 text-white shadow-xs font-black'
+                      : 'bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100'
                   }`}
                 >
-                  <KeyRound className={`w-3.5 h-3.5 ${activeTab === 'staff' ? 'text-white' : 'text-rose-600'}`} />
-                  <span>🔐 Staff Access ({staffAccounts.length})</span>
+                  <Headphones className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>12. Tech Support</span>
                 </button>
               </div>
 
+              {/* 11. Logout Quick Button */}
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => onNavigateView('technician_dashboard')}
-                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                  title="Open Technician Department Dashboard"
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    onNavigateView('vendor_website');
+                  }}
+                  className="bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  title="Logout from Dashboard and return to Home Page"
                 >
-                  <span>🔬 Tech Dept ➔</span>
-                </button>
-                <button
-                  onClick={() => onNavigateView('reception_dashboard')}
-                  className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                  title="Open Reception Entry Dashboard"
-                >
-                  <span>🖥️ Reception ➔</span>
+                  <LogOut className="w-3.5 h-3.5 text-rose-600" />
+                  <span>11. Logout</span>
                 </button>
               </div>
             </div>
@@ -2511,6 +2347,16 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
             initialSubTab={bookingSettingsSubTab}
             onNavigateView={onNavigateView}
           />
+        )}
+
+        {/* 10. BACKUP & REPORTS TAB */}
+        {activeTab === 'backup' && (
+          <VendorBackupReportsTab onNavigateView={onNavigateView} />
+        )}
+
+        {/* 12. TECH SUPPORT TAB */}
+        {activeTab === 'support' && (
+          <VendorTechSupportTab />
         )}
 
         {/* 2. TESTS CATALOG TAB (Replaced with VendorTestsTab above) */}

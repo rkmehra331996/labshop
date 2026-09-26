@@ -1955,6 +1955,10 @@ interface CmsContextType {
   // Reset demo
   resetAllToDefaults: () => void;
 
+  // Backup & Restore
+  importFullWebsiteBackup: (backup: any) => { success: boolean; message: string };
+  importCustomerEntryBackup: (backup: any, mode?: 'append' | 'replace') => { success: boolean; message: string; count: number };
+
   // Multi-Lab Data Isolation & Tenant Security
   activeTenantId: string;
   activeTenantName: string;
@@ -5132,6 +5136,125 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.clear();
   };
 
+  // Import Full Website Backup
+  const importFullWebsiteBackup = (backup: any): { success: boolean; message: string } => {
+    try {
+      if (!backup || typeof backup !== 'object') {
+        return { success: false, message: 'Invalid backup file structure.' };
+      }
+      const targetLabId = backup.labId || activeTenantId || 'lab-apex';
+
+      // 1. Settings
+      if (backup.settings && typeof backup.settings === 'object') {
+        updateVendorLabSettings(backup.settings);
+      }
+      // 2. Sections
+      if (backup.sections && typeof backup.sections === 'object') {
+        updateVendorLabSettings({ sections: backup.sections });
+      }
+      // 3. Packages
+      if (Array.isArray(backup.packages) && backup.packages.length > 0) {
+        const sanitized = backup.packages.map((p: any) => ({ ...p, labId: targetLabId }));
+        setAllVendorPackages((prev) => [
+          ...sanitized,
+          ...prev.filter((p) => !isTenantMatch(p, targetLabId)),
+        ]);
+      }
+      // 4. Tests
+      if (Array.isArray(backup.tests) && backup.tests.length > 0) {
+        const sanitized = backup.tests.map((t: any) => ({ ...t, labId: targetLabId }));
+        setAllVendorTests((prev) => [
+          ...sanitized,
+          ...prev.filter((t) => !isTenantMatch(t, targetLabId)),
+        ]);
+      }
+      // 5. Doctors
+      if (Array.isArray(backup.doctors) && backup.doctors.length > 0) {
+        const sanitized = backup.doctors.map((d: any) => ({ ...d, labId: targetLabId }));
+        setAllVendorDoctors((prev) => [
+          ...sanitized,
+          ...prev.filter((d) => !isTenantMatch(d, targetLabId)),
+        ]);
+      }
+      // 6. Branches
+      if (Array.isArray(backup.branches) && backup.branches.length > 0) {
+        const sanitized = backup.branches.map((b: any) => ({ ...b, labId: targetLabId }));
+        setAllVendorBranches((prev) => [
+          ...sanitized,
+          ...prev.filter((b) => !isTenantMatch(b, targetLabId)),
+        ]);
+      }
+
+      return {
+        success: true,
+        message: `Website configuration successfully restored for ${backup.labName || targetLabId}!`,
+      };
+    } catch (err: any) {
+      return { success: false, message: `Failed to restore website backup: ${err.message}` };
+    }
+  };
+
+  // Import Customer Entry Backup
+  const importCustomerEntryBackup = (
+    backup: any,
+    mode: 'append' | 'replace' = 'append'
+  ): { success: boolean; message: string; count: number } => {
+    try {
+      if (!backup || typeof backup !== 'object') {
+        return { success: false, message: 'Invalid backup format.', count: 0 };
+      }
+      const targetLabId = backup.labId || activeTenantId || 'lab-apex';
+
+      const entriesToImport: ReceptionPatientEntry[] = Array.isArray(backup.customerEntries)
+        ? backup.customerEntries.map((e: any) => ({ ...e, labId: targetLabId }))
+        : Array.isArray(backup)
+        ? backup.map((e: any) => ({ ...e, labId: targetLabId }))
+        : [];
+
+      const reportsToImport: LabReport[] = Array.isArray(backup.reports)
+        ? backup.reports.map((r: any) => ({ ...r, labId: targetLabId }))
+        : [];
+
+      if (entriesToImport.length === 0 && reportsToImport.length === 0) {
+        return { success: false, message: 'No customer entries or reports found in the file.', count: 0 };
+      }
+
+      if (mode === 'replace') {
+        setAllReceptionEntries((prev) => [
+          ...entriesToImport,
+          ...prev.filter((e) => !isTenantMatch(e, targetLabId)),
+        ]);
+        if (reportsToImport.length > 0) {
+          setAllReports((prev) => [
+            ...reportsToImport,
+            ...prev.filter((r) => !isTenantMatch(r, targetLabId)),
+          ]);
+        }
+      } else {
+        setAllReceptionEntries((prev) => {
+          const existingIds = new Set(prev.map((e) => e.id));
+          const newEntries = entriesToImport.filter((e) => !existingIds.has(e.id));
+          return [...newEntries, ...prev];
+        });
+        if (reportsToImport.length > 0) {
+          setAllReports((prev) => {
+            const existingReportIds = new Set(prev.map((r) => r.reportId));
+            const newReports = reportsToImport.filter((r) => !existingReportIds.has(r.reportId));
+            return [...newReports, ...prev];
+          });
+        }
+      }
+
+      return {
+        success: true,
+        message: `Successfully imported ${entriesToImport.length} customer entries and ${reportsToImport.length} reports!`,
+        count: entriesToImport.length,
+      };
+    } catch (err: any) {
+      return { success: false, message: `Failed to import customer entries: ${err.message}`, count: 0 };
+    }
+  };
+
   const patients: Patient[] = useMemo(() => {
     return (receptionEntries || []).map((e) => ({
       id: e.id,
@@ -5291,6 +5414,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         unpublishReport,
 
         resetAllToDefaults,
+        importFullWebsiteBackup,
+        importCustomerEntryBackup,
 
         // Multi-Lab Data Isolation & Tenant Security
         activeTenantId,
