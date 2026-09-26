@@ -1070,17 +1070,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <span>Test</span>
             </button>
 
-            {/* Desktop Lab Staff / Admin Login Button */}
-            <button
-              onClick={() => openLoginModal('vendor')}
-              className="hidden lg:inline-flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-98"
-              id="header-lab-login-btn"
-              title="Lab Admin, Receptionist & Technician Login"
-            >
-              <KeyRound className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-              <span>Login</span>
-            </button>
-
             {/* 3. Menu Icon (Hamburger: opens Side Drawer on Mobile) */}
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -1323,31 +1312,9 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         )}
       </header>
 
-      {/* SECTION 1: HERO SECTION (Admin Uploaded Image Banners Carousel with 2%-5% Mobile Peek Effect) */}
+      {/* SECTION 1: HERO SECTION (Image Banners Carousel with 2%-5% Mobile Peek Effect) */}
       <section id="top" className="bg-gradient-to-b from-[#F8FAFC] via-slate-50 to-white py-3.5 sm:py-6 border-b border-slate-200 scroll-mt-20 overflow-hidden">
         <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 space-y-3.5 sm:space-y-5">
-          {/* Admin Header Action Strip */}
-          <div className="flex items-center justify-between px-2 sm:px-0">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-xs font-bold text-slate-700">
-                100% NABL Accredited Diagnostics • Free Doorstep Collection
-              </span>
-            </div>
-
-            {/* Admin Upload Banner Button */}
-            <button
-              type="button"
-              onClick={openBannerManager}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#123B6D] border border-blue-200 shadow-2xs text-xs font-black transition cursor-pointer active:scale-95"
-              id="admin-upload-banner-btn"
-              title="Admin: Upload or change Hero Banner photos"
-            >
-              <Upload className="w-3.5 h-3.5 text-[#123B6D]" />
-              <span>Upload Banner (Admin)</span>
-            </button>
-          </div>
-
           {/* Main Photo Banner Carousel Container */}
           <div className="relative">
             {/* Carousel Track with 2%-5% Peek Effect on Mobile */}
