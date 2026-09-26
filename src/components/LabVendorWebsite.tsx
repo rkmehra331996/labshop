@@ -2700,8 +2700,8 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             })}
           </div>
 
-          {/* Active Filter & Test Count Status */}
-          <div className="flex items-center justify-between px-1 mb-5 text-xs font-semibold text-slate-500">
+          {/* Active Filter & Test Count Status (Badge hidden on mobile view) */}
+          <div className={`flex items-center justify-between px-1 text-xs font-semibold text-slate-500 ${searchTerm ? 'mb-4' : 'hidden md:flex mb-5'}`}>
             <span>
               {searchTerm ? (
                 <span>
@@ -2713,7 +2713,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 </span>
               )}
             </span>
-            <span className="text-[11px] font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs ml-auto">
+            <span className="hidden md:inline-block text-[11px] font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs ml-auto">
               Showing {displayedTests.length} of {filteredTests.length} Tests
             </span>
           </div>
@@ -3235,9 +3235,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       {/* 9. Minimal Contact Us Section */}
       <section id="contact" className="py-12 sm:py-16 bg-white border-b border-slate-200 scroll-mt-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Section Header */}
-          <div className="mb-8">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Get In Touch</span>
+          {/* Section Header (Center-aligned on mobile and desktop) */}
+          <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              Get In Touch
+            </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
               Contact Us
             </h2>
@@ -3439,6 +3441,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                       setContactSubmitted(false);
                       setContactName('');
                       setContactPhone('');
+                      setContactEmail('');
                       setContactSubject('');
                       setContactMessage('');
                     }}
@@ -3448,7 +3451,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleContactSubmit} className="space-y-4">
+                <form onSubmit={handleContactSubmit} className="space-y-3.5">
                   {contactError && (
                     <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
@@ -3456,33 +3459,33 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     </div>
                   )}
 
-                  {/* 1. Name */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Name <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                      <input
-                        type="text"
-                        required
-                        value={contactName}
-                        onChange={(e) => setContactName(e.target.value)}
-                        placeholder="Your full name"
-                        className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
-                      />
+                  {/* Row 1: Name + Phone: Inline (50% each) on mobile and desktop */}
+                  <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
+                    {/* 1. Name (50%) */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Name <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <User className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                        <input
+                          type="text"
+                          required
+                          value={contactName}
+                          onChange={(e) => setContactName(e.target.value)}
+                          placeholder="Your full name"
+                          className="w-full pl-8 pr-2.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  {/* 2. Phone & 3. Subject */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {/* Phone */}
+                    {/* 2. Phone (50%) */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Phone <span className="text-rose-500">*</span>
                       </label>
                       <div className="relative">
-                        <span className="text-xs font-bold text-slate-400 absolute left-3 top-2">+91</span>
+                        <span className="text-xs font-bold text-slate-400 absolute left-2.5 top-2 select-none">+91</span>
                         <input
                           type="tel"
                           required
@@ -3490,12 +3493,32 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                           value={contactPhone}
                           onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, ''))}
                           placeholder="98765 43210"
-                          className="w-full pl-10 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                          className="w-full pl-9 pr-2 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Email + Subject: Inline (50% each) on mobile and desktop */}
+                  <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
+                    {/* 3. Email (50%) */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Email
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                        <input
+                          type="email"
+                          value={contactEmail}
+                          onChange={(e) => setContactEmail(e.target.value)}
+                          placeholder="name@email.com"
+                          className="w-full pl-8 pr-2.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
                         />
                       </div>
                     </div>
 
-                    {/* Subject */}
+                    {/* 4. Subject (50%) */}
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Subject
@@ -3504,23 +3527,23 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                         type="text"
                         value={contactSubject}
                         onChange={(e) => setContactSubject(e.target.value)}
-                        placeholder="e.g. Test Inquiry, Pricing"
-                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                        placeholder="e.g. Test Inquiry"
+                        className="w-full px-2.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
                       />
                     </div>
                   </div>
 
-                  {/* 4. Message */}
+                  {/* Row 3: Message: Full-width textarea with 2 visible lines */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Message
                     </label>
                     <textarea
-                      rows={3}
+                      rows={2}
                       value={contactMessage}
                       onChange={(e) => setContactMessage(e.target.value)}
                       placeholder="Write your message or inquiry..."
-                      className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D]"
+                      className="w-full p-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#123B6D] resize-none"
                     />
                   </div>
 
