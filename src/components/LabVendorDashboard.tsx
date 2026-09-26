@@ -66,6 +66,7 @@ import { VendorWebsiteCmsTab } from './vendor/VendorWebsiteCmsTab';
 import { VendorBillingTab } from './vendor/VendorBillingTab';
 import { VendorTestsTab } from './vendor/VendorTestsTab';
 import { VendorPackagesTab } from './vendor/VendorPackagesTab';
+import { VendorFormsTab } from './vendor/VendorFormsTab';
 import { DoctorCommissionModal } from './vendor/DoctorCommissionModal';
 
 interface LabVendorDashboardProps {
@@ -107,10 +108,11 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
     vendorLabsList,
     updateVendorLabCredentials,
     activeTenantId,
+    contactSubmissions,
   } = useCms();
 
   const [activeTab, setActiveTab] = useState<
-    'website' | 'billing' | 'tests' | 'packages' | 'doctors' | 'profile' | 'staff'
+    'website' | 'billing' | 'tests' | 'packages' | 'forms' | 'doctors' | 'profile' | 'staff'
   >('website');
 
   const [websiteSubTab, setWebsiteSubTab] = useState<
@@ -121,6 +123,8 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const [isTestsMenuOpen, setIsTestsMenuOpen] = useState(true);
   const [packageSubTab, setPackageSubTab] = useState<'list' | 'add'>('list');
   const [isPackagesMenuOpen, setIsPackagesMenuOpen] = useState(true);
+  const [formSubTab, setFormSubTab] = useState<'bookings' | 'contacts'>('bookings');
+  const [isFormsMenuOpen, setIsFormsMenuOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [isDoctorCommissionModalOpen, setIsDoctorCommissionModalOpen] = useState(false);
@@ -1268,6 +1272,99 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 )}
               </div>
 
+              {/* SECTION 4: FORM (1. BOOKING SUBMISSION LIST > DELETE / TRANSFER TO RECEPTION DESK, 2. CONTACT FORM > READ / DELETE) */}
+              <div className="rounded-xl border border-sky-300/80 bg-sky-50/50 overflow-hidden shadow-2xs">
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('forms');
+                    setIsFormsMenuOpen(!isFormsMenuOpen);
+                  }}
+                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                    activeTab === 'forms'
+                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
+                      : 'bg-sky-100/70 text-slate-900 font-bold hover:bg-sky-200/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className={`w-4 h-4 shrink-0 ${activeTab === 'forms' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
+                    <span className="text-xs font-black truncate">4. Form</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      activeTab === 'forms' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
+                    }`}>
+                      {vendorBookings.length + contactSubmissions.length} Forms
+                    </span>
+                    {isFormsMenuOpen ? (
+                      <ChevronDown className={`w-4 h-4 ${activeTab === 'forms' ? 'text-white' : 'text-slate-800'}`} />
+                    ) : (
+                      <ChevronRight className={`w-4 h-4 ${activeTab === 'forms' ? 'text-white' : 'text-slate-800'}`} />
+                    )}
+                  </div>
+                </button>
+
+                {/* Sub-Items: 1. booking submission list > delete /transfer to Reception desk, 2. Contact form > read/ delete */}
+                {isFormsMenuOpen && (
+                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-sky-200/70">
+                    {/* 1. booking submission list > delete /transfer to Reception desk */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('forms');
+                        setFormSubTab('bookings');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'forms' && formSubTab === 'bookings'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-sky-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <CalendarCheck className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'forms' && formSubTab === 'bookings' ? 'text-amber-400' : 'text-teal-600'}`} />
+                        <span className="truncate">1. Booking Submissions</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'forms' && formSubTab === 'bookings'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-teal-50 text-teal-800 border border-teal-200'
+                      }`}>
+                        Delete / Transfer
+                      </span>
+                    </button>
+
+                    {/* 2. Contact form > read/ delete */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('forms');
+                        setFormSubTab('contacts');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'forms' && formSubTab === 'contacts'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-sky-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'forms' && formSubTab === 'contacts' ? 'text-amber-400' : 'text-blue-600'}`} />
+                        <span className="truncate">2. Contact Form</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'forms' && formSubTab === 'contacts'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-blue-50 text-blue-800 border border-blue-200'
+                      }`}>
+                        Read / Delete
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* SECTION 3: LAB OPERATIONS & BILLING */}
               <div className="space-y-1">
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 block mb-1">
@@ -1491,6 +1588,21 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 </button>
 
                 <button
+                  onClick={() => {
+                    setActiveTab('forms');
+                    setFormSubTab('bookings');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'forms'
+                      ? 'bg-[#123B6D] text-white shadow-xs font-black'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Forms ({vendorBookings.length + contactSubmissions.length})</span>
+                </button>
+
+                <button
                   onClick={() => setActiveTab('doctors')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                     activeTab === 'doctors'
@@ -1556,12 +1668,21 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
           />
         )}
 
-        {/* 2. TEST PACKAGE (ADD / LIST > EDIT & DELETE) TAB */}
+        {/* 3. TEST PACKAGE (ADD / LIST > EDIT & DELETE) TAB */}
         {activeTab === 'packages' && (
           <VendorPackagesTab
             activeSubTab={packageSubTab}
             onSubTabChange={(tab) => setPackageSubTab(tab)}
             onPreviewWebsite={() => onNavigateView('website')}
+          />
+        )}
+
+        {/* 4. FORM (1. BOOKING SUBMISSION LIST, 2. CONTACT FORM) TAB */}
+        {activeTab === 'forms' && (
+          <VendorFormsTab
+            activeSubTab={formSubTab}
+            onSubTabChange={(tab) => setFormSubTab(tab)}
+            onNavigateView={onNavigateView}
           />
         )}
 

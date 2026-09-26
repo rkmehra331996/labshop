@@ -105,6 +105,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     allReports,
     allReceptionEntries,
     updateVendorLabSettings,
+    addContactSubmission,
   } = useCms();
 
   const currentLabItem = React.useMemo(() => {
@@ -695,6 +696,15 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     setTimeout(() => {
       const generatedRef = `INQ-${Math.floor(100000 + Math.random() * 900000)}`;
       setContactRefId(generatedRef);
+      addContactSubmission({
+        name: contactName.trim(),
+        phone: cleanNum,
+        email: contactEmail?.trim() || undefined,
+        subject: contactSubject?.trim() || 'General Test Inquiry',
+        message: contactMessage?.trim() || 'Website inquiry received',
+        labId: currentLabItem?.id || vendorLabSettings?.labId || selectedVendorLabId || 'lab-apex',
+        referenceToken: generatedRef,
+      });
       setContactSubmitting(false);
       setContactSubmitted(true);
     }, 500);

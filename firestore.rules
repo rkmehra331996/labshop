@@ -42,6 +42,9 @@ service cloud.firestore {
     match /pricing_plans/{planId} {
       allow read, write: if true;
     }
+    match /contact_submissions/{submissionId} {
+      allow read, write: if true;
+    }
     match /{document=**} {
       allow read, write: if true;
     }

@@ -24,7 +24,8 @@ import {
   PortalWebsiteSections,
   VendorLabDirectoryItem,
   PricingPlan,
-  LabStaffAccount
+  LabStaffAccount,
+  ContactSubmission
 } from '../types';
 
 // Collection identifiers in Cloud Firestore
@@ -42,6 +43,7 @@ export const COLLECTIONS = {
   PORTAL_SECTIONS: 'portal_sections',
   VENDOR_LABS: 'vendor_labs',
   PRICING_PLANS: 'pricing_plans',
+  CONTACT_SUBMISSIONS: 'contact_submissions',
 } as const;
 
 export enum OperationType {
@@ -1030,3 +1032,59 @@ export function subscribeToStaffAccounts(
     return () => {};
   }
 }
+
+/* ==========================================================================
+   13. CONTACT FORM INQUIRIES & SUBMISSIONS (Real-time Cross-Device Sync)
+   ========================================================================== */
+
+export async function syncContactSubmissionToCloud(submission: ContactSubmission): Promise<void> {
+  try {
+    if (!db || !submission.id) return;
+    const clean = sanitizeForFirestore({
+      ...submission,
+      _updatedAt: new Date().toISOString(),
+    });
+    const ref = doc(db, COLLECTIONS.CONTACT_SUBMISSIONS, submission.id);
+    await setDoc(ref, clean, { merge: true });
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, `${COLLECTIONS.CONTACT_SUBMISSIONS}/${submission.id}`);
+  }
+}
+
+export async function deleteContactSubmissionFromCloud(submissionId: string): Promise<void> {
+  try {
+    if (!db || !submissionId) return;
+    const ref = doc(db, COLLECTIONS.CONTACT_SUBMISSIONS, submissionId);
+    await deleteDoc(ref);
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, `${COLLECTIONS.CONTACT_SUBMISSIONS}/${submissionId}`);
+  }
+}
+
+export function subscribeToContactSubmissions(
+  onData: (submissions: ContactSubmission[]) => void,
+  onError?: (err: any) => void
+): () => void {
+  try {
+    if (!db) return () => {};
+    const colRef = collection(db, COLLECTIONS.CONTACT_SUBMISSIONS);
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        const list: ContactSubmission[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as ContactSubmission);
+        });
+        onData(list);
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, COLLECTIONS.CONTACT_SUBMISSIONS);
+        if (onError) onError(error);
+      }
+    );
+  } catch (err) {
+    handleFirestoreError(err, OperationType.LIST, COLLECTIONS.CONTACT_SUBMISSIONS);
+    return () => {};
+  }
+}
+

@@ -23,6 +23,7 @@ import {
   UserRole,
   Patient,
   LabManagementFeature,
+  ContactSubmission,
 } from '../types';
 import { MOCK_TESTS, FAQ_LIST, SAMPLE_REPORT, INITIAL_REPORTS, VENDOR_LABS_DIRECTORY, INITIAL_RECEPTION_ENTRIES, DEFAULT_LAB_MANAGEMENT_FEATURES } from '../data/mockData';
 export { VENDOR_LABS_DIRECTORY };
@@ -35,6 +36,9 @@ import {
   deleteLabReportFromCloud,
   syncBookingToCloud,
   deleteBookingFromCloud,
+  syncContactSubmissionToCloud,
+  deleteContactSubmissionFromCloud,
+  subscribeToContactSubmissions,
   syncLabSettingsToCloud,
   subscribeToLabSettings,
   fetchAllLabSettingsFromCloud,
@@ -1253,6 +1257,69 @@ const DEFAULT_VENDOR_BOOKINGS: HomeCollectionBooking[] = [
   },
 ];
 
+export const DEFAULT_CONTACT_SUBMISSIONS: ContactSubmission[] = [
+  {
+    id: 'inq-101',
+    labId: 'lab-apex',
+    name: 'Pooja Aggarwal',
+    phone: '9814234567',
+    email: 'pooja.aggarwal@gmail.com',
+    subject: 'Home collection for Senior Citizen CBC & KFT',
+    message: 'Hello, my father is 78 years old and needs routine CBC and Kidney Function Test. Can your phlebotomist come to Sector 21 around 7:30 AM tomorrow?',
+    createdAt: 'Today, 09:20 AM',
+    status: 'unread',
+    referenceToken: 'INQ-729401',
+  },
+  {
+    id: 'inq-102',
+    labId: 'lab-apex',
+    name: 'Dr. Manish Kapoor',
+    phone: '9888765432',
+    email: 'dr.manishkapoor@apollo.org',
+    subject: 'Corporate Annual Employee Health Screening Inquiry',
+    message: 'We are looking for corporate health checkups for our IT company staff (approx 65 employees). Please share package pricing and quotation.',
+    createdAt: 'Yesterday, 04:15 PM',
+    status: 'read',
+    referenceToken: 'INQ-618290',
+  },
+  {
+    id: 'inq-103',
+    labId: 'lab-apex',
+    name: 'Gurmeet Singh',
+    phone: '9417890123',
+    email: 'gurmeet.singh99@yahoo.in',
+    subject: 'Thyroid profile fasting requirement question',
+    message: 'Do I need to be 12 hours fasting for Free T3, T4 and TSH test? And can I take my morning thyroid medication before blood collection?',
+    createdAt: '2 days ago, 11:45 AM',
+    status: 'read',
+    referenceToken: 'INQ-539102',
+  },
+  {
+    id: 'inq-201',
+    labId: 'lab-citycare',
+    name: 'Kavita Chawla',
+    phone: '9815044556',
+    email: 'kavita.chawla@gmail.com',
+    subject: 'Vitamin D3 & B12 report delivery turnaround time',
+    message: 'How soon can I get the verified PDF report on WhatsApp for Vitamin D and B12 tests done at your Phase 7 center?',
+    createdAt: 'Today, 08:40 AM',
+    status: 'unread',
+    referenceToken: 'INQ-839211',
+  },
+  {
+    id: 'inq-301',
+    labId: 'lab-metropath',
+    name: 'Rajinder Kumar',
+    phone: '9872166778',
+    email: 'rkumar.chandigarh@gmail.com',
+    subject: 'Cardiac Profile with hs-CRP pricing inquiry',
+    message: 'Please let me know if doctor prescription is mandatory for Cardiac profile test or if I can book it directly online?',
+    createdAt: 'Today, 10:10 AM',
+    status: 'unread',
+    referenceToken: 'INQ-948202',
+  },
+];
+
 export const DEFAULT_STAFF_ACCOUNTS: LabStaffAccount[] = [
   // --- SUPER ADMIN & GLOBAL PORTAL OWNER (rkmehra331996@gmail.com) ---
   {
@@ -1754,6 +1821,18 @@ interface CmsContextType {
   ) => void;
   updateBookingStatus: (id: string, status: HomeCollectionBooking['status']) => void;
   deleteBooking: (id: string) => void;
+  transferBookingToReception: (bookingId: string) => { success: boolean; tokenNo?: string; message?: string };
+
+  // Contact Form Inquiries
+  contactSubmissions: ContactSubmission[];
+  allContactSubmissions: ContactSubmission[];
+  addContactSubmission: (
+    submission: Omit<ContactSubmission, 'id' | 'createdAt' | 'status'>
+  ) => void;
+  markContactAsRead: (id: string) => void;
+  toggleContactReadStatus: (id: string) => void;
+  deleteContactSubmission: (id: string) => void;
+  clearContactSubmissions: () => void;
 
   // Multi-Vendor Labs Directory & Switching
   selectedVendorLabId: string;
@@ -2253,6 +2332,23 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
 
+  const [allContactSubmissions, setAllContactSubmissions] = useState<ContactSubmission[]>(() => {
+    try {
+      const saved = localStorage.getItem('cms_contact_submissions');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map((c: any) => c.id));
+          const missing = DEFAULT_CONTACT_SUBMISSIONS.filter((c) => !existingIds.has(c.id));
+          return [...parsed, ...missing];
+        }
+      }
+      return DEFAULT_CONTACT_SUBMISSIONS;
+    } catch {
+      return DEFAULT_CONTACT_SUBMISSIONS;
+    }
+  });
+
   const [allStaffAccounts, setAllStaffAccounts] = useState<LabStaffAccount[]>(() => {
     try {
       const saved = localStorage.getItem('cms_lab_staff_accounts');
@@ -2332,6 +2428,12 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('cms_vendor_bookings', JSON.stringify(allVendorBookings));
     } catch {}
   }, [allVendorBookings]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('cms_contact_submissions', JSON.stringify(allContactSubmissions));
+    } catch {}
+  }, [allContactSubmissions]);
 
   useEffect(() => {
     try {
@@ -2532,6 +2634,16 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
+    // 15. Subscribe to Contact Form Submissions
+    const unsubscribeContact = subscribeToContactSubmissions((cloudContacts) => {
+      if (cloudContacts) {
+        setAllContactSubmissions(cloudContacts);
+        try {
+          localStorage.setItem('cms_contact_submissions', JSON.stringify(cloudContacts));
+        } catch {}
+      }
+    });
+
     return () => {
       unsubscribeSettings();
       unsubscribeTests();
@@ -2546,6 +2658,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       unsubscribeBranches();
       unsubscribePricing();
       unsubscribeStaff();
+      unsubscribeContact();
     };
   }, []);
 
@@ -2610,6 +2723,14 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const targetLab = selectedVendorLabId || (currentUser?.role !== 'admin' ? currentUser?.labId : superAdminTenantScope) || 'lab-apex';
     return allVendorBookings.filter((b) => isTenantMatch(b, targetLab));
   }, [allVendorBookings, selectedVendorLabId, currentUser, superAdminTenantScope]);
+
+  const contactSubmissions = useMemo(() => {
+    if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && !selectedVendorLabId) {
+      return allContactSubmissions;
+    }
+    const targetLab = selectedVendorLabId || (currentUser?.role !== 'admin' ? currentUser?.labId : superAdminTenantScope) || 'lab-apex';
+    return allContactSubmissions.filter((c) => isTenantMatch(c, targetLab));
+  }, [allContactSubmissions, selectedVendorLabId, currentUser, superAdminTenantScope]);
 
   const staffAccounts = useMemo(() => {
     if (currentUser?.role === 'admin' && superAdminTenantScope === 'all' && !selectedVendorLabId) {
@@ -4145,6 +4266,165 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     deleteBookingFromCloud(id);
   };
 
+  const transferBookingToReception = (
+    bookingId: string
+  ): { success: boolean; tokenNo?: string; message?: string } => {
+    const booking = allVendorBookings.find((b) => b.id === bookingId);
+    if (!booking) {
+      return { success: false, message: 'Booking not found' };
+    }
+
+    const tokenVal = `TK-${Math.floor(100 + Math.random() * 900)}`;
+    const uhidVal = `UHID-${Math.floor(100000 + Math.random() * 900000)}`;
+    const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    // Parse amount if available
+    let price = booking.amountINR || 0;
+    if (!price && booking.packageOrTest) {
+      const match = booking.packageOrTest.match(/₹\s*([0-9,]+)/);
+      if (match) {
+        price = parseInt(match[1].replace(/,/g, ''), 10) || 799;
+      } else {
+        price = 799;
+      }
+    }
+
+    const effectiveTenant = booking.labId || (activeTenantId === 'all' ? 'lab-apex' : activeTenantId);
+    const effectiveBranch = booking.branchId || (activeBranchId !== 'all' ? activeBranchId : 'branch-1');
+
+    // Create Reception Entry
+    const newEntry: ReceptionPatientEntry = {
+      id: `rcp-${Date.now()}`,
+      uhid: uhidVal,
+      tokenNumber: tokenVal,
+      tokenNo: tokenVal,
+      patientName: booking.patientName,
+      age: booking.age || 38,
+      gender: booking.gender || 'Male',
+      mobile: booking.mobile,
+      referringDoctor: 'Self / Online Booking',
+      tests: [booking.packageOrTest],
+      testNames: [booking.packageOrTest],
+      sampleType: 'Blood / Serum',
+      totalAmount: price,
+      paidAmount: booking.paymentMode === 'UPI (Online Pre-paid)' ? price : 0,
+      dueAmount: booking.paymentMode === 'UPI (Online Pre-paid)' ? 0 : price,
+      paymentMode: booking.paymentMode?.includes('UPI') ? 'UPI' : 'Cash',
+      paymentStatus: booking.paymentMode === 'UPI (Online Pre-paid)' ? 'Full Payment' : 'Pending',
+      status: 'Waiting',
+      registeredAt: `Today, ${nowTime}`,
+      entryTime: `Today, ${nowTime}`,
+      labId: effectiveTenant,
+      branchId: effectiveBranch,
+      bookingSource: 'Website Booking Form',
+      visitType: booking.address ? 'Home Collection' : 'Walk-in',
+      address: booking.address,
+      preferredTimeSlot: booking.timeSlot,
+      notes: `Transferred from Online Booking [${booking.id}]. Slot: ${booking.timeSlot}${booking.address ? ` | Address: ${booking.address}` : ''}`,
+      sentToTechnician: false,
+      technicianStatus: 'Not Sent',
+    };
+
+    // Add reception entry and sync
+    setAllReceptionEntries((prev) => [newEntry, ...prev]);
+    syncReceptionEntryToCloud(newEntry);
+
+    // Update booking record
+    let syncedBooking: HomeCollectionBooking | null = null;
+    setAllVendorBookings((prev) =>
+      prev.map((b) => {
+        if (b.id === bookingId) {
+          const updated: HomeCollectionBooking = {
+            ...b,
+            status: 'Phlebotomist Assigned',
+            transferredToReception: true,
+            transferredAt: `Today, ${nowTime}`,
+            receptionToken: tokenVal,
+            receptionEntryId: newEntry.id,
+          };
+          syncedBooking = updated;
+          return updated;
+        }
+        return b;
+      })
+    );
+    if (syncedBooking) {
+      syncBookingToCloud(syncedBooking);
+    }
+
+    return {
+      success: true,
+      tokenNo: tokenVal,
+      message: `Transferred to Reception Desk with Token ${tokenVal}`,
+    };
+  };
+
+  // Contact Submissions Mutators
+  const addContactSubmission = (
+    submission: Omit<ContactSubmission, 'id' | 'createdAt' | 'status'>
+  ) => {
+    const effectiveTenant = submission.labId || (activeTenantId === 'all' ? 'lab-apex' : activeTenantId);
+    const newSubmission: ContactSubmission = {
+      ...submission,
+      labId: effectiveTenant,
+      id: `inq-${Date.now()}`,
+      status: 'unread',
+      createdAt: `Today, ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`,
+      referenceToken: submission.referenceToken || `INQ-${Math.floor(100000 + Math.random() * 900000)}`,
+    };
+    setAllContactSubmissions((prev) => [newSubmission, ...prev]);
+    syncContactSubmissionToCloud(newSubmission);
+  };
+
+  const markContactAsRead = (id: string) => {
+    let synced: ContactSubmission | null = null;
+    setAllContactSubmissions((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          synced = { ...c, status: 'read' };
+          return synced;
+        }
+        return c;
+      })
+    );
+    if (synced) {
+      syncContactSubmissionToCloud(synced);
+    }
+  };
+
+  const toggleContactReadStatus = (id: string) => {
+    let synced: ContactSubmission | null = null;
+    setAllContactSubmissions((prev) =>
+      prev.map((c) => {
+        if (c.id === id) {
+          synced = { ...c, status: c.status === 'read' ? 'unread' : 'read' };
+          return synced;
+        }
+        return c;
+      })
+    );
+    if (synced) {
+      syncContactSubmissionToCloud(synced);
+    }
+  };
+
+  const deleteContactSubmission = (id: string) => {
+    setAllContactSubmissions((prev) => prev.filter((c) => c.id !== id));
+    deleteContactSubmissionFromCloud(id);
+  };
+
+  const clearContactSubmissions = () => {
+    if (activeTenantId === 'all') {
+      allContactSubmissions.forEach((c) => deleteContactSubmissionFromCloud(c.id));
+      setAllContactSubmissions([]);
+    } else {
+      allContactSubmissions
+        .filter((c) => isTenantMatch(c, activeTenantId))
+        .forEach((c) => deleteContactSubmissionFromCloud(c.id));
+      setAllContactSubmissions((prev) => prev.filter((c) => !isTenantMatch(c, activeTenantId)));
+    }
+  };
+
   // Vendor Lab Directory Management
   const addVendorLab = (vendor: Omit<VendorLabDirectoryItem, 'id'>): VendorLabDirectoryItem => {
     // New labs always start in Draft mode until Super Admin publishes/approves
@@ -4698,6 +4978,15 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addHomeCollectionBooking,
         updateBookingStatus,
         deleteBooking,
+        transferBookingToReception,
+
+        contactSubmissions,
+        allContactSubmissions,
+        addContactSubmission,
+        markContactAsRead,
+        toggleContactReadStatus,
+        deleteContactSubmission,
+        clearContactSubmissions,
 
         selectedVendorLabId,
         setSelectedVendorLabId,

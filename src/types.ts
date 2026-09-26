@@ -326,6 +326,29 @@ export interface HomeCollectionBooking {
   branchId?: string;
   amountINR?: number;
   paymentMode?: string;
+  transferredToReception?: boolean;
+  transferredAt?: string;
+  receptionToken?: string;
+  receptionEntryId?: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  age?: number | string;
+  notes?: string;
+  bookingType?: 'home_collection' | 'lab_visit' | 'online_booking';
+}
+
+export interface ContactSubmission {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  subject?: string;
+  message: string;
+  createdAt: string;
+  status: 'unread' | 'read';
+  labId?: string;
+  referenceToken?: string;
+  replyNotes?: string;
+  repliedAt?: string;
 }
 
 export type Language = 'en' | 'hi' | 'pa';
