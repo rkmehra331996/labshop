@@ -1268,16 +1268,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={openBannerManager}
-              className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-3 py-1 rounded-lg text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
-              title="Upload Hero Promotional Photo Banners (Admin)"
-            >
-              <Camera className="w-3.5 h-3.5" />
-              <span>Upload Banner Photo</span>
-            </button>
-
             {onOpenAdminDashboard && (
               <button
                 type="button"
@@ -1738,21 +1728,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 space-y-3.5 sm:space-y-5">
           {/* Main Photo Banner Carousel Container */}
           <div className="relative">
-            {/* Admin Upload / Manage Banner Photo Button (Directly Accessible on Hero Section) */}
-            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openBannerManager();
-                }}
-                className="bg-slate-950/80 hover:bg-slate-950 text-white hover:text-amber-300 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-black flex items-center gap-2 shadow-xl backdrop-blur-md border border-white/20 transition cursor-pointer active:scale-95 group"
-                title="Admin Banner Photo Upload (Upload photo directly without complex banner codes)"
-              >
-                <Camera className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-                <span>Upload Banner (Admin)</span>
-              </button>
-            </div>
 
             {/* Carousel Track with 2%-5% Peek Effect on Mobile */}
             <div
