@@ -2183,127 +2183,131 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
           </div>
 
-          {/* Health Packages Grid: Full image cover, modern cards, full width on mobile screen */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {vendorPackages.map((pkg, idx) => {
-              // Curated high-resolution diagnostic & healthcare images for each package
-              const getPackageImg = (p: typeof pkg, index: number) => {
-                if (p.imageUrl) return p.imageUrl;
-                const name = (p.name || '').toLowerCase();
-                if (name.includes('diabet') || name.includes('sugar')) {
-                  return 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80';
-                }
-                if (name.includes('senior') || name.includes('elder') || name.includes('cardiac') || name.includes('heart')) {
-                  return 'https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=1000&q=80';
-                }
-                if (name.includes('women') || name.includes('female') || name.includes('hormon')) {
-                  return 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1000&q=80';
-                }
-                const curated = [
-                  'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1000&q=80',
-                  'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80',
-                  'https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=1000&q=80',
-                  'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1000&q=80',
-                ];
-                return curated[index % curated.length];
-              };
+          {/* Health Packages Grid: 3 Packages Centered with Equal Height and Equal Width (33% each) */}
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch justify-center">
+              {vendorPackages.slice(0, 3).map((pkg, idx) => {
+                // Curated high-resolution diagnostic & healthcare images for each package
+                const getPackageImg = (p: typeof pkg, index: number) => {
+                  if (p.imageUrl) return p.imageUrl;
+                  const name = (p.name || '').toLowerCase();
+                  if (name.includes('diabet') || name.includes('sugar')) {
+                    return 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80';
+                  }
+                  if (name.includes('senior') || name.includes('elder') || name.includes('cardiac') || name.includes('heart')) {
+                    return 'https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=1000&q=80';
+                  }
+                  if (name.includes('women') || name.includes('female') || name.includes('hormon')) {
+                    return 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1000&q=80';
+                  }
+                  const curated = [
+                    'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1000&q=80',
+                    'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80',
+                    'https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=1000&q=80',
+                  ];
+                  return curated[index % curated.length];
+                };
 
-              const pkgImageUrl = getPackageImg(pkg, idx);
+                const pkgImageUrl = getPackageImg(pkg, idx);
 
-              return (
-                <div
-                  key={pkg.id || idx}
-                  className="bg-white rounded-3xl border border-slate-200/90 hover:border-[#123B6D]/40 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group relative"
-                >
-                  {/* Package Cover Image with Full Screen View Trigger */}
-                  <div className="relative w-full h-48 sm:h-52 bg-slate-100 overflow-hidden">
-                    <img
-                      src={pkgImageUrl}
-                      alt={pkg.name}
-                      onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent pointer-events-none" />
+                return (
+                  <div
+                    key={pkg.id || idx}
+                    className="bg-white rounded-3xl border border-slate-200/90 hover:border-[#123B6D]/40 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group relative h-full w-full"
+                  >
+                    {/* Package Cover Image with Full Screen View Trigger */}
+                    <div className="relative w-full h-48 sm:h-52 bg-slate-100 overflow-hidden shrink-0">
+                      <img
+                        src={pkgImageUrl}
+                        alt={pkg.name}
+                        onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent pointer-events-none" />
 
-                    {/* Popular Badge */}
-                    {(pkg.isPopular || idx === 0) && (
-                      <div className="absolute top-3 left-3 bg-[#F59E0B] text-slate-950 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
-                        Most Popular
-                      </div>
-                    )}
-
-                    {/* Full Screen View Icon Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFullScreenImage({ url: pkgImageUrl, title: pkg.name });
-                      }}
-                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-xs flex items-center justify-center transition shadow-md cursor-pointer"
-                      title="View full image screen"
-                      aria-label="View full image screen"
-                    >
-                      <Maximize2 className="w-4 h-4 text-white" />
-                    </button>
-
-                    {/* Click Image Hint */}
-                    <button
-                      type="button"
-                      onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
-                      className="absolute bottom-2.5 right-3 text-[10px] font-bold text-white/95 bg-black/55 hover:bg-black/80 px-2.5 py-1 rounded-full backdrop-blur-xs flex items-center gap-1.5 transition cursor-pointer"
-                    >
-                      <Maximize2 className="w-3 h-3 text-amber-300" />
-                      <span>Full Image View</span>
-                    </button>
-                  </div>
-
-                  {/* Card Content */}
-                  <div className="p-5 sm:p-6 flex flex-col flex-1 justify-between">
-                    <div>
-                      {/* Sabse upar Package ka naam */}
-                      <h3 className="text-base sm:text-lg font-black text-[#123B6D] leading-snug mb-3">
-                        {pkg.name}
-                      </h3>
-
-                      {/* Uske neeche List of Tests (test ke naam poore aane chahiye) */}
-                      <div className="space-y-2 mb-5">
-                        <div className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
-                          Included Tests:
+                      {/* Popular Badge */}
+                      {(pkg.isPopular || idx === 0) && (
+                        <div className="absolute top-3 left-3 bg-[#F59E0B] text-slate-950 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
+                          Most Popular
                         </div>
-                        <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-                          {pkg.features.map((feat, fIdx) => (
-                            <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700 leading-snug">
-                              <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                              <span className="font-medium text-slate-700">{feat}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
+                      )}
 
-                    {/* Uske neeche inline 2 buttons: Price aur Book Test */}
-                    <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5 mt-auto">
-                      <div className="px-3.5 py-2.5 rounded-xl bg-blue-50/90 border border-blue-200 text-[#123B6D] font-black text-sm sm:text-base flex items-center justify-center shrink-0 shadow-2xs">
-                        ₹{pkg.priceINR}
-                      </div>
-
+                      {/* Full Screen View Icon Button */}
                       <button
                         type="button"
-                        onClick={() => {
-                          setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
-                          setIsBookingModalOpen(true);
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFullScreenImage({ url: pkgImageUrl, title: pkg.name });
                         }}
-                        className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-xs flex items-center justify-center transition shadow-md cursor-pointer"
+                        title="View full image screen"
+                        aria-label="View full image screen"
                       >
-                        <span>Book Test</span>
-                        <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                        <Maximize2 className="w-4 h-4 text-white" />
+                      </button>
+
+                      {/* Click Image Hint */}
+                      <button
+                        type="button"
+                        onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
+                        className="absolute bottom-2.5 right-3 text-[10px] font-bold text-white/95 bg-black/55 hover:bg-black/80 px-2.5 py-1 rounded-full backdrop-blur-xs flex items-center gap-1.5 transition cursor-pointer"
+                      >
+                        <Maximize2 className="w-3 h-3 text-amber-300" />
+                        <span>Full Image View</span>
                       </button>
                     </div>
+
+                    {/* Card Content with Flex-1 to guarantee uniform equal height */}
+                    <div className="p-5 sm:p-6 flex flex-col flex-1 justify-between">
+                      <div className="flex-1 flex flex-col">
+                        {/* Sabse upar Package ka naam with equal fixed min-height */}
+                        <h3 className="text-base sm:text-lg font-black text-[#123B6D] leading-snug mb-3 min-h-[3rem] flex items-center">
+                          {pkg.name}
+                        </h3>
+
+                        {/* Uske neeche List of Tests with equal fixed height */}
+                        <div className="space-y-2 mb-5 flex-1 flex flex-col">
+                          <div className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                            <span>Included Tests:</span>
+                            <span className="text-[10px] font-bold text-slate-400">
+                              {pkg.testsCount ? `${pkg.testsCount} Tests` : `${pkg.features.length} Tests`}
+                            </span>
+                          </div>
+                          <div className="space-y-1.5 h-48 overflow-y-auto pr-1">
+                            {pkg.features.map((feat, fIdx) => (
+                              <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700 leading-snug">
+                                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                                <span className="font-medium text-slate-700">{feat}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Uske neeche inline 2 buttons: Price aur Book Test */}
+                      <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5 mt-auto shrink-0">
+                        <div className="px-3.5 py-2.5 rounded-xl bg-blue-50/90 border border-blue-200 text-[#123B6D] font-black text-sm sm:text-base flex items-center justify-center shrink-0 shadow-2xs">
+                          ₹{pkg.priceINR}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
+                            setIsBookingModalOpen(true);
+                          }}
+                          className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                        >
+                          <span>Book Test</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
