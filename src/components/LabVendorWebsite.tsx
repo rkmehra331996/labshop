@@ -254,6 +254,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     }
     return 40;
   });
+  const [activeMobilePkgIndex, setActiveMobilePkgIndex] = useState(0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1832,12 +1833,12 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                   Check &amp; Download Patient Lab Report
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-300">
+                <p className="hidden sm:block text-xs sm:text-sm text-slate-300">
                   Access your ISO 15189 verified medical reports for <strong>{labName}</strong> directly without password or login.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 self-start sm:self-auto text-xs text-slate-300">
+              <div className="hidden sm:flex items-center gap-2 self-start sm:self-auto text-xs text-slate-300">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span className="font-semibold">NABL Accredited • 256-Bit Encrypted</span>
               </div>
@@ -2202,145 +2203,373 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       {/* SECTION 3: HEALTH PACKAGES (with Booking Button & Peek Carousel) */}
       <section id="packages" className="py-16 bg-white border-b border-slate-200 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10">
+          <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#123B6D]/10 text-[#123B6D] text-xs font-bold mb-3">
               <span>Preventive Health Packages</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
-              Comprehensive Health Checkups with Up to 60% Savings
-            </h2>
-            <p className="text-sm text-[#64748B] mt-2">
-              सभी पॉपुलर प्रिवेंटिव हेल्थ पैकेजेस (Full Body Checkup, Diabetes Care, Senior Citizen, Women Wellness आदि)। Free home sample pickup, digital NABL reports and free doctor consultation.
-            </p>
 
-          </div>
+            {/* Mobile View Title & Subtitle */}
+            <div className="md:hidden">
+              <h2 className="text-2xl font-extrabold text-[#123B6D] tracking-tight">
+                Offers &amp; Health Packages
+              </h2>
+              <p className="text-sm text-[#64748B] mt-1.5 font-medium">
+                Affordable Diagnostic Tests for Your Better Health
+              </p>
+            </div>
 
-          {/* Health Packages Grid: 3 Packages Centered with Equal Height and Equal Width (33% each) */}
-          <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch justify-center">
-              {vendorPackages.slice(0, 3).map((pkg, idx) => {
-                // Curated high-resolution diagnostic & healthcare images for each package
-                const getPackageImg = (p: typeof pkg, index: number) => {
-                  if (p.imageUrl) return p.imageUrl;
-                  const name = (p.name || '').toLowerCase();
-                  if (name.includes('diabet') || name.includes('sugar')) {
-                    return 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80';
-                  }
-                  if (name.includes('senior') || name.includes('elder') || name.includes('cardiac') || name.includes('heart')) {
-                    return 'https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=1000&q=80';
-                  }
-                  if (name.includes('women') || name.includes('female') || name.includes('hormon')) {
-                    return 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1000&q=80';
-                  }
-                  const curated = [
-                    'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1000&q=80',
-                    'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80',
-                    'https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=1000&q=80',
-                  ];
-                  return curated[index % curated.length];
-                };
-
-                const pkgImageUrl = getPackageImg(pkg, idx);
-
-                return (
-                  <div
-                    key={pkg.id || idx}
-                    className="bg-white rounded-3xl border border-slate-200/90 hover:border-[#123B6D]/40 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group relative h-full w-full"
-                  >
-                    {/* Package Cover Image with Full Screen View Trigger */}
-                    <div className="relative w-full h-48 sm:h-52 bg-slate-100 overflow-hidden shrink-0">
-                      <img
-                        src={pkgImageUrl}
-                        alt={pkg.name}
-                        onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent pointer-events-none" />
-
-                      {/* Popular Badge */}
-                      {(pkg.isPopular || idx === 0) && (
-                        <div className="absolute top-3 left-3 bg-[#F59E0B] text-slate-950 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
-                          Most Popular
-                        </div>
-                      )}
-
-                      {/* Full Screen View Icon Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFullScreenImage({ url: pkgImageUrl, title: pkg.name });
-                        }}
-                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-xs flex items-center justify-center transition shadow-md cursor-pointer"
-                        title="View full image screen"
-                        aria-label="View full image screen"
-                      >
-                        <Maximize2 className="w-4 h-4 text-white" />
-                      </button>
-
-                      {/* Click Image Hint */}
-                      <button
-                        type="button"
-                        onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
-                        className="absolute bottom-2.5 right-3 text-[10px] font-bold text-white/95 bg-black/55 hover:bg-black/80 px-2.5 py-1 rounded-full backdrop-blur-xs flex items-center gap-1.5 transition cursor-pointer"
-                      >
-                        <Maximize2 className="w-3 h-3 text-amber-300" />
-                        <span>Full Image View</span>
-                      </button>
-                    </div>
-
-                    {/* Card Content with Flex-1 to guarantee uniform equal height */}
-                    <div className="p-5 sm:p-6 flex flex-col flex-1 justify-between">
-                      <div className="flex-1 flex flex-col">
-                        {/* Sabse upar Package ka naam with equal fixed min-height */}
-                        <h3 className="text-base sm:text-lg font-black text-[#123B6D] leading-snug mb-3 min-h-[3rem] flex items-center">
-                          {pkg.name}
-                        </h3>
-
-                        {/* Uske neeche List of Tests with equal fixed height */}
-                        <div className="space-y-2 mb-5 flex-1 flex flex-col">
-                          <div className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                            <span>Included Tests:</span>
-                            <span className="text-[10px] font-bold text-slate-400">
-                              {pkg.testsCount ? `${pkg.testsCount} Tests` : `${pkg.features.length} Tests`}
-                            </span>
-                          </div>
-                          <div className="space-y-1.5 h-48 overflow-y-auto pr-1">
-                            {pkg.features.map((feat, fIdx) => (
-                              <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700 leading-snug">
-                                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                                <span className="font-medium text-slate-700">{feat}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Uske neeche inline 2 buttons: Price aur Book Test */}
-                      <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5 mt-auto shrink-0">
-                        <div className="px-3.5 py-2.5 rounded-xl bg-blue-50/90 border border-blue-200 text-[#123B6D] font-black text-sm sm:text-base flex items-center justify-center shrink-0 shadow-2xs">
-                          ₹{pkg.priceINR}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
-                            setIsBookingModalOpen(true);
-                          }}
-                          className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
-                        >
-                          <span>Book Test</span>
-                          <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            {/* Desktop View Title & Subtitle (Unchanged) */}
+            <div className="hidden md:block">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
+                Comprehensive Health Checkups with Up to 60% Savings
+              </h2>
+              <p className="text-sm text-[#64748B] mt-2">
+                सभी पॉपुलर प्रिवेंटिव हेल्थ पैकेजेस (Full Body Checkup, Diabetes Care, Senior Citizen, Women Wellness आदि)। Free home sample pickup, digital NABL reports and free doctor consultation.
+              </p>
             </div>
           </div>
+
+          {/* Curated Package Image Helper */}
+          {(() => {
+            const getPackageImg = (p: typeof vendorPackages[0], index: number) => {
+              if (p.imageUrl) return p.imageUrl;
+              const name = (p.name || '').toLowerCase();
+              if (name.includes('diabet') || name.includes('sugar')) {
+                return 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80';
+              }
+              if (name.includes('senior') || name.includes('elder') || name.includes('cardiac') || name.includes('heart')) {
+                return 'https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=1000&q=80';
+              }
+              if (name.includes('women') || name.includes('female') || name.includes('hormon')) {
+                return 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1000&q=80';
+              }
+              const curated = [
+                'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1000&q=80',
+                'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=1000&q=80',
+                'https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=1000&q=80',
+              ];
+              return curated[index % curated.length];
+            };
+
+            return (
+              <div className="max-w-6xl mx-auto">
+                {/* Desktop View: Grid (Unchanged) */}
+                <div className="hidden md:grid md:grid-cols-3 gap-6 lg:gap-8 items-stretch justify-center">
+                  {vendorPackages.slice(0, 3).map((pkg, idx) => {
+                    const pkgImageUrl = getPackageImg(pkg, idx);
+
+                    return (
+                      <div
+                        key={pkg.id || idx}
+                        className="bg-white rounded-3xl border border-slate-200/90 hover:border-[#123B6D]/40 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden group relative h-full w-full"
+                      >
+                        {/* Package Cover Image with Full Screen View Trigger */}
+                        <div className="relative w-full h-48 sm:h-52 bg-slate-100 overflow-hidden shrink-0">
+                          <img
+                            src={pkgImageUrl}
+                            alt={pkg.name}
+                            onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                            loading="lazy"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent pointer-events-none" />
+
+                          {/* Popular Badge */}
+                          {(pkg.isPopular || idx === 0) && (
+                            <div className="absolute top-3 left-3 bg-[#F59E0B] text-slate-950 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
+                              Most Popular
+                            </div>
+                          )}
+
+                          {/* Full Screen View Icon Button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFullScreenImage({ url: pkgImageUrl, title: pkg.name });
+                            }}
+                            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-xs flex items-center justify-center transition shadow-md cursor-pointer"
+                            title="View full image screen"
+                            aria-label="View full image screen"
+                          >
+                            <Maximize2 className="w-4 h-4 text-white" />
+                          </button>
+
+                          {/* Click Image Hint */}
+                          <button
+                            type="button"
+                            onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
+                            className="absolute bottom-2.5 right-3 text-[10px] font-bold text-white/95 bg-black/55 hover:bg-black/80 px-2.5 py-1 rounded-full backdrop-blur-xs flex items-center gap-1.5 transition cursor-pointer"
+                          >
+                            <Maximize2 className="w-3 h-3 text-amber-300" />
+                            <span>Full Image View</span>
+                          </button>
+                        </div>
+
+                        {/* Card Content with Flex-1 to guarantee uniform equal height */}
+                        <div className="p-5 sm:p-6 flex flex-col flex-1 justify-between">
+                          <div className="flex-1 flex flex-col">
+                            {/* Sabse upar Package ka naam with equal fixed min-height */}
+                            <h3 className="text-base sm:text-lg font-black text-[#123B6D] leading-snug mb-3 min-h-[3rem] flex items-center">
+                              {pkg.name}
+                            </h3>
+
+                            {/* Uske neeche List of Tests with equal fixed height */}
+                            <div className="space-y-2 mb-5 flex-1 flex flex-col">
+                              <div className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                                <span>Included Tests:</span>
+                                <span className="text-[10px] font-bold text-slate-400">
+                                  {pkg.testsCount ? `${pkg.testsCount} Tests` : `${pkg.features.length} Tests`}
+                                </span>
+                              </div>
+                              <div className="space-y-1.5 h-48 overflow-y-auto pr-1">
+                                {pkg.features.map((feat, fIdx) => (
+                                  <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700 leading-snug">
+                                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                                    <span className="font-medium text-slate-700">{feat}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Uske neeche inline 2 buttons: Price aur Book Test */}
+                          <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5 mt-auto shrink-0">
+                            <div className="px-3.5 py-2.5 rounded-xl bg-blue-50/90 border border-blue-200 text-[#123B6D] font-black text-sm sm:text-base flex items-center justify-center shrink-0 shadow-2xs">
+                              ₹{pkg.priceINR}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
+                                setIsBookingModalOpen(true);
+                              }}
+                              className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-3 rounded-xl text-xs sm:text-sm font-black transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                            >
+                              <span>Book Test</span>
+                              <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Mobile View: 1 Package = 100% width, 2+ Packages = 90% card with 10% peek & swipe */}
+                <div className="block md:hidden">
+                  {vendorPackages.length === 1 ? (
+                    /* 1 Package: Full screen width (100%) */
+                    <div className="w-full">
+                      {(() => {
+                        const pkg = vendorPackages[0];
+                        const pkgImageUrl = getPackageImg(pkg, 0);
+                        return (
+                          <div
+                            key={pkg.id || 0}
+                            className="bg-white rounded-3xl border border-slate-200/90 shadow-sm flex flex-col justify-between overflow-hidden relative w-full"
+                          >
+                            <div className="relative w-full h-48 bg-slate-100 overflow-hidden shrink-0">
+                              <img
+                                src={pkgImageUrl}
+                                alt={pkg.name}
+                                onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
+                                className="w-full h-full object-cover cursor-pointer"
+                                loading="lazy"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent pointer-events-none" />
+                              <div className="absolute top-3 left-3 bg-[#F59E0B] text-slate-950 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-wider shadow-md">
+                                Most Popular
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
+                                className="absolute bottom-2.5 right-3 text-[10px] font-bold text-white/95 bg-black/55 px-2.5 py-1 rounded-full backdrop-blur-xs flex items-center gap-1.5"
+                              >
+                                <Maximize2 className="w-3 h-3 text-amber-300" />
+                                <span>Full View</span>
+                              </button>
+                            </div>
+                            <div className="p-5 flex flex-col justify-between">
+                              <div>
+                                <h3 className="text-base font-black text-[#123B6D] leading-snug mb-2.5">
+                                  {pkg.name}
+                                </h3>
+                                <div className="space-y-2 mb-4">
+                                  <div className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                                    <span>Included Tests:</span>
+                                    <span className="text-[10px] font-bold text-slate-400">
+                                      {pkg.testsCount ? `${pkg.testsCount} Tests` : `${pkg.features.length} Tests`}
+                                    </span>
+                                  </div>
+                                  <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                                    {pkg.features.map((feat, fIdx) => (
+                                      <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700 leading-snug">
+                                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                                        <span className="font-medium text-slate-700">{feat}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="pt-3 border-t border-slate-100 flex items-center gap-2.5">
+                                <div className="px-3.5 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-[#123B6D] font-black text-base shadow-2xs">
+                                  ₹{pkg.priceINR}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
+                                    setIsBookingModalOpen(true);
+                                  }}
+                                  className="flex-1 bg-[#123B6D] text-white py-2.5 px-3 rounded-xl text-xs font-black shadow-sm flex items-center justify-center gap-1.5 active:scale-98"
+                                >
+                                  <span>Book Test</span>
+                                  <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  ) : vendorPackages.length > 1 ? (
+                    /* 2+ Packages: First card 90% width, next card 10% visible on right. Horizontal swipe enabled. */
+                    <div>
+                      <div
+                        className="flex overflow-x-auto snap-x snap-mandatory gap-3.5 pb-2 -mx-4 px-4 scroll-smooth touch-pan-x"
+                        style={{
+                          scrollbarWidth: 'none',
+                          msOverflowStyle: 'none',
+                          WebkitOverflowScrolling: 'touch',
+                        }}
+                        onScroll={(e) => {
+                          const el = e.currentTarget;
+                          const scrollLeft = el.scrollLeft;
+                          const cardWidth = el.offsetWidth * 0.88;
+                          if (cardWidth > 0) {
+                            const idx = Math.min(
+                              vendorPackages.length - 1,
+                              Math.max(0, Math.round(scrollLeft / cardWidth))
+                            );
+                            if (idx !== activeMobilePkgIndex) {
+                              setActiveMobilePkgIndex(idx);
+                            }
+                          }
+                        }}
+                      >
+                        {vendorPackages.map((pkg, idx) => {
+                          const pkgImageUrl = getPackageImg(pkg, idx);
+                          return (
+                            <div
+                              key={pkg.id || idx}
+                              className="w-[88vw] shrink-0 snap-start bg-white rounded-3xl border border-slate-200/90 shadow-sm flex flex-col justify-between overflow-hidden relative"
+                            >
+                              {/* Package Cover Image */}
+                              <div className="relative w-full h-44 bg-slate-100 overflow-hidden shrink-0">
+                                <img
+                                  src={pkgImageUrl}
+                                  alt={pkg.name}
+                                  onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
+                                  className="w-full h-full object-cover cursor-pointer"
+                                  loading="lazy"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent pointer-events-none" />
+
+                                {/* Popular Badge */}
+                                {(pkg.isPopular || idx === 0) && (
+                                  <div className="absolute top-3 left-3 bg-[#F59E0B] text-slate-950 font-black text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md">
+                                    Most Popular
+                                  </div>
+                                )}
+
+                                {/* Click Image Hint */}
+                                <button
+                                  type="button"
+                                  onClick={() => setFullScreenImage({ url: pkgImageUrl, title: pkg.name })}
+                                  className="absolute bottom-2.5 right-3 text-[10px] font-bold text-white/95 bg-black/55 px-2.5 py-1 rounded-full backdrop-blur-xs flex items-center gap-1.5"
+                                >
+                                  <Maximize2 className="w-3 h-3 text-amber-300" />
+                                  <span>Full View</span>
+                                </button>
+                              </div>
+
+                              {/* Card Content */}
+                              <div className="p-4 sm:p-5 flex flex-col flex-1 justify-between">
+                                <div className="flex-1 flex flex-col">
+                                  <h3 className="text-base font-black text-[#123B6D] leading-snug mb-2 min-h-[2.5rem] flex items-center">
+                                    {pkg.name}
+                                  </h3>
+
+                                  <div className="space-y-2 mb-4 flex-1 flex flex-col">
+                                    <div className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                                      <span>Included Tests:</span>
+                                      <span className="text-[10px] font-bold text-slate-400">
+                                        {pkg.testsCount ? `${pkg.testsCount} Tests` : `${pkg.features.length} Tests`}
+                                      </span>
+                                    </div>
+                                    <div className="space-y-1.5 h-36 overflow-y-auto pr-1">
+                                      {pkg.features.map((feat, fIdx) => (
+                                        <div key={fIdx} className="flex items-start gap-2 text-xs text-slate-700 leading-snug">
+                                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                                          <span className="font-medium text-slate-700">{feat}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="pt-3 border-t border-slate-100 flex items-center gap-2 mt-auto shrink-0">
+                                  <div className="px-3 py-2 rounded-xl bg-blue-50/90 border border-blue-200 text-[#123B6D] font-black text-sm flex items-center justify-center shrink-0 shadow-2xs">
+                                    ₹{pkg.priceINR}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedTestOrPackage(`${pkg.name} (₹${pkg.priceINR})`);
+                                      setIsBookingModalOpen(true);
+                                    }}
+                                    className="flex-1 bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2 px-3 rounded-xl text-xs font-black transition shadow-sm flex items-center justify-center gap-1.5 active:scale-98"
+                                  >
+                                    <span>Book Test</span>
+                                    <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Mobile Swipe Pagination Dots & Hint */}
+                      <div className="flex items-center justify-between mt-3 px-1">
+                        <div className="flex items-center gap-1.5">
+                          {vendorPackages.map((_, dotIdx) => (
+                            <div
+                              key={dotIdx}
+                              className={`h-1.5 rounded-full transition-all duration-300 ${
+                                activeMobilePkgIndex === dotIdx
+                                  ? 'w-6 bg-[#123B6D]'
+                                  : 'w-1.5 bg-slate-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
+                          <span>Swipe to explore</span>
+                          <span className="text-[#123B6D] font-bold">
+                            ({activeMobilePkgIndex + 1}/{vendorPackages.length})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </section>
 
