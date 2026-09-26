@@ -1325,6 +1325,14 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             </a>
 
             <a
+              href="#lab-test-health-booking"
+              className="hover:text-[#123B6D] transition text-slate-700 hover:font-bold whitespace-nowrap py-1"
+              id="vendor-nav-booking"
+            >
+              Booking
+            </a>
+
+            <a
               href="#about"
               className="hover:text-[#123B6D] transition text-slate-700 hover:font-bold whitespace-nowrap py-1"
               id="vendor-nav-about"
@@ -1400,17 +1408,22 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <span className="sm:hidden text-[11px]">Report</span>
             </button>
 
-            {/* 2. Test Button (Mobile & Desktop: Direct Test Booking / Home Collection Modal) */}
+            {/* 2. Test Button (Scrolls to Lab Test & Health Booking Form Section) */}
             <button
               onClick={() => {
-                setSelectedTestOrPackage(
-                  vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
-                );
-                setIsBookingModalOpen(true);
+                const el = document.getElementById('lab-test-health-booking');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  setSelectedTestOrPackage(
+                    vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
+                  );
+                  setIsBookingModalOpen(true);
+                }
               }}
               className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition cursor-pointer shadow-2xs shrink-0 active:scale-95"
               id="header-book-test-btn"
-              title="Book Lab Test or Home Collection"
+              title="Book Lab Test & Health Booking"
             >
               <Calendar className="w-3.5 h-3.5 text-slate-950 shrink-0" />
               <span>Test</span>
@@ -1498,10 +1511,15 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   <button
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      setSelectedTestOrPackage(
-                        vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
-                      );
-                      setIsBookingModalOpen(true);
+                      const el = document.getElementById('lab-test-health-booking');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                      } else {
+                        setSelectedTestOrPackage(
+                          vendorPackages[0] ? `${vendorPackages[0].name} (₹${vendorPackages[0].priceINR})` : 'Full Body Health Checkup (₹999)'
+                        );
+                        setIsBookingModalOpen(true);
+                      }
                     }}
                     className="py-2.5 px-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-2xs active:scale-98 cursor-pointer"
                   >
@@ -1545,7 +1563,17 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 transition flex items-center gap-3 text-slate-800 font-bold cursor-pointer"
                   >
                     <span className="w-7 h-7 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center text-xs">🔬</span>
-                    <span>Tests</span>
+                    <span>Tests Directory</span>
+                  </a>
+
+                  {/* 3b. Lab Test & Health Booking */}
+                  <a
+                    href="#lab-test-health-booking"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 transition flex items-center gap-3 text-slate-800 font-bold cursor-pointer"
+                  >
+                    <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs">📝</span>
+                    <span>Book Test Online</span>
                   </a>
 
                   {/* 4. About */}
@@ -1749,16 +1777,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             </div>
           </div>
 
-          {/* 1-Step Lab Test Booking Form & Trust Highlights Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start pt-2">
-            {/* Left: Quick Booking Form */}
-            <div className="lg:col-span-7">
-              <HeroBookingForm onOpenReportPortal={() => handleCheckReport()} />
-            </div>
-
-            {/* Right: Quick Features & Trust Credentials */}
-            <div className="lg:col-span-5 space-y-4">
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-4">
+          {/* Trust Highlights Grid & Quick Navigation */}
+          <div className="pt-2">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-emerald-600" />
                   <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
@@ -1766,60 +1788,85 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                    <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
-                      <span>🧪</span>
-                      <span>Zero Mix-Up Barcode</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      Sample vacutainers tagged with patient UHID right at collection.
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                    <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
-                      <span>❄️</span>
-                      <span>Cold-Chain Integrity</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      Temperature maintained at 2°C–8°C in insulated gel boxes.
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                    <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
-                      <span>📱</span>
-                      <span>Instant WhatsApp PDF</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      Signed reports sent directly to your phone in 4 to 6 hours.
-                    </p>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                    <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
-                      <span>👨‍⚕️</span>
-                      <span>MD Pathologist Sign-Off</span>
-                    </div>
-                    <p className="text-[11px] text-slate-500">
-                      100% human doctor validation on every critical test parameter.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-[#123B6D]" />
-                    <span className="font-semibold text-slate-700">Need immediate booking?</span>
-                  </div>
-                  <a
-                    href={`tel:${cleanPhone}`}
-                    className="font-bold text-[#123B6D] hover:underline"
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById('lab-test-health-booking');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition cursor-pointer shadow-2xs active:scale-95"
                   >
-                    +91 {cleanPhone} →
-                  </a>
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Book Test Online ↓</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById('check-report-quick');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-[#0F766E] border border-teal-200 font-bold text-xs transition cursor-pointer shadow-2xs active:scale-95"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Download Report ↓</span>
+                  </button>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                  <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
+                    <span>🧪</span>
+                    <span>Zero Mix-Up Barcode</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Sample vacutainers tagged with patient UHID right at collection.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                  <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
+                    <span>❄️</span>
+                    <span>Cold-Chain Integrity</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Temperature maintained at 2°C–8°C in insulated gel boxes.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                  <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
+                    <span>📱</span>
+                    <span>Instant WhatsApp PDF</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Signed reports sent directly to your phone in 4 to 6 hours.
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
+                  <div className="font-bold text-[#123B6D] flex items-center gap-1.5">
+                    <span>👨‍⚕️</span>
+                    <span>MD Pathologist Sign-Off</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    100% human doctor validation on every critical test parameter.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-[#123B6D]" />
+                  <span className="font-semibold text-slate-700">Need immediate booking or home collection helpline?</span>
+                </div>
+                <a
+                  href={`tel:${cleanPhone}`}
+                  className="font-bold text-[#123B6D] hover:underline whitespace-nowrap"
+                >
+                  +91 {cleanPhone} →
+                </a>
               </div>
             </div>
           </div>
@@ -1965,58 +2012,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 </button>
               </div>
 
-              {/* Demo Shortcut Chips & WhatsApp Alternative */}
-              <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 text-xs text-slate-400">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[11px] font-semibold text-slate-300">Quick Samples:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuickReportTab('report_id');
-                      setQuickReportInput('RPT-2026-001');
-                      performInlineReportSearch('RPT-2026-001', 'report_id');
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-blue-200 border border-white/15 text-[11px] font-bold transition cursor-pointer"
-                  >
-                    RPT-2026-001 (Rahul)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuickReportTab('report_id');
-                      setQuickReportInput('RPT-2026-002');
-                      performInlineReportSearch('RPT-2026-002', 'report_id');
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-emerald-200 border border-white/15 text-[11px] font-bold transition cursor-pointer"
-                  >
-                    RPT-2026-002 (Sunita)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuickReportTab('mobile');
-                      setQuickReportInput('9876543210');
-                      performInlineReportSearch('9876543210', 'mobile');
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-amber-200 border border-white/15 text-[11px] font-bold transition cursor-pointer"
-                  >
-                    Mobile: 9876543210
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-[11px]">
-                  <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
-                  <span>Send "REPORT" to WhatsApp:</span>
-                  <a
-                    href={stickyWhatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-400 hover:underline font-bold"
-                  >
-                    +91 {cleanWhatsapp}
-                  </a>
-                </div>
-              </div>
             </form>
 
             {/* INLINE SEARCH NOT FOUND CARD */}
@@ -2038,31 +2033,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 <p>
                   No matching report found for your search query. Please double-check your registered 10-digit mobile number or Report ID.
                 </p>
-                <div className="flex items-center gap-2 pt-1 flex-wrap">
-                  <span className="text-[11px] text-slate-300">Try demo samples:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuickReportTab('report_id');
-                      setQuickReportInput('RPT-2026-001');
-                      performInlineReportSearch('RPT-2026-001', 'report_id');
-                    }}
-                    className="px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 text-white font-bold cursor-pointer text-[11px]"
-                  >
-                    RPT-2026-001
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQuickReportTab('mobile');
-                      setQuickReportInput('9876543210');
-                      performInlineReportSearch('9876543210', 'mobile');
-                    }}
-                    className="px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 text-white font-bold cursor-pointer text-[11px]"
-                  >
-                    9876543210
-                  </button>
-                </div>
               </div>
             )}
 
@@ -2634,6 +2604,32 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <span>Can't find a specific test? Ask us directly on WhatsApp (+91 {cleanWhatsapp})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION: LAB TEST & HEALTH BOOKING SECTION (Directly Below "Book Pathology Tests Online") */}
+      <section id="lab-test-health-booking" className="py-14 sm:py-20 bg-gradient-to-b from-[#F8FAFC] via-slate-50 to-white border-b border-slate-200 scroll-mt-20">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          {/* Section Header */}
+          <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-[#0F766E]/10 text-[#0F766E] text-xs font-bold mb-2.5">
+              <Calendar className="w-3.5 h-3.5 text-[#0F766E]" />
+              <span>Diagnostic Test &amp; Health Booking</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
+              Lab Test &amp; Health Booking
+            </h2>
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1.5">
+              Fill the details below to book pathology tests with optional home sample collection or direct branch visit.
+            </p>
+          </div>
+
+          {/* Section me Sirf center me Form hoga */}
+          <div className="w-full flex justify-center">
+            <div className="w-full max-w-3xl">
+              <HeroBookingForm onOpenReportPortal={() => handleCheckReport()} />
+            </div>
           </div>
         </div>
       </section>
