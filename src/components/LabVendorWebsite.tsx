@@ -2582,15 +2582,29 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <FlaskConical className="w-3.5 h-3.5 text-[#0F766E]" />
               <span>Diagnostic Tests &amp; Profiles</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
-              Book Pathology Tests Online
-            </h2>
-            <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-              Search tests by name with transparent rates, specimen requirements, and home collection.
-            </p>
+
+            {/* Mobile View Title & Subtitle */}
+            <div className="md:hidden">
+              <h2 className="text-2xl font-extrabold text-[#123B6D] tracking-tight">
+                Explore Lab Tests
+              </h2>
+              <p className="text-xs sm:text-sm text-[#64748B] mt-1 font-medium">
+                Affordable Diagnostic Tests for Your Better Health
+              </p>
+            </div>
+
+            {/* Desktop View Title & Subtitle (Unchanged) */}
+            <div className="hidden md:block">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
+                Book Pathology Tests Online
+              </h2>
+              <p className="text-xs sm:text-sm text-[#64748B] mt-1">
+                Search tests by name with transparent rates, specimen requirements, and home collection.
+              </p>
+            </div>
           </div>
 
-          {/* 1. TOP SEARCH BAR */}
+          {/* 1. TOP SEARCH BAR (Unchanged) */}
           <div className="max-w-2xl mx-auto mb-6">
             <div className="relative">
               <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -2620,8 +2634,8 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             </div>
           </div>
 
-          {/* Category Filter Tabs */}
-          <div className="flex items-center justify-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none">
+          {/* Category Filter Tabs - Hidden on Mobile (as requested: remove category in mobile view), visible on desktop */}
+          <div className="hidden md:flex items-center justify-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none">
             {BOOK_TEST_CATEGORY_TABS.map((cat) => {
               const isSelected = selectedBookTestCategory === cat;
               return (
@@ -2653,12 +2667,12 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   Search results for &ldquo;<strong className="text-[#123B6D]">{searchTerm}</strong>&rdquo;
                 </span>
               ) : (
-                <span>
+                <span className="hidden md:inline">
                   Category: <strong className="text-[#123B6D]">{selectedBookTestCategory}</strong>
                 </span>
               )}
             </span>
-            <span className="text-[11px] font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+            <span className="text-[11px] font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs ml-auto">
               Showing {displayedTests.length} of {filteredTests.length} Tests
             </span>
           </div>

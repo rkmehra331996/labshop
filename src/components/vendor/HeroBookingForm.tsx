@@ -61,9 +61,9 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
   const [doctorOrHospital, setDoctorOrHospital] = useState('');
 
   // Sample Collection Option
-  // 'Home' = Collect Sample From Home (adds extra home collection charges)
   // 'Branch' = Visit Branch (no extra charges)
-  const [collectionType, setCollectionType] = useState<'Home' | 'Branch'>('Home');
+  // 'Home' = Collect Sample From Home (adds extra home collection charges)
+  const [collectionType, setCollectionType] = useState<'Home' | 'Branch'>('Branch');
   const [fullAddress, setFullAddress] = useState('');
   const [areaLocality, setAreaLocality] = useState('');
   const [city, setCity] = useState('Ludhiana');
@@ -77,7 +77,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
 
   // 3. Payment Options (2-Step Process)
   // Step 3.1: Payment Method
-  const [paymentMethod, setPaymentMethod] = useState<'Online' | 'Spot'>('Online');
+  const [paymentMethod, setPaymentMethod] = useState<'Online' | 'Spot'>('Spot');
   // Step 3.2: Payment Confirmation
   const [utrNumber, setUtrNumber] = useState('');
   const [screenshotPreview, setScreenshotPreview] = useState<string>('');
@@ -481,9 +481,9 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
             </div>
           </div>
 
-          {/* Amount Badge (Visible in steps 2 and 3) */}
+          {/* Amount Badge (Visible in steps 2 and 3 on larger screens, hidden on mobile) */}
           {(formStep === 2 || formStep === 3) && (
-            <div className="bg-white/15 backdrop-blur-md px-2.5 py-1 rounded-lg text-right border border-white/20">
+            <div className="hidden sm:block bg-white/15 backdrop-blur-md px-2.5 py-1 rounded-lg text-right border border-white/20">
               <span className="text-[9px] uppercase tracking-wider block text-slate-200 font-bold">
                 Total Amount
               </span>
@@ -679,31 +679,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
               Sample Collection Mode <span className="text-rose-500">*</span>
             </label>
             <div className="grid grid-cols-2 gap-2 mb-2.5">
-              {/* Home Collection Button */}
-              <button
-                type="button"
-                onClick={() => setCollectionType('Home')}
-                className={`p-2.5 rounded-xl border text-left transition cursor-pointer relative ${
-                  collectionType === 'Home'
-                    ? 'bg-amber-50/90 border-amber-400 text-slate-950 ring-2 ring-amber-400/40'
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
-                    <Home className="w-3.5 h-3.5 text-amber-600" />
-                    <span>Home Sample</span>
-                  </span>
-                  <span className="text-[9px] bg-amber-200 text-amber-950 font-black px-1.5 py-0.5 rounded">
-                    +₹{vendorLabSettings.homeCollectionCharge ?? 100}
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-500">
-                  Phlebotomist arrives at doorstep
-                </p>
-              </button>
-
-              {/* Branch Visit Button */}
+              {/* Branch Visit Button (First) */}
               <button
                 type="button"
                 onClick={() => setCollectionType('Branch')}
@@ -724,6 +700,30 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                 </div>
                 <p className="text-[10px] text-slate-500">
                   Give sample at lab counter
+                </p>
+              </button>
+
+              {/* Home Collection Button (Second) */}
+              <button
+                type="button"
+                onClick={() => setCollectionType('Home')}
+                className={`p-2.5 rounded-xl border text-left transition cursor-pointer relative ${
+                  collectionType === 'Home'
+                    ? 'bg-amber-50/90 border-amber-400 text-slate-950 ring-2 ring-amber-400/40'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                    <Home className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Home Sample</span>
+                  </span>
+                  <span className="text-[9px] bg-amber-200 text-amber-950 font-black px-1.5 py-0.5 rounded">
+                    +₹{vendorLabSettings.homeCollectionCharge ?? 100}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  Phlebotomist arrives at doorstep
                 </p>
               </button>
             </div>
@@ -859,8 +859,8 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
             )}
           </div>
 
-          {/* Category Filter Chips */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-[11px]">
+          {/* Category Filter Chips (Desktop only, hidden on mobile) */}
+          <div className="hidden sm:flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-[11px]">
             {testCategories.map((cat) => (
               <button
                 key={cat}
@@ -924,7 +924,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                           </div>
                           <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5 flex-wrap">
                             {t.category && (
-                              <span className="text-[#123B6D] font-medium">{t.category}</span>
+                              <span className="text-[#123B6D] font-medium hidden sm:inline">{t.category}</span>
                             )}
                             {t.sampleType && (
                               <span>• {t.sampleType}</span>
@@ -936,9 +936,9 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                         </div>
                       </div>
 
-                      {/* Right: Price & Multi-Select Tag */}
+                      {/* Right: Price (hidden on mobile) & Multi-Select Tag */}
                       <div className="text-right shrink-0">
-                        <div className="text-xs font-black text-[#123B6D]">
+                        <div className="text-xs font-black text-[#123B6D] hidden sm:block">
                           ₹{t.priceINR}
                         </div>
                         {isSelected && (
@@ -959,7 +959,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
             <div className="space-y-1 pt-0.5">
               <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700">
                 <span>Selected Tests ({selectedTestsList.length}):</span>
-                <span className="text-[#0F766E] font-bold">₹{testsTotal}</span>
+                <span className="text-[#0F766E] font-bold hidden sm:inline">₹{testsTotal}</span>
               </div>
               <div className="flex flex-wrap gap-1 max-h-16 overflow-y-auto">
                 {selectedTestsList.map((t) => (
@@ -968,7 +968,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                     className="inline-flex items-center gap-1 bg-teal-50 border border-teal-200 text-teal-950 px-2 py-0.5 rounded text-[10px] font-semibold"
                   >
                     <span className="truncate max-w-[130px]">{t.name}</span>
-                    <span className="font-bold text-[#0F766E]">₹{t.priceINR}</span>
+                    <span className="font-bold text-[#0F766E] hidden sm:inline">₹{t.priceINR}</span>
                     <button
                       type="button"
                       onClick={(e) => {
@@ -985,8 +985,8 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
             </div>
           )}
 
-          {/* Amount Calculation Strip */}
-          <div className="bg-slate-100 p-2.5 rounded-xl border border-slate-200 space-y-1 text-xs">
+          {/* Amount Calculation Strip (Hidden on mobile) */}
+          <div className="hidden sm:block bg-slate-100 p-2.5 rounded-xl border border-slate-200 space-y-1 text-xs">
             <div className="flex items-center justify-between text-slate-600">
               <span>Tests Subtotal:</span>
               <span className="font-semibold text-slate-900">₹{testsTotal}</span>
@@ -1050,7 +1050,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                 {collectionType === 'Home' ? 'Home Collection' : 'Branch Walk-in'}
               </span>
             </div>
-            <div className="text-right">
+            <div className="text-right hidden sm:block">
               <span className="text-[10px] text-slate-500 block">Total Due:</span>
               <span className="text-base font-black text-emerald-700">₹{grandTotal}</span>
             </div>
@@ -1062,31 +1062,7 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
               Choose Payment Method
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {/* Pay Online */}
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('Online')}
-                className={`p-2.5 rounded-xl border text-left transition cursor-pointer relative ${
-                  paymentMethod === 'Online'
-                    ? 'bg-sky-50/90 border-[#123B6D] text-slate-950 ring-2 ring-[#123B6D]/30'
-                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="font-bold text-xs text-[#123B6D] flex items-center gap-1.5">
-                    <QrCode className="w-3.5 h-3.5 text-[#123B6D]" />
-                    <span>Pay Online (UPI)</span>
-                  </span>
-                  <span className="text-[9px] bg-sky-200 text-sky-900 font-bold px-1.5 py-0.2 rounded">
-                    Instant
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-500">
-                  Scan QR with GPay, PhonePe, Paytm
-                </p>
-              </button>
-
-              {/* Pay on Spot */}
+              {/* Pay on Spot (First) */}
               <button
                 type="button"
                 onClick={() => setPaymentMethod('Spot')}
@@ -1107,6 +1083,30 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
                 </div>
                 <p className="text-[10px] text-slate-500">
                   Pay at lab branch or on sample pickup
+                </p>
+              </button>
+
+              {/* Pay Online (Second) */}
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('Online')}
+                className={`p-2.5 rounded-xl border text-left transition cursor-pointer relative ${
+                  paymentMethod === 'Online'
+                    ? 'bg-sky-50/90 border-[#123B6D] text-slate-950 ring-2 ring-[#123B6D]/30'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="font-bold text-xs text-[#123B6D] flex items-center gap-1.5">
+                    <QrCode className="w-3.5 h-3.5 text-[#123B6D]" />
+                    <span>Pay Online (UPI)</span>
+                  </span>
+                  <span className="text-[9px] bg-sky-200 text-sky-900 font-bold px-1.5 py-0.2 rounded">
+                    Instant
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  Scan QR with GPay, PhonePe, Paytm
                 </p>
               </button>
             </div>
