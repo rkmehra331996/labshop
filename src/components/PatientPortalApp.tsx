@@ -379,7 +379,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     if (results.length === 0) {
       setErrorMessage('No Record Found');
       setErrorDetails(
-        `No active diagnostic record found for mobile number +91 ${inputMobile} ${inputName ? `(Name: ${patientName})` : ''} at ${labName}. Please check the registered phone number or search with Token / Report ID.`
+        `No active diagnostic record found for mobile number +91 ${inputMobile} ${inputName ? `(Name: ${patientName})` : ''} at ${labName}. Please check the registered phone number or search with Token Number.`
       );
       return;
     }
@@ -409,8 +409,8 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
       setErrorMessage('Please enter details');
       setErrorDetails(
         demoReport
-          ? `Please enter Token Number (e.g. ${demoEntry?.tokenNumber || '101'}) or Report ID (e.g. ${demoReport.reportId}).`
-          : 'Please enter Token Number or Report ID.'
+          ? `Please enter Token Number (e.g. ${demoEntry?.tokenNumber || '101'}) or Report ID.`
+          : 'Please enter Token Number.'
       );
       return;
     }
@@ -421,10 +421,16 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     const reportMatch = scopedReports.find((r) => {
       const rId = r.reportId.trim().toLowerCase();
       const rUhid = (r.uhid || '').trim().toLowerCase();
+      const rToken = (r.tokenNumber || '').trim().toLowerCase();
+      const rTokenDigits = rToken.replace(/\D/g, '');
       return (
         rId === raw ||
         rId.endsWith(raw) ||
         rUhid === raw ||
+        rToken === raw ||
+        rToken === `tk-${raw}` ||
+        `tk-${rToken}` === raw ||
+        (cleanDigits && rTokenDigits === cleanDigits) ||
         (cleanDigits.length >= 3 && (rId.includes(cleanDigits) || rUhid.includes(cleanDigits)))
       );
     });
@@ -494,9 +500,9 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
     }
 
     // Not found
-    setErrorMessage('Token or Report ID Not Found');
+    setErrorMessage('Token Number Not Found');
     setErrorDetails(
-      `No active record matched Token / Report ID "${reportIdInput}" at ${labName}. Please check your receipt slip or try the demo buttons below.`
+      `No active record matched Token Number "${reportIdInput}" at ${labName}. Please check your receipt slip or try again.`
     );
   };
 
@@ -693,7 +699,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
               }`}
             >
               <Hash className="w-3.5 h-3.5 text-[#123B6D] shrink-0" />
-              <span>Token / Report ID</span>
+              <span>Token Number</span>
             </button>
           </div>
 
@@ -842,13 +848,13 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
             </div>
           )}
 
-          {/* RIGHT TAB: OPTION 2 — TOKEN NO. / REPORT ID */}
+          {/* RIGHT TAB: OPTION 2 — TOKEN NUMBER */}
           {searchMethod === 'report_id' && (
             <div className="mt-5 bg-slate-50/70 rounded-xl p-4 sm:p-5 border border-slate-200 animate-in fade-in duration-150">
               <form onSubmit={handleSearchByReportIdOrToken} className="space-y-3.5">
                 <div>
                   <label className="block text-[11px] sm:text-xs font-bold text-slate-700 mb-1">
-                    Token No. / Report ID: <span className="text-rose-500">*</span>
+                    Token Number: <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <Hash className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -860,7 +866,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
                         setReportIdInput(e.target.value);
                         if (errorMessage) setErrorMessage(null);
                       }}
-                      placeholder="Enter Token No. or Report ID"
+                      placeholder="Enter Token Number (e.g. 101, TK-101 or Report ID)"
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold focus:ring-2 focus:ring-[#123B6D]/20 focus:border-[#123B6D] focus:outline-none placeholder:text-slate-400 placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-sans bg-white"
                     />
                   </div>
@@ -1005,7 +1011,7 @@ export const PatientPortalApp: React.FC<PatientPortalAppProps> = ({
               No Report Displayed
             </h3>
             <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-              For patient privacy and data protection, reports are not displayed by default. Please enter your details using <strong>Patient Search</strong> (Mobile Number) or <strong>Token / Report ID</strong> above to view your report.
+              For patient privacy and data protection, reports are not displayed by default. Please enter your details using <strong>Patient Search</strong> (Mobile Number) or <strong>Token Number</strong> above to view your report.
             </p>
             <div className="pt-2 flex items-center justify-center gap-4 text-[11px] font-semibold text-slate-600">
               <span className="flex items-center gap-1 text-emerald-700">

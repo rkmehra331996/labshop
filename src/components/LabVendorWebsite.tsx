@@ -13,6 +13,7 @@ import {
   User,
   Activity,
   Award,
+  Hash,
   FlaskConical,
   Heart,
   Droplets,
@@ -487,7 +488,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       setQuickReportError(
         activeTab === 'mobile'
           ? 'Please enter your 10-digit registered mobile number.'
-          : 'Please enter your Report ID or Token number.'
+          : 'Please enter your Token Number or Report ID.'
       );
       return;
     }
@@ -559,8 +560,9 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         setInlineSearchNotFound(true);
       }
     } else {
-      // Search by Report ID or Token
+      // Search by Token Number or Report ID
       const cleanVal = val.toLowerCase();
+      const cleanDigits = val.replace(/\D/g, '');
 
       // Special sample alias mapping:
       // RPT-2026-001 -> maps to availableReports[0]
@@ -580,10 +582,16 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         return;
       }
 
-      // 1. Find report by reportId or UHID
+      // 1. Direct match in reports by reportId, tokenNumber, or UHID
       const foundReport = availableReports.find(
         (r) =>
           r.reportId.toLowerCase() === cleanVal ||
+          (r.tokenNumber && (
+            r.tokenNumber.toLowerCase() === cleanVal ||
+            r.tokenNumber.toLowerCase() === `tk-${cleanVal}` ||
+            `tk-${r.tokenNumber.toLowerCase()}` === cleanVal ||
+            (cleanDigits && r.tokenNumber.replace(/\D/g, '') === cleanDigits)
+          )) ||
           (r.uhid && r.uhid.toLowerCase() === cleanVal) ||
           r.reportId.toLowerCase().includes(cleanVal)
       );
@@ -598,10 +606,18 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
       // 2. Check if it matches an entry by token number or reportId
       const foundEntry = availableEntries.find(
-        (e) =>
-          (e.tokenNumber && e.tokenNumber.toLowerCase() === cleanVal) ||
-          (e.reportId && e.reportId.toLowerCase() === cleanVal) ||
-          (e.uhid && e.uhid.toLowerCase() === cleanVal)
+        (e) => {
+          const entryToken = (e.tokenNumber || '').toLowerCase().trim();
+          const entryTokenDigits = entryToken.replace(/\D/g, '');
+          return (
+            entryToken === cleanVal ||
+            entryToken === `tk-${cleanVal}` ||
+            `tk-${entryToken}` === cleanVal ||
+            (cleanDigits && entryTokenDigits === cleanDigits) ||
+            (e.reportId && e.reportId.toLowerCase() === cleanVal) ||
+            (e.uhid && e.uhid.toLowerCase() === cleanVal)
+          );
+        }
       );
 
       if (foundEntry) {
@@ -961,6 +977,8 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
 
   const handleClearCart = () => {
     setCartItems([]);
+    setIsCartDrawerOpen(false);
+    setCartToast(null);
   };
 
   const handleProceedToBooking = () => {
@@ -1000,6 +1018,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       packageOrTest: selectedTestOrPackage,
     });
     setBookedSuccess(true);
+    handleClearCart();
   };
 
   const handleWhatsAppBooking = (testName: string, price?: number) => {
@@ -1865,7 +1884,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               </div>
             )}
 
-            {/* Search Mode Tabs: Mobile Number vs Token / Report ID */}
+            {/* Search Mode Tabs: Mobile Number vs Token Number */}
             <div className="flex items-center gap-2 bg-slate-950/40 p-1 rounded-2xl max-w-md">
               <button
                 type="button"
@@ -1895,8 +1914,8 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Search by Report ID</span>
+                <Hash className="w-3.5 h-3.5" />
+                <span>Search by Token Number</span>
               </button>
             </div>
 
@@ -1924,7 +1943,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   ) : (
                     <>
                       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                        <FileText className="w-4 h-4 text-slate-400" />
+                        <Hash className="w-4 h-4 text-slate-400" />
                       </div>
                       <input
                         type="text"
@@ -1933,7 +1952,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                           setQuickReportInput(e.target.value);
                           if (quickReportError) setQuickReportError('');
                         }}
-                        placeholder="Enter Report ID (e.g. RPT-2026-001 or Token #)"
+                        placeholder="Enter Token Number (e.g. 101, TK-101 or Report ID)"
                         className="w-full pl-10 pr-10 py-3.5 bg-slate-950/60 border border-white/20 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/60 focus:border-emerald-400 font-medium transition"
                       />
                     </>
@@ -1983,7 +2002,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   </button>
                 </div>
                 <p>
-                  No matching report found for your search query. Please double-check your registered 10-digit mobile number or Report ID.
+                  No matching report found for your search query. Please double-check your registered 10-digit mobile number or Token Number.
                 </p>
               </div>
             )}
@@ -2569,7 +2588,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
           {/* Section me Sirf center me Form hoga */}
           <div className="w-full flex justify-center">
             <div className="w-full max-w-3xl">
-              <HeroBookingForm onOpenReportPortal={() => handleCheckReport()} />
+              <HeroBookingForm
+                onOpenReportPortal={() => handleCheckReport()}
+                cartItems={cartItems}
+                onBookingSuccess={handleClearCart}
+              />
             </div>
           </div>
         </div>
@@ -3587,6 +3610,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             : undefined
         }
         onOpenReportPortal={handleCheckReport}
+        onBookingSuccess={handleClearCart}
       />
 
       {/* Terms & Conditions / Privacy / Refund Policy Modal */}

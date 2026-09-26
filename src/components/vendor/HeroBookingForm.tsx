@@ -30,9 +30,15 @@ import { TestItem, ReceptionPatientEntry } from '../../types';
 
 interface HeroBookingFormProps {
   onOpenReportPortal?: () => void;
+  cartItems?: Array<{ id: string; name: string; price: number }>;
+  onBookingSuccess?: () => void;
 }
 
-export const HeroBookingForm: React.FC<HeroBookingFormProps> = () => {
+export const HeroBookingForm: React.FC<HeroBookingFormProps> = ({
+  onOpenReportPortal,
+  cartItems,
+  onBookingSuccess,
+}) => {
   const {
     vendorTests,
     vendorLabSettings,
@@ -115,6 +121,24 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = () => {
       return true;
     });
   }, [vendorTests]);
+
+  // Sync cartItems into selectedTestIds if available and none selected yet
+  React.useEffect(() => {
+    if (cartItems && cartItems.length > 0 && selectedTestIds.length === 0) {
+      const ids: string[] = [];
+      cartItems.forEach((ci) => {
+        const found = activeTests.find(
+          (t) => t.id === ci.id || t.name.toLowerCase() === ci.name.toLowerCase()
+        );
+        if (found) {
+          ids.push(found.id);
+        }
+      });
+      if (ids.length > 0) {
+        setSelectedTestIds(ids);
+      }
+    }
+  }, [cartItems, activeTests, selectedTestIds.length]);
 
   // Unique categories for filtering
   const testCategories = useMemo(() => {
@@ -387,6 +411,9 @@ export const HeroBookingForm: React.FC<HeroBookingFormProps> = () => {
     });
 
     setFormStep(4);
+    if (onBookingSuccess) {
+      onBookingSuccess();
+    }
   };
 
   // Reset form to book another test

@@ -32,6 +32,7 @@ interface OnlineTestBookingModalProps {
   initialSelection?: string;
   initialTests?: { name: string; price: number; type: 'test' | 'package' }[];
   onOpenReportPortal?: (reportId?: string, mobile?: string) => void;
+  onBookingSuccess?: () => void;
 }
 
 export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
@@ -40,6 +41,7 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
   initialSelection = '',
   initialTests,
   onOpenReportPortal,
+  onBookingSuccess,
 }) => {
   const {
     vendorLabSettings,
@@ -260,6 +262,9 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
     setConfirmedEntry(newReceptionEntry);
     setIsSubmitting(false);
     setCurrentStep(3);
+    if (onBookingSuccess) {
+      onBookingSuccess();
+    }
   };
 
   const dynamicUpiUri = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(merchantName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent(`Test Booking - ${patientName || 'Patient'}`)}`;

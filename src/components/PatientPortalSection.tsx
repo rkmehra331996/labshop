@@ -95,7 +95,7 @@ export const PatientPortalSection: React.FC<PatientPortalSectionProps> = ({
               }`}
             >
               <Hash className="w-3.5 h-3.5" />
-              <span>2. Token / Report ID</span>
+              <span>2. Token Number</span>
             </button>
           </div>
 
@@ -141,14 +141,14 @@ export const PatientPortalSection: React.FC<PatientPortalSectionProps> = ({
             ) : (
               <div>
                 <label htmlFor="portal-report-id" className="block text-xs font-bold text-[#172033] mb-1">
-                  Token Number or Report ID <span className="text-rose-500">*</span>
+                  Token Number <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   id="portal-report-id"
                   value={reportId}
                   onChange={(e) => setReportId(e.target.value)}
-                  placeholder="e.g. 101, TK-101, or RPT-2026-8812"
+                  placeholder="e.g. 101, TK-101 (or Report ID)"
                   required
                   className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#123B6D]/30 focus:border-[#123B6D] font-mono"
                 />
