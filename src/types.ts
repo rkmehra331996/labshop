@@ -265,6 +265,16 @@ export interface VendorLabSettings {
   status?: VendorStatus;
   ownerPassword?: string;
   ownerPin?: string;
+  // Site Settings & Plan Visibility
+  featureImageUrl?: string;
+  siteDescription?: string;
+  siteName?: string;
+  paymentQrUrl?: string;
+  purchasedPlan?: '1 Month' | '3 Months' | '1 Year' | string;
+  planPurchasedAt?: string;
+  planExpiresAt?: string;
+  planDurationDays?: number;
+  remainingVisibilityDays?: number;
 }
 
 export interface VendorPackage {

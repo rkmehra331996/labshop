@@ -36,6 +36,9 @@ import {
   Youtube,
   Linkedin,
   X,
+  Camera,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useCms, DEFAULT_VENDOR_SECTIONS, DEFAULT_ALL_VENDOR_DOCTORS } from '../../context/CmsContext';
 import { VendorWebsiteSections, VendorLabSettings, VendorBannerItem, VendorDoctor, VendorSocialLinks } from '../../types';
@@ -330,6 +333,71 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({
       setBannerForm((prev) => ({ ...prev, imageUrl: dataUrl }));
     };
     reader.readAsDataURL(file);
+  };
+
+  // Simple Hero Banner Photo Upload (Pure image banners without complex codes)
+  const [heroBanners, setHeroBanners] = useState<string[]>(() => {
+    if (vendorLabSettings.heroBanners && vendorLabSettings.heroBanners.length > 0) {
+      return vendorLabSettings.heroBanners;
+    }
+    return [
+      'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=1600&q=80',
+      'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=1600&q=80',
+      'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1600&q=80',
+    ];
+  });
+  const [heroBannerUrlInput, setHeroBannerUrlInput] = useState('');
+  const heroBannerFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (vendorLabSettings.heroBanners && vendorLabSettings.heroBanners.length > 0) {
+      setHeroBanners(vendorLabSettings.heroBanners);
+    }
+  }, [vendorLabSettings.heroBanners]);
+
+  const handleHeroBannerPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        const updated = [...heroBanners, dataUrl];
+        setHeroBanners(updated);
+        updateVendorLabSettings({ heroBanners: updated });
+        triggerToast('Hero banner photo uploaded & published to website!');
+      }
+    };
+    reader.readAsDataURL(file);
+    if (e.target) e.target.value = '';
+  };
+
+  const handleAddHeroBannerUrl = () => {
+    const trimmed = heroBannerUrlInput.trim();
+    if (!trimmed) return;
+    const updated = [...heroBanners, trimmed];
+    setHeroBanners(updated);
+    updateVendorLabSettings({ heroBanners: updated });
+    setHeroBannerUrlInput('');
+    triggerToast('Hero banner photo added & published to website!');
+  };
+
+  const handleRemoveHeroBannerPhoto = (idx: number) => {
+    const updated = heroBanners.filter((_, i) => i !== idx);
+    setHeroBanners(updated);
+    updateVendorLabSettings({ heroBanners: updated });
+    triggerToast('Hero banner photo removed!');
+  };
+
+  const handleMoveHeroBanner = (idx: number, direction: 'prev' | 'next') => {
+    const target = direction === 'prev' ? idx - 1 : idx + 1;
+    if (target < 0 || target >= heroBanners.length) return;
+    const updated = [...heroBanners];
+    const [moved] = updated.splice(idx, 1);
+    updated.splice(target, 0, moved);
+    setHeroBanners(updated);
+    updateVendorLabSettings({ heroBanners: updated });
+    triggerToast('Hero banner order updated!');
   };
 
   // ==========================================
@@ -763,6 +831,143 @@ export const VendorWebsiteCmsTab: React.FC<VendorWebsiteCmsTabProps> = ({
       {/* ======================================================== */}
       {activeSubTab === 'banners' && (
         <div className="space-y-6">
+          {/* HERO SECTION SIMPLE IMAGE BANNER UPLOAD CARD */}
+          <div className="bg-white rounded-2xl border-2 border-[#123B6D]/30 shadow-md overflow-hidden">
+            <div className="p-5 border-b border-slate-200 bg-gradient-to-r from-blue-50/80 via-indigo-50/50 to-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="bg-[#123B6D] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    Hero Section • Pure Photo Upload
+                  </span>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    Live on Website ({heroBanners.length} Banners)
+                  </span>
+                </div>
+                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-[#123B6D]" />
+                  <span>Hero Section Photo Banners (Simple Image Upload)</span>
+                </h3>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Direct photo upload for the main Hero banner carousel. No complex codes or text overlays — simply upload or paste your high-resolution banner photo!
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => heroBannerFileInputRef.current?.click()}
+                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-4 py-2.5 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-sm cursor-pointer active:scale-95"
+                  title="Upload image photo directly from your device"
+                >
+                  <Upload className="w-4 h-4 text-amber-400" />
+                  <span>Upload Banner Photo</span>
+                </button>
+                <input
+                  ref={heroBannerFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleHeroBannerPhotoUpload}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            {/* URL Upload Bar & Guidelines */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-center gap-3">
+              <div className="flex-1 w-full flex items-center gap-2">
+                <input
+                  type="url"
+                  placeholder="Or paste direct image URL (e.g. https://yourcdn.com/banner.jpg)..."
+                  value={heroBannerUrlInput}
+                  onChange={(e) => setHeroBannerUrlInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddHeroBannerUrl();
+                    }
+                  }}
+                  className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#123B6D]/30"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddHeroBannerUrl}
+                  disabled={!heroBannerUrlInput.trim()}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer shrink-0"
+                >
+                  Add Photo
+                </button>
+              </div>
+
+              <span className="text-[11px] text-slate-500 whitespace-nowrap hidden lg:inline">
+                Recommended aspect ratio: <strong>21:9</strong> or <strong>16:9</strong> (1600×700 px)
+              </span>
+            </div>
+
+            {/* Active Hero Banner Photos Grid */}
+            <div className="p-5">
+              {heroBanners.length === 0 ? (
+                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-xs text-slate-500">
+                  No hero banner photos uploaded yet. Click "Upload Banner Photo" above to add your first photo banner.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {heroBanners.map((imgUrl, hIdx) => (
+                    <div
+                      key={hIdx}
+                      className="group relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-950 aspect-[16/9] shadow-sm hover:shadow-md transition"
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`Hero Banner ${hIdx + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-102"
+                      />
+                      {/* Slide Badge */}
+                      <div className="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-xs text-white px-2.5 py-0.5 rounded-lg text-xs font-mono font-bold border border-white/20">
+                        Slide #{hIdx + 1}
+                      </div>
+
+                      {/* Action Controls Overlay: Move Left, Move Right, Delete */}
+                      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition">
+                        {hIdx > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => handleMoveHeroBanner(hIdx, 'prev')}
+                            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center shadow-md transition cursor-pointer active:scale-90"
+                            title="Move Banner Left (Earlier in carousel)"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {hIdx < heroBanners.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleMoveHeroBanner(hIdx, 'next')}
+                            className="w-7 h-7 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center shadow-md transition cursor-pointer active:scale-90"
+                            title="Move Banner Right (Later in carousel)"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveHeroBannerPhoto(hIdx)}
+                          className="w-7 h-7 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-md transition cursor-pointer active:scale-90"
+                          title="Delete this hero banner photo"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Bottom Quick Indicator */}
+                      <div className="absolute bottom-2 left-2 right-2 text-[10px] text-white/90 bg-black/50 backdrop-blur-xs px-2 py-0.5 rounded text-center truncate">
+                        {hIdx === 0 ? '★ Primary (First) Banner' : `Secondary Carousel Banner #${hIdx + 1}`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-5 border-b border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>

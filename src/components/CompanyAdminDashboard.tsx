@@ -34,6 +34,7 @@ import {
   Activity,
   Server,
   RotateCcw,
+  ExternalLink,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { AppView, PricingPlan, CompanyFeature, CompanyFaq, CompanyStat, LabManagementFeature } from '../types';
@@ -84,9 +85,12 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
     refreshCloudData,
     receptionEntries,
     reports,
+    allDomainRequests,
+    updateDomainRequest,
+    deleteDomainRequest,
   } = useCms();
 
-  type SuperAdminMenu = 'home' | 'labs' | 'clients' | 'website_edit';
+  type SuperAdminMenu = 'home' | 'labs' | 'clients' | 'website_edit' | 'domain_requests';
   const [activeMenu, setActiveMenu] = useState<SuperAdminMenu>('home');
 
   type HomeSubTab = 'pricing' | 'cloud_sync' | 'settings' | 'features' | 'faqs' | 'stats';
@@ -627,6 +631,35 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
               <SlidersHorizontal className="w-4 h-4" />
               <span>Website Edit</span>
               {activeMenu === 'website_edit' && (
+                <span className="bg-slate-950 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5 shadow-2xs">
+                  ✓ Active
+                </span>
+              )}
+            </button>
+
+            {/* Domain Requests Tab */}
+            <button
+              type="button"
+              id="menu-btn-domain-requests"
+              onClick={() => setActiveMenu('domain_requests')}
+              className={`px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black transition flex items-center gap-1.5 cursor-pointer ${
+                activeMenu === 'domain_requests'
+                  ? 'bg-amber-400 text-slate-950 shadow-md scale-102'
+                  : 'text-slate-200 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Globe className="w-4 h-4" />
+              <span>Domain Requests</span>
+              {allDomainRequests.filter((r) => r.status === 'Pending').length > 0 ? (
+                <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-1.5 py-0.2 rounded-full animate-pulse">
+                  {allDomainRequests.filter((r) => r.status === 'Pending').length} New
+                </span>
+              ) : (
+                <span className="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full hidden sm:inline-block">
+                  {allDomainRequests.length}
+                </span>
+              )}
+              {activeMenu === 'domain_requests' && (
                 <span className="bg-slate-950 text-amber-300 text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5 shadow-2xs">
                   ✓ Active
                 </span>
@@ -1859,6 +1892,158 @@ export const CompanyAdminDashboard: React.FC<CompanyAdminDashboardProps> = ({ on
           onNavigateView={onNavigateView}
           showToast={showToast}
         />
+      </div>
+    )}
+
+    {/* VIEW 5: DOMAIN REQUESTS (Vendor Custom Domain Approvals) */}
+    {activeMenu === 'domain_requests' && (
+      <div className="space-y-6 animate-in fade-in-50 duration-200">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="bg-[#123B6D] text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                DNS Routing &amp; Domain Management
+              </span>
+              <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                {allDomainRequests.filter((r) => r.status === 'Pending').length} Pending Approval
+              </span>
+            </div>
+            <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-[#123B6D]" />
+              <span>Laboratory Custom Domain Requests</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Review and approve custom domains (e.g. <code>apexdiag.in</code>) or subdomains requested by diagnostic lab vendors. Ensure CNAME points to <code>indianlalaji.com</code> before approving.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="text-xs bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-slate-700 font-mono">
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">DNS CNAME Target</span>
+              <strong className="text-[#123B6D]">indianlalaji.com</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* Requests List */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <span className="font-extrabold text-xs text-slate-800">
+              All Submitted Domain Requests ({allDomainRequests.length})
+            </span>
+          </div>
+
+          {allDomainRequests.length === 0 ? (
+            <div className="p-12 text-center text-xs text-slate-400">
+              No domain requests submitted yet by vendors.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {allDomainRequests.map((req) => (
+                <div key={req.id} className="p-5 hover:bg-slate-50/70 transition flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="font-black text-sm text-[#123B6D]">{req.labName}</span>
+                      <span className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-600 border border-slate-200">
+                        {req.labId}
+                      </span>
+                      <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase ${
+                        req.status === 'Approved'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : req.status === 'Rejected'
+                          ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                          : 'bg-amber-100 text-amber-900 border border-amber-300 animate-pulse'
+                      }`}>
+                        {req.status}
+                      </span>
+                      <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200">
+                        {req.domainType === 'custom_domain' ? 'Custom Domain' : 'Platform Subdomain'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap text-xs text-slate-700">
+                      <span>Requested Domain:</span>
+                      <a
+                        href={`https://${req.requestedDomain}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-mono font-bold text-indigo-700 hover:underline flex items-center gap-1 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200"
+                      >
+                        <span>{req.requestedDomain}</span>
+                        <ExternalLink className="w-3 h-3 text-indigo-500" />
+                      </a>
+                      <span className="text-slate-400">•</span>
+                      <span>Registrar: <strong>{req.registrar || 'Hostinger'}</strong></span>
+                      <span className="text-slate-400">•</span>
+                      <span>Contact: <strong>{req.contactPerson}</strong> ({req.contactPhone})</span>
+                    </div>
+
+                    {req.notes && (
+                      <p className="text-[11px] text-slate-500 italic bg-slate-50 p-2 rounded-lg border border-slate-100">
+                        "{req.notes}"
+                      </p>
+                    )}
+
+                    {req.adminRemarks && (
+                      <p className="text-[11px] text-slate-600">
+                        <strong>Admin Note:</strong> {req.adminRemarks}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-start lg:self-center">
+                    {req.status !== 'Approved' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateDomainRequest(req.id, {
+                            status: 'Approved',
+                            dnsStatus: 'Configured & Verified',
+                            sslStatus: 'Active',
+                            adminRemarks: 'Approved by Super Admin. DNS CNAME routing active.',
+                          });
+                          showToast(`Approved custom domain "${req.requestedDomain}" for ${req.labName}!`);
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />
+                        <span>Approve &amp; Activate</span>
+                      </button>
+                    )}
+
+                    {req.status !== 'Rejected' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateDomainRequest(req.id, {
+                            status: 'Rejected',
+                            adminRemarks: 'Rejected: CNAME not pointed to indianlalaji.com or pending registrar verification.',
+                          });
+                          showToast(`Rejected domain request for "${req.requestedDomain}".`);
+                        }}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+                      >
+                        <span>Reject</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        deleteDomainRequest(req.id);
+                        showToast(`Deleted domain request "${req.requestedDomain}".`);
+                      }}
+                      className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 transition cursor-pointer"
+                      title="Delete this request"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     )}
   </div>

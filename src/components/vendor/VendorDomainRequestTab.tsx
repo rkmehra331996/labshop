@@ -316,7 +316,7 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = ({
             }`}
           >
             <PlusCircle className={`w-4 h-4 ${activeSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
-            <span>1. Add - Request to Super Admin</span>
+            <span>Add Domain — Send Request to Super Admin</span>
             <span
               className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
                 activeSubTab === 'add' ? 'bg-amber-400 text-slate-950' : 'bg-slate-100 text-slate-600'
@@ -337,7 +337,7 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = ({
             }`}
           >
             <Sliders className={`w-4 h-4 ${activeSubTab === 'list' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
-            <span>2. Change / Delete Domain Requests</span>
+            <span>Change Domain / Delete Domain</span>
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                 activeSubTab === 'list' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-800'
@@ -359,7 +359,7 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: ADD - REQUEST TO SUPER ADMIN                                       */}
+      {/* TAB 1: ADD DOMAIN — SEND REQUEST TO SUPER ADMIN                           */}
       {/* ========================================================================= */}
       {activeSubTab === 'add' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -371,7 +371,7 @@ export const VendorDomainRequestTab: React.FC<VendorDomainRequestTabProps> = ({
                 <span>Submit New Domain Request</span>
               </div>
               <h2 className="text-lg font-black text-slate-900">
-                1. Add - Request Domain to Super Admin
+                Add Domain — Send Request to Super Admin
               </h2>
               <p className="text-xs text-slate-500 mt-1">
                 Fill in the domain you have purchased or wish to bind. The Super Admin team will verify DNS records and activate SSL routing within minutes.

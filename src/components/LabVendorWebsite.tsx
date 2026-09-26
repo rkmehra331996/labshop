@@ -56,6 +56,7 @@ import {
   Layers,
   Download,
   Printer,
+  Camera,
 } from 'lucide-react';
 import { useCms, DEFAULT_ALL_VENDOR_DOCTORS } from '../context/CmsContext';
 import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
@@ -374,6 +375,16 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const handleRemoveBanner = (index: number) => {
     setTempBannersList((prev) => prev.filter((_, i) => i !== index));
     setBannerSaveNotice('Banner removed from list. Click "Save & Publish" to update.');
+  };
+
+  const handleMoveBanner = (index: number, direction: 'prev' | 'next') => {
+    const targetIndex = direction === 'prev' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= tempBannersList.length) return;
+    const updated = [...tempBannersList];
+    const [moved] = updated.splice(index, 1);
+    updated.splice(targetIndex, 0, moved);
+    setTempBannersList(updated);
+    setBannerSaveNotice('Banner order updated! Click "Save & Publish" to confirm.');
   };
 
   const handleSaveBanners = () => {
@@ -1246,6 +1257,16 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               </button>
             )}
 
+            <button
+              type="button"
+              onClick={openBannerManager}
+              className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-3 py-1 rounded-lg text-xs flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+              title="Upload Hero Promotional Photo Banners (Admin)"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>Upload Banner Photo</span>
+            </button>
+
             {onOpenAdminDashboard && (
               <button
                 type="button"
@@ -1706,6 +1727,22 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 space-y-3.5 sm:space-y-5">
           {/* Main Photo Banner Carousel Container */}
           <div className="relative">
+            {/* Admin Upload / Manage Banner Photo Button (Directly Accessible on Hero Section) */}
+            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openBannerManager();
+                }}
+                className="bg-slate-950/80 hover:bg-slate-950 text-white hover:text-amber-300 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-black flex items-center gap-2 shadow-xl backdrop-blur-md border border-white/20 transition cursor-pointer active:scale-95 group"
+                title="Admin Banner Photo Upload (Upload photo directly without complex banner codes)"
+              >
+                <Camera className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                <span>Upload Banner (Admin)</span>
+              </button>
+            </div>
+
             {/* Carousel Track with 2%-5% Peek Effect on Mobile */}
             <div
               ref={heroCarouselRef}
@@ -1733,7 +1770,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-101"
                     loading={idx === 0 ? 'eager' : 'lazy'}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-40 pointer-events-none" />
                 </div>
               ))}
             </div>
@@ -3894,19 +3930,41 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                           alt={`Banner ${idx + 1}`}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-white font-mono text-[10px] font-bold">
+                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 text-white font-mono text-[10px] font-bold">
                           #{idx + 1}
                         </div>
 
-                        {/* Delete Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveBanner(idx)}
-                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-md transition cursor-pointer active:scale-90"
-                          title="Remove this banner"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {/* Banner Management Overlay Controls: Move Left, Move Right, Delete */}
+                        <div className="absolute top-2 right-2 flex items-center gap-1">
+                          {idx > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleMoveBanner(idx, 'prev')}
+                              className="w-7 h-7 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center shadow-md transition cursor-pointer active:scale-90"
+                              title="Move Banner Left"
+                            >
+                              <ChevronLeft className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {idx < tempBannersList.length - 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleMoveBanner(idx, 'next')}
+                              className="w-7 h-7 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center shadow-md transition cursor-pointer active:scale-90"
+                              title="Move Banner Right"
+                            >
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveBanner(idx)}
+                            className="w-7 h-7 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-md transition cursor-pointer active:scale-90"
+                            title="Remove this banner photo"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

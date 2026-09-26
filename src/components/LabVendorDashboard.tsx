@@ -52,6 +52,10 @@ import {
   ListFilter,
   LayoutDashboard,
   Sliders,
+  Settings,
+  QrCode,
+  Zap,
+  Type,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -71,6 +75,8 @@ import { VendorPackagesTab } from './vendor/VendorPackagesTab';
 import { VendorFormsTab } from './vendor/VendorFormsTab';
 import { VendorDashboardsTab } from './vendor/VendorDashboardsTab';
 import { VendorDomainRequestTab } from './vendor/VendorDomainRequestTab';
+import { VendorSiteSettingsTab } from './vendor/VendorSiteSettingsTab';
+import { VendorAdminSettingsTab } from './vendor/VendorAdminSettingsTab';
 import { DoctorCommissionModal } from './vendor/DoctorCommissionModal';
 
 interface LabVendorDashboardProps {
@@ -118,7 +124,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   } = useCms();
 
   const [activeTab, setActiveTab] = useState<
-    'website' | 'billing' | 'tests' | 'packages' | 'forms' | 'dashboard' | 'domain' | 'doctors' | 'profile' | 'staff'
+    'website' | 'billing' | 'tests' | 'packages' | 'forms' | 'dashboard' | 'domain' | 'doctors' | 'profile' | 'staff' | 'settings' | 'admin_settings'
   >('website');
 
   const [websiteSubTab, setWebsiteSubTab] = useState<
@@ -135,6 +141,9 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const [isDashboardMenuOpen, setIsDashboardMenuOpen] = useState(true);
   const [domainSubTab, setDomainSubTab] = useState<'add' | 'list'>('add');
   const [isDomainMenuOpen, setIsDomainMenuOpen] = useState(true);
+  const [settingsSubTab, setSettingsSubTab] = useState<'all' | 'logo' | 'name' | 'description' | 'feature' | 'payment_qr' | 'plan'>('all');
+  const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(true);
+  const [isAdminSettingsMenuOpen, setIsAdminSettingsMenuOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [isDoctorCommissionModalOpen, setIsDoctorCommissionModalOpen] = useState(false);
@@ -788,7 +797,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
           <div className="text-right">
             <span className="text-[10px] font-bold text-slate-400 block uppercase">Current View</span>
             <span className="text-xs font-black text-[#123B6D]">
-              {activeTab === 'website' ? `🌐 Website: ${websiteSubTab}` : activeTab.toUpperCase()}
+              {activeTab === 'website' ? `🌐 Website: ${websiteSubTab}` : activeTab === 'settings' ? `⚙️ Site Settings: ${settingsSubTab}` : activeTab === 'admin_settings' ? '🔐 Admin Settings: PIN & Pass' : activeTab.toUpperCase()}
             </span>
           </div>
         </div>
@@ -1572,7 +1581,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                     >
                       <div className="flex items-center gap-2 truncate">
                         <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'domain' && domainSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
-                        <span className="truncate">1. Add - Request to Super Admin</span>
+                        <span className="truncate">Add Domain — Send Request to Super Admin</span>
                       </div>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                         activeTab === 'domain' && domainSubTab === 'add'
@@ -1583,7 +1592,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                       </span>
                     </button>
 
-                    {/* 2. Change / Delete */}
+                    {/* 2. Change Domain / Delete Domain */}
                     <button
                       type="button"
                       onClick={() => {
@@ -1599,7 +1608,7 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                     >
                       <div className="flex items-center gap-2 truncate">
                         <Sliders className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'domain' && domainSubTab === 'list' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
-                        <span className="truncate">2. Change / Delete</span>
+                        <span className="truncate">Change Domain / Delete Domain</span>
                       </div>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                         activeTab === 'domain' && domainSubTab === 'list'
@@ -1613,7 +1622,272 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 )}
               </div>
 
-              {/* SECTION 3: LAB OPERATIONS & BILLING */}
+              {/* SECTION 7: SITE SETTINGS (Logo, Site Name, Site Description, Feature Image, Payment QR, Plan & Pricing) */}
+              <div className="rounded-xl border border-indigo-300/80 bg-indigo-50/50 overflow-hidden shadow-2xs">
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('settings');
+                    setIsSettingsMenuOpen(!isSettingsMenuOpen);
+                  }}
+                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                    activeTab === 'settings'
+                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
+                      : 'bg-indigo-100/70 text-slate-900 font-bold hover:bg-indigo-200/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Settings className={`w-4 h-4 shrink-0 ${activeTab === 'settings' ? 'text-amber-400' : 'text-indigo-700'}`} />
+                    <span className="text-xs font-black truncate">7. Site Settings</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      activeTab === 'settings' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
+                    }`}>
+                      6 Items
+                    </span>
+                    {isSettingsMenuOpen ? (
+                      <ChevronDown className={`w-4 h-4 ${activeTab === 'settings' ? 'text-white' : 'text-slate-800'}`} />
+                    ) : (
+                      <ChevronRight className={`w-4 h-4 ${activeTab === 'settings' ? 'text-white' : 'text-slate-800'}`} />
+                    )}
+                  </div>
+                </button>
+
+                {/* Sub-Items: Logo, Site Name, Site Description, Feature Image, Payment QR, Plan & Pricing */}
+                {isSettingsMenuOpen && (
+                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-indigo-200/70">
+                    {/* Logo */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('settings');
+                        setSettingsSubTab('logo');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between gap-1 transition text-left cursor-pointer ${
+                        activeTab === 'settings' && settingsSubTab === 'logo'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <ImageIcon className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'logo' ? 'text-amber-400' : 'text-indigo-600'}`} />
+                        <span className="truncate">Logo</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'settings' && settingsSubTab === 'logo'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                      }`}>
+                        Upload
+                      </span>
+                    </button>
+
+                    {/* Site Name */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('settings');
+                        setSettingsSubTab('name');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between gap-1 transition text-left cursor-pointer ${
+                        activeTab === 'settings' && settingsSubTab === 'name'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Type className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'name' ? 'text-amber-400' : 'text-blue-600'}`} />
+                        <span className="truncate">Site Name</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'settings' && settingsSubTab === 'name'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                      }`}>
+                        Edit
+                      </span>
+                    </button>
+
+                    {/* Site Description */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('settings');
+                        setSettingsSubTab('description');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between gap-1 transition text-left cursor-pointer ${
+                        activeTab === 'settings' && settingsSubTab === 'description'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <FileText className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'description' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                        <span className="truncate">Site Description</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'settings' && settingsSubTab === 'description'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      }`}>
+                        Summary
+                      </span>
+                    </button>
+
+                    {/* Feature Image */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('settings');
+                        setSettingsSubTab('feature');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between gap-1 transition text-left cursor-pointer ${
+                        activeTab === 'settings' && settingsSubTab === 'feature'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'feature' ? 'text-amber-400' : 'text-amber-600'}`} />
+                        <span className="truncate">Feature Image</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'settings' && settingsSubTab === 'feature'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-amber-50 text-amber-800 border border-amber-200'
+                      }`}>
+                        Banner
+                      </span>
+                    </button>
+
+                    {/* Payment QR */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('settings');
+                        setSettingsSubTab('payment_qr');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between gap-1 transition text-left cursor-pointer ${
+                        activeTab === 'settings' && settingsSubTab === 'payment_qr'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <QrCode className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'payment_qr' ? 'text-amber-400' : 'text-purple-600'}`} />
+                        <span className="truncate">Payment QR</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'settings' && settingsSubTab === 'payment_qr'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-purple-50 text-purple-700 border border-purple-200'
+                      }`}>
+                        UPI
+                      </span>
+                    </button>
+
+                    {/* Plan & Pricing (Remaining Visibility Days) */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('settings');
+                        setSettingsSubTab('plan');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between gap-1 transition text-left cursor-pointer ${
+                        activeTab === 'settings' && settingsSubTab === 'plan'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-amber-900 bg-amber-50/70 hover:bg-amber-100 border border-amber-200/60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Zap className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'settings' && settingsSubTab === 'plan' ? 'text-amber-400' : 'text-amber-600 fill-amber-500'}`} />
+                        <span className="truncate">Plan &amp; Pricing</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'settings' && settingsSubTab === 'plan'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-amber-100 text-amber-900 font-extrabold'
+                      }`}>
+                        {vendorLabSettings.remainingVisibilityDays ?? 24}d left
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 8: ADMIN SETTINGS (PIN Code & Password — Edit) */}
+              <div className="rounded-xl border border-rose-300/80 bg-rose-50/50 overflow-hidden shadow-2xs">
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('admin_settings');
+                    setIsAdminSettingsMenuOpen(!isAdminSettingsMenuOpen);
+                  }}
+                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                    activeTab === 'admin_settings'
+                      ? 'bg-[#123B6D] text-white font-black shadow-xs'
+                      : 'bg-rose-100/70 text-slate-900 font-bold hover:bg-rose-200/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <ShieldAlert className={`w-4 h-4 shrink-0 ${activeTab === 'admin_settings' ? 'text-amber-400' : 'text-rose-700'}`} />
+                    <span className="text-xs font-black truncate">8. Admin Settings</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      activeTab === 'admin_settings' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
+                    }`}>
+                      PIN &amp; Pass
+                    </span>
+                    {isAdminSettingsMenuOpen ? (
+                      <ChevronDown className={`w-4 h-4 ${activeTab === 'admin_settings' ? 'text-white' : 'text-slate-800'}`} />
+                    ) : (
+                      <ChevronRight className={`w-4 h-4 ${activeTab === 'admin_settings' ? 'text-white' : 'text-slate-800'}`} />
+                    )}
+                  </div>
+                </button>
+
+                {/* Sub-Item: PIN Code & Password — Edit */}
+                {isAdminSettingsMenuOpen && (
+                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-rose-200/70">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('admin_settings');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'admin_settings'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-rose-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <KeyRound className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'admin_settings' ? 'text-amber-400' : 'text-rose-600'}`} />
+                        <span className="truncate">PIN Code &amp; Password — Edit</span>
+                      </div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'admin_settings'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-rose-50 text-rose-800 border border-rose-200'
+                      }`}>
+                        Edit &gt;
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION: LAB OPERATIONS & BILLING */}
               <div className="space-y-1">
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 block mb-1">
                   Lab Operations
@@ -1881,6 +2155,33 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
                 </button>
 
                 <button
+                  onClick={() => {
+                    setActiveTab('settings');
+                    setSettingsSubTab('all');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'settings'
+                      ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                      : 'bg-indigo-50 text-indigo-900 border border-indigo-200 hover:bg-indigo-100'
+                  }`}
+                >
+                  <Settings className="w-3.5 h-3.5 text-indigo-700" />
+                  <span>7. Site Settings</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('admin_settings')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'admin_settings'
+                      ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                      : 'bg-rose-50 text-rose-900 border border-rose-200 hover:bg-rose-100'
+                  }`}
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-700" />
+                  <span>8. Admin Settings</span>
+                </button>
+
+                <button
                   onClick={() => setActiveTab('doctors')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
                     activeTab === 'doctors'
@@ -1978,6 +2279,21 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
           <VendorDomainRequestTab
             initialSubTab={domainSubTab}
             onNavigateSubTab={(tab) => setDomainSubTab(tab)}
+          />
+        )}
+
+        {/* 7. SITE SETTINGS & PLAN PRICING TAB */}
+        {activeTab === 'settings' && (
+          <VendorSiteSettingsTab
+            initialSection={settingsSubTab}
+            onNavigateView={onNavigateView}
+          />
+        )}
+
+        {/* 8. ADMIN SETTINGS (PIN CODE & PASSWORD — EDIT) TAB */}
+        {activeTab === 'admin_settings' && (
+          <VendorAdminSettingsTab
+            onNavigateView={onNavigateView}
           />
         )}
 
