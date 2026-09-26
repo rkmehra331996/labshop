@@ -255,6 +255,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
     return 40;
   });
   const [activeMobilePkgIndex, setActiveMobilePkgIndex] = useState(0);
+  const [activeMobileDoctorIndex, setActiveMobileDoctorIndex] = useState(0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -2955,27 +2956,47 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       <section id="doctors" className="py-16 sm:py-20 bg-[#F8FAFC] border-b border-slate-200 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
           {/* Section Header */}
-          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-100/80 text-[#123B6D] text-xs font-black mb-3 border border-blue-200/80 shadow-2xs">
+          <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
+            {/* Desktop Badge (Unchanged) */}
+            <div className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-100/80 text-[#123B6D] text-xs font-black mb-3 border border-blue-200/80 shadow-2xs">
               <Users className="w-3.5 h-3.5 text-blue-700" />
               <span>Qualified Clinical &amp; Laboratory Team</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
-              Our Medical &amp; Laboratory Experts
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
-              Experienced Pathologists, Biochemists &amp; Senior Technicians ensuring accurate diagnostics and timely reports.
-            </p>
+
+            {/* Mobile View Title & Subtitle */}
+            <div className="block sm:hidden">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/80 text-[#123B6D] text-xs font-black mb-2.5 border border-blue-200/80">
+                <Users className="w-3.5 h-3.5 text-blue-700" />
+                <span>Medical Team</span>
+              </div>
+              <h2 className="text-2xl font-extrabold text-[#123B6D] tracking-tight">
+                Our Medical &amp; Laboratory Experts
+              </h2>
+              <p className="text-sm text-slate-600 mt-1.5 font-medium">
+                Qualified Clinical &amp; Laboratory Team
+              </p>
+            </div>
+
+            {/* Desktop View Title & Subtitle (Unchanged) */}
+            <div className="hidden sm:block">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
+                Our Medical &amp; Laboratory Experts
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+                Experienced Pathologists, Biochemists &amp; Senior Technicians ensuring accurate diagnostics and timely reports.
+              </p>
+            </div>
           </div>
 
-          {/* Qualified Team Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {((vendorDoctors && vendorDoctors.length > 0)
+          {(() => {
+            const doctorsList = ((vendorDoctors && vendorDoctors.length > 0)
               ? vendorDoctors
               : DEFAULT_ALL_VENDOR_DOCTORS.filter((d) => isTenantMatch(d, vendorLabSettings?.labId || selectedVendorLabId || 'lab-apex')).length > 0
               ? DEFAULT_ALL_VENDOR_DOCTORS.filter((d) => isTenantMatch(d, vendorLabSettings?.labId || selectedVendorLabId || 'lab-apex'))
               : DEFAULT_ALL_VENDOR_DOCTORS.slice(0, 3)
-            ).map((doc, idx) => {
+            );
+
+            const renderDoctorCard = (doc: any, idx: number, isMobile: boolean, isSingle: boolean) => {
               // Doctor values with robust fallbacks
               const docName = doc.name || 'Medical Specialist';
               const docQualification = doc.qualification || doc.degrees || 'MBBS, MD (Pathology)';
@@ -3014,7 +3035,13 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               return (
                 <div
                   key={doc.id || idx}
-                  className="bg-white rounded-2xl border border-slate-200 hover:border-[#123B6D]/40 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group relative"
+                  className={`bg-white rounded-2xl border border-slate-200 hover:border-[#123B6D]/40 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group relative ${
+                    isMobile
+                      ? isSingle
+                        ? 'w-full shrink-0'
+                        : 'w-[78vw] shrink-0 snap-start'
+                      : ''
+                  }`}
                 >
                   {/* Top: Photo, Name & Experience Side Badge */}
                   <div className="flex items-start justify-between gap-2.5 mb-3">
@@ -3073,8 +3100,77 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   </div>
                 </div>
               );
-            })}
-          </div>
+            };
+
+            return (
+              <div>
+                {/* Desktop View: Grid (Unchanged) */}
+                <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                  {doctorsList.map((doc, idx) => renderDoctorCard(doc, idx, false, false))}
+                </div>
+
+                {/* Mobile View: 1 Member = 100% width, 2+ Members = 80% card with 20% peek & swipe */}
+                <div className="block sm:hidden">
+                  {doctorsList.length === 1 ? (
+                    /* 1 Team Member: Full screen width (100%) */
+                    <div className="w-full">
+                      {renderDoctorCard(doctorsList[0], 0, true, true)}
+                    </div>
+                  ) : doctorsList.length > 1 ? (
+                    /* 2+ Team Members: First card 80% width, next card 20% visible on right. Horizontal swipe enabled. */
+                    <div>
+                      <div
+                        className="flex overflow-x-auto snap-x snap-mandatory gap-3 pb-2 -mx-4 px-4 scroll-smooth touch-pan-x"
+                        style={{
+                          scrollbarWidth: 'none',
+                          msOverflowStyle: 'none',
+                          WebkitOverflowScrolling: 'touch',
+                        }}
+                        onScroll={(e) => {
+                          const el = e.currentTarget;
+                          const scrollLeft = el.scrollLeft;
+                          const cardWidth = el.offsetWidth * 0.8;
+                          if (cardWidth > 0) {
+                            const idx = Math.min(
+                              doctorsList.length - 1,
+                              Math.max(0, Math.round(scrollLeft / cardWidth))
+                            );
+                            if (idx !== activeMobileDoctorIndex) {
+                              setActiveMobileDoctorIndex(idx);
+                            }
+                          }
+                        }}
+                      >
+                        {doctorsList.map((doc, idx) => renderDoctorCard(doc, idx, true, false))}
+                      </div>
+
+                      {/* Mobile Swipe Pagination Dots & Hint */}
+                      <div className="flex items-center justify-between mt-3 px-1">
+                        <div className="flex items-center gap-1.5">
+                          {doctorsList.map((_, dotIdx) => (
+                            <div
+                              key={dotIdx}
+                              className={`h-1.5 rounded-full transition-all duration-300 ${
+                                activeMobileDoctorIndex === dotIdx
+                                  ? 'w-6 bg-[#123B6D]'
+                                  : 'w-1.5 bg-slate-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
+                          <span>Swipe to explore</span>
+                          <span className="text-[#123B6D] font-bold">
+                            ({activeMobileDoctorIndex + 1}/{doctorsList.length})
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </section>
 
