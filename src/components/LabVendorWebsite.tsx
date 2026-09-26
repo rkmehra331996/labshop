@@ -276,7 +276,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   }[]>([]);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [showFullDirectory, setShowFullDirectory] = useState(false);
-  const [cartToast, setCartToast] = useState<{ testName: string; price: number; isRemove?: boolean } | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [bookedSuccess, setBookedSuccess] = useState(false);
@@ -949,7 +948,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       setCartItems((prev) =>
         prev.filter((item) => item.id !== testId && item.name.toLowerCase() !== test.name.toLowerCase())
       );
-      setCartToast({ testName: test.name, price: testPrice, isRemove: true });
     } else {
       const newItem = {
         id: testId,
@@ -961,12 +959,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         turnaroundTime: test.turnaroundTime,
       };
       setCartItems((prev) => [...prev, newItem]);
-      setCartToast({ testName: test.name, price: testPrice, isRemove: false });
     }
-
-    setTimeout(() => {
-      setCartToast(null);
-    }, 2800);
   };
 
   const handleRemoveFromCart = (testId: string, testName: string) => {
@@ -978,7 +971,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const handleClearCart = () => {
     setCartItems([]);
     setIsCartDrawerOpen(false);
-    setCartToast(null);
   };
 
   const handleProceedToBooking = () => {
@@ -4019,40 +4011,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         </div>
       )}
 
-      {/* Toast Notification for Cart Actions */}
-      {cartToast && (
-        <div className="fixed top-20 sm:top-24 right-4 z-50 animate-in fade-in slide-in-from-top-4 duration-200">
-          <div className="bg-[#123B6D] text-white px-4 py-3 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-3 max-w-sm">
-            <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-xs shrink-0 ${
-                cartToast.isRemove ? 'bg-amber-500' : 'bg-emerald-500'
-              }`}
-            >
-              {cartToast.isRemove ? '✕' : '✓'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold leading-tight truncate">
-                <strong className="text-amber-300">{cartToast.testName}</strong>
-              </p>
-              <p className="text-[11px] text-slate-200 mt-0.5">
-                {cartToast.isRemove
-                  ? `Cart se hata diya gaya (${cartItems.length} tests bache)`
-                  : `Multi-Cart mein add ho gaya (Total ${cartItems.length} tests • ₹${cartTotalPrice})`}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setCartToast(null);
-                setIsCartDrawerOpen(true);
-              }}
-              className="text-[10px] font-bold text-amber-300 hover:text-white underline shrink-0 cursor-pointer"
-            >
-              View Cart
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Floating Side Capsule Cart Button (Small & Compact in Footer Corner) */}
       {cartItems.length > 0 && !isBookingModalOpen && (
