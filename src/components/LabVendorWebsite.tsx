@@ -2496,21 +2496,6 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               </button>
             </div>
           )}
-
-          {/* WhatsApp Direct Inquiry Link */}
-          <div className="text-center mt-8">
-            <a
-              href={`https://wa.me/91${cleanWhatsapp}?text=${encodeURIComponent(
-                `Hello ${labName}, I want to inquire about pathology test booking & home sample collection.`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-xs font-bold text-[#123B6D] hover:underline"
-            >
-              <span>Can't find a specific test? Ask us directly on WhatsApp (+91 {cleanWhatsapp})</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </a>
-          </div>
         </div>
       </section>
 
