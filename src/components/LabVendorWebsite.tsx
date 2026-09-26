@@ -23,6 +23,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Menu,
   QrCode,
   Copy,
@@ -52,6 +53,7 @@ import {
   Sparkles,
   Tag,
   TestTube,
+  Layers,
 } from 'lucide-react';
 import { useCms, DEFAULT_ALL_VENDOR_DOCTORS } from '../context/CmsContext';
 import { updateDocumentMetadata, generateDefaultOgImage } from '../utils/seo';
@@ -232,9 +234,41 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedBookTestCategory, setSelectedBookTestCategory] = useState<string>('All');
+  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 640;
+    }
+    return false;
+  });
+  const [visibleTestsCount, setVisibleTestsCount] = useState<number>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      return 20;
+    }
+    return 40;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 640;
+      setIsMobileScreen(isMobile);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [selectedTestInfoModal, setSelectedTestInfoModal] = useState<any | null>(null);
+  const [addingTestId, setAddingTestId] = useState<string | null>(null);
+  const [cartItems, setCartItems] = useState<{
+    id: string;
+    name: string;
+    price: number;
+    code?: string;
+    category?: string;
+    sampleType?: string;
+    turnaroundTime?: string;
+  }[]>([]);
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [showFullDirectory, setShowFullDirectory] = useState(false);
-  const [cartToast, setCartToast] = useState<{ testName: string; price: number } | null>(null);
+  const [cartToast, setCartToast] = useState<{ testName: string; price: number; isRemove?: boolean } | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [bookedSuccess, setBookedSuccess] = useState(false);
@@ -622,6 +656,42 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       clinicalUse = 'Physical, chemical, and microscopic urine screen for pus cells, RBCs, protein, sugar, and crystals. Rapidly flags Urinary Tract Infection (UTI) and kidney stones.';
     }
 
+    const lowerName = name.toLowerCase();
+    let testFor = test.testFor || '';
+    if (!testFor) {
+      if (lowerName.includes('cbc') || lowerName.includes('hemogram') || lowerName.includes('blood count') || lowerName.includes('esr')) {
+        testFor = 'Infections, Anemia & Blood Health';
+      } else if (lowerName.includes('hba1c') || lowerName.includes('sugar') || lowerName.includes('glucose') || lowerName.includes('insulin')) {
+        testFor = 'Diabetes & Blood Sugar Monitoring';
+      } else if (lowerName.includes('thyroid') || lowerName.includes('tsh') || lowerName.includes('t3') || lowerName.includes('t4')) {
+        testFor = 'Thyroid Gland & Hormone Balance';
+      } else if (lowerName.includes('lipid') || lowerName.includes('cholesterol') || lowerName.includes('triglyceride')) {
+        testFor = 'Heart Health & Cholesterol Risk';
+      } else if (lowerName.includes('vitamin d') || lowerName.includes('d3')) {
+        testFor = 'Bone Strength & Calcium Absorption';
+      } else if (lowerName.includes('vitamin b12') || lowerName.includes('b12')) {
+        testFor = 'Nerve Function & Red Blood Cells';
+      } else if (lowerName.includes('lft') || lowerName.includes('liver') || lowerName.includes('bilirubin') || lowerName.includes('sgot') || lowerName.includes('sgpt')) {
+        testFor = 'Liver Enzymes & Hepatic Function';
+      } else if (lowerName.includes('kft') || lowerName.includes('kidney') || lowerName.includes('creatinine') || lowerName.includes('urea') || lowerName.includes('uric')) {
+        testFor = 'Kidney Filtration & Renal Wellness';
+      } else if (lowerName.includes('urine') || lowerName.includes('urinary')) {
+        testFor = 'UTI, Kidney Stones & Metabolic Check';
+      } else if (lowerName.includes('iron') || lowerName.includes('ferritin') || lowerName.includes('tibc')) {
+        testFor = 'Iron Deficiency & Anemia Screen';
+      } else if (lowerName.includes('electrolyte') || lowerName.includes('sodium') || lowerName.includes('potassium')) {
+        testFor = 'Electrolyte & Hydration Balance';
+      } else if (lowerName.includes('dengue') || lowerName.includes('malaria') || lowerName.includes('widal') || lowerName.includes('typhoid')) {
+        testFor = 'Fever Cause & Viral/Parasite Screen';
+      } else if (lowerName.includes('calcium')) {
+        testFor = 'Bone Density & Calcium Levels';
+      } else if (test.category) {
+        testFor = `${test.category} Diagnostic Screening`;
+      } else {
+        testFor = 'Clinical Diagnostic & Health Check';
+      }
+    }
+
     return {
       price,
       mrp,
@@ -633,26 +703,78 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
       fastingLabel,
       fastingDetail,
       clinicalUse,
+      testFor,
     };
   };
 
-  const handleBookTestClick = (e: React.MouseEvent, test: any) => {
-    e.stopPropagation();
-    setSelectedTestOrPackage(`${test.name} (₹${test.priceINR})`);
-    setCartToast({ testName: test.name, price: test.priceINR });
-    setTimeout(() => setCartToast(null), 3500);
+  const handleToggleCartItem = (test: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const testId = String(test.id || test.code || test.name);
+    const testPrice = test.priceINR || 350;
+    const exists = cartItems.some(
+      (item) => item.id === testId || item.name.toLowerCase() === test.name.toLowerCase()
+    );
+
+    if (exists) {
+      setCartItems((prev) =>
+        prev.filter((item) => item.id !== testId && item.name.toLowerCase() !== test.name.toLowerCase())
+      );
+      setCartToast({ testName: test.name, price: testPrice, isRemove: true });
+    } else {
+      const newItem = {
+        id: testId,
+        name: test.name,
+        price: testPrice,
+        code: test.code,
+        category: test.category,
+        sampleType: test.sampleType,
+        turnaroundTime: test.turnaroundTime,
+      };
+      setCartItems((prev) => [...prev, newItem]);
+      setCartToast({ testName: test.name, price: testPrice, isRemove: false });
+    }
+
+    setTimeout(() => {
+      setCartToast(null);
+    }, 2800);
+  };
+
+  const handleRemoveFromCart = (testId: string, testName: string) => {
+    setCartItems((prev) =>
+      prev.filter((item) => item.id !== testId && item.name.toLowerCase() !== testName.toLowerCase())
+    );
+  };
+
+  const handleClearCart = () => {
+    setCartItems([]);
+  };
+
+  const handleProceedToBooking = () => {
+    if (cartItems.length === 0) return;
+    setIsCartDrawerOpen(false);
     setIsBookingModalOpen(true);
   };
 
+  const cartTotalPrice = cartItems.reduce((acc, item) => acc + item.price, 0);
+
+  const handleBookTestClick = (e: React.MouseEvent, test: any) => {
+    e.stopPropagation();
+    handleToggleCartItem(test);
+  };
+
   const filteredTests = vendorTests.filter((test) => {
+    const term = searchTerm.trim().toLowerCase();
     const matchesSearch =
-      test.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      test.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      test.category.toLowerCase().includes(searchTerm.toLowerCase());
+      !term ||
+      test.name.toLowerCase().includes(term) ||
+      (test.code && test.code.toLowerCase().includes(term)) ||
+      (test.category && test.category.toLowerCase().includes(term));
     const matchesCategory =
-      selectedCategory === 'All' || test.category.toLowerCase().includes(selectedCategory.toLowerCase());
+      selectedBookTestCategory === 'All' || isTestInBookCategory(test, selectedBookTestCategory);
     return matchesSearch && matchesCategory;
   });
+
+  const displayedTests = filteredTests.slice(0, visibleTestsCount);
 
   const handleBookingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1789,39 +1911,65 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         </div>
       </section>
 
-      {/* SECTION 4: BOOK TEST SECTION (Categories + Cart Icon + Popup + 2-Row Peek Grid) */}
+      {/* SECTION 4: ONLINE PATHOLOGY TESTS SECTION (Search Bar + Category Tabs + Desktop Grid + Show More) */}
       <section id="book-test-section" className="py-16 bg-[#F8FAFC] border-b border-slate-200 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0F766E]/10 text-[#0F766E] text-xs font-bold mb-2">
-                <span>Book Diagnostic Test</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
-                Book Pathology Tests Online with Instant Fasting Info
-              </h2>
-              <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-                Click any test card for clinical usage and fasting preparation instructions, or add directly to booking.
-              </p>
+          <div className="text-center max-w-2xl mx-auto mb-6">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0F766E]/10 text-[#0F766E] text-xs font-bold mb-2">
+              <FlaskConical className="w-3.5 h-3.5 text-[#0F766E]" />
+              <span>Diagnostic Tests &amp; Profiles</span>
             </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#123B6D] tracking-tight">
+              Book Pathology Tests Online
+            </h2>
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1">
+              Search tests by name with transparent rates, specimen requirements, and home collection.
+            </p>
+          </div>
 
-            {/* Mobile swipe hint */}
-            <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs self-start md:self-auto">
-              <span className="text-[#123B6D]">💡</span>
-              <span>2 full cards on screen • 3rd card peeks 2%–5% • 50%-50% if 2 cards</span>
+          {/* 1. TOP SEARCH BAR */}
+          <div className="max-w-2xl mx-auto mb-6">
+            <div className="relative">
+              <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setVisibleTestsCount(isMobileScreen ? 20 : 40);
+                }}
+                placeholder="Search test by name (e.g., CBC, HbA1c, Thyroid, Lipid, Vitamin D, Urine, LFT)..."
+                className="w-full pl-12 pr-10 py-3.5 sm:py-4 rounded-2xl border-2 border-slate-200 focus:border-[#123B6D] focus:ring-4 focus:ring-[#123B6D]/10 bg-white text-slate-900 placeholder:text-slate-400 text-xs sm:text-sm font-semibold shadow-xs transition-all outline-none"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setVisibleTestsCount(isMobileScreen ? 20 : 40);
+                  }}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Category Tabs: All, Hematology, Biochemistry, Thyroid & Hormones, Diabetes, Vitamins, Urine Analysis */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
+          {/* Category Filter Tabs */}
+          <div className="flex items-center justify-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none">
             {BOOK_TEST_CATEGORY_TABS.map((cat) => {
               const isSelected = selectedBookTestCategory === cat;
               return (
                 <button
                   key={cat}
                   type="button"
-                  onClick={() => setSelectedBookTestCategory(cat)}
+                  onClick={() => {
+                    setSelectedBookTestCategory(cat);
+                    setVisibleTestsCount(isMobileScreen ? 20 : 40);
+                  }}
                   className={`px-4 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition cursor-pointer flex items-center gap-1.5 shadow-2xs ${
                     isSelected
                       ? 'bg-[#123B6D] text-white ring-2 ring-[#123B6D]/20 shadow-xs'
@@ -1835,419 +1983,124 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
             })}
           </div>
 
-          {/* 2-ROW HORIZONTAL PEEK GRID */}
-          <div className="space-y-6">
-            {/* ROW 1: Test Cards (e.g. CBC, HbA1c, Thyroid, Lipid Profile) */}
-            {(() => {
-              // Row 1 selection logic
-              let r1Tests: any[] = [];
-              if (selectedBookTestCategory === 'All') {
-                r1Tests = vendorTests.filter((t) => {
-                  const n = t.name.toLowerCase();
-                  return n.includes('cbc') || n.includes('hba1c') || n.includes('thyroid') || n.includes('tsh') || n.includes('lipid');
-                });
-                if (r1Tests.length < 2) r1Tests = vendorTests.slice(0, 4);
-              } else {
-                const matched = vendorTests.filter((t) => isTestInBookCategory(t, selectedBookTestCategory));
-                if (matched.length <= 2) {
-                  r1Tests = matched;
-                } else {
-                  r1Tests = matched.slice(0, Math.ceil(matched.length / 2));
-                }
-              }
-
-              const isRow1TwoCards = r1Tests.length <= 2;
-
-              return (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-xs font-black uppercase tracking-wider text-[#123B6D] flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                      <span>Row 1: {selectedBookTestCategory === 'All' ? 'Primary Blood Tests (CBC, HbA1c, Thyroid, Lipid)' : `${selectedBookTestCategory} (Line 1)`}</span>
-                    </span>
-                    <span className="text-[11px] font-bold text-slate-400">
-                      {r1Tests.length} Tests Available
-                    </span>
-                  </div>
-
-                  {/* Horizontal Scroll / Fit Container */}
-                  <div
-                    className={
-                      isRow1TwoCards
-                        ? 'w-full flex gap-3 sm:gap-4'
-                        : 'w-full flex gap-3 sm:gap-4 overflow-x-auto pb-3 pt-1 snap-x snap-mandatory scrollbar-none scroll-smooth'
-                    }
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                  >
-                    {r1Tests.map((test, idx) => {
-                      const details = getTestDetails(test);
-                      return (
-                        <div
-                          key={test.id || `r1-${idx}`}
-                          onClick={() => setSelectedTestInfoModal(test)}
-                          className={`bg-white rounded-2xl border border-slate-200 hover:border-[#123B6D]/50 hover:shadow-md transition-all p-4 sm:p-5 flex flex-col justify-between cursor-pointer group relative ${
-                            isRow1TwoCards
-                              ? 'flex-1 w-[calc(50%-6px)] sm:w-[calc(50%-8px)] min-w-0'
-                              : 'w-[calc(47.5%-6px)] sm:w-[calc(48%-8px)] md:w-[calc(31.5%-10px)] lg:w-[calc(23.5%-12px)] shrink-0 snap-start'
-                          }`}
-                        >
-                          <div>
-                            {/* Card Top: Medical Icon, Code, Info icon */}
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="w-9 h-9 rounded-xl bg-[#123B6D]/10 text-[#123B6D] flex items-center justify-center font-bold text-sm group-hover:bg-[#123B6D] group-hover:text-white transition">
-                                🧪
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-bold">
-                                  {details.code}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedTestInfoModal(test);
-                                  }}
-                                  className="p-1 rounded-lg text-slate-400 hover:text-[#123B6D] hover:bg-slate-100 transition cursor-pointer"
-                                  title="View Test Information & Fasting Prep"
-                                >
-                                  <Info className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Test Name */}
-                            <h4 className="font-black text-xs sm:text-sm text-[#123B6D] line-clamp-2 leading-snug group-hover:text-blue-700 transition mb-2">
-                              {test.name}
-                            </h4>
-
-                            {/* Specimen & Reporting Time */}
-                            <div className="space-y-1 mb-3 text-[11px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400 font-medium">Sample:</span>
-                                <span className="font-bold text-slate-700 truncate max-w-[120px]" title={details.sample}>
-                                  {details.sample}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400 font-medium">Reporting:</span>
-                                <span className="font-bold text-emerald-700">⏱️ {details.turnaround}</span>
-                              </div>
-                            </div>
-
-                            {/* Fasting Badge */}
-                            <div className="mb-3">
-                              {details.isFastingRequired ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                                  <span>⚠️</span>
-                                  <span>10-12h Fasting</span>
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
-                                  <span>✅</span>
-                                  <span>No Fasting Req.</span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Price, Discount & Cart/Book Test Button */}
-                          <div className="pt-2 border-t border-slate-100 space-y-2">
-                            <div className="flex items-baseline justify-between">
-                              <div className="flex items-baseline gap-1.5">
-                                <span className="text-base sm:text-lg font-black text-[#123B6D]">₹{details.price}</span>
-                                <span className="text-xs text-slate-400 line-through">₹{details.mrp}</span>
-                              </div>
-                              <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                Save {details.discount}%
-                              </span>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={(e) => handleBookTestClick(e, test)}
-                              className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-98 cursor-pointer"
-                              title="Book test online"
-                            >
-                              <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Book Test</span>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* ROW 2: Test Cards (e.g. Vitamin D3, Vitamin B12, LFT, KFT, Urine Routine) */}
-            {(() => {
-              // Row 2 selection logic
-              let r2Tests: any[] = [];
-              if (selectedBookTestCategory === 'All') {
-                r2Tests = vendorTests.filter((t) => {
-                  const n = t.name.toLowerCase();
-                  return (
-                    n.includes('vitamin') ||
-                    n.includes('d3') ||
-                    n.includes('b12') ||
-                    n.includes('lft') ||
-                    n.includes('liver') ||
-                    n.includes('kft') ||
-                    n.includes('kidney') ||
-                    n.includes('urine')
-                  );
-                });
-                if (r2Tests.length < 2) r2Tests = vendorTests.slice(4, 9);
-              } else {
-                const matched = vendorTests.filter((t) => isTestInBookCategory(t, selectedBookTestCategory));
-                if (matched.length > 2) {
-                  r2Tests = matched.slice(Math.ceil(matched.length / 2));
-                }
-              }
-
-              if (r2Tests.length === 0) return null;
-
-              const isRow2TwoCards = r2Tests.length <= 2;
-
-              return (
-                <div className="space-y-2 pt-2">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-xs font-black uppercase tracking-wider text-[#123B6D] flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-                      <span>Row 2: {selectedBookTestCategory === 'All' ? 'Essential Profiles (Vitamin D3, B12, LFT, KFT, Urine)' : `${selectedBookTestCategory} (Line 2)`}</span>
-                    </span>
-                    <span className="text-[11px] font-bold text-slate-400">
-                      {r2Tests.length} Tests Available
-                    </span>
-                  </div>
-
-                  {/* Horizontal Scroll / Fit Container */}
-                  <div
-                    className={
-                      isRow2TwoCards
-                        ? 'w-full flex gap-3 sm:gap-4'
-                        : 'w-full flex gap-3 sm:gap-4 overflow-x-auto pb-3 pt-1 snap-x snap-mandatory scrollbar-none scroll-smooth'
-                    }
-                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                  >
-                    {r2Tests.map((test, idx) => {
-                      const details = getTestDetails(test);
-                      return (
-                        <div
-                          key={test.id || `r2-${idx}`}
-                          onClick={() => setSelectedTestInfoModal(test)}
-                          className={`bg-white rounded-2xl border border-slate-200 hover:border-[#123B6D]/50 hover:shadow-md transition-all p-4 sm:p-5 flex flex-col justify-between cursor-pointer group relative ${
-                            isRow2TwoCards
-                              ? 'flex-1 w-[calc(50%-6px)] sm:w-[calc(50%-8px)] min-w-0'
-                              : 'w-[calc(47.5%-6px)] sm:w-[calc(48%-8px)] md:w-[calc(31.5%-10px)] lg:w-[calc(23.5%-12px)] shrink-0 snap-start'
-                          }`}
-                        >
-                          <div>
-                            {/* Card Top: Medical Icon, Code, Info icon */}
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold text-sm group-hover:bg-[#123B6D] group-hover:text-white transition">
-                                🔬
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-bold">
-                                  {details.code}
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedTestInfoModal(test);
-                                  }}
-                                  className="p-1 rounded-lg text-slate-400 hover:text-[#123B6D] hover:bg-slate-100 transition cursor-pointer"
-                                  title="View Test Information & Fasting Prep"
-                                >
-                                  <Info className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Test Name */}
-                            <h4 className="font-black text-xs sm:text-sm text-[#123B6D] line-clamp-2 leading-snug group-hover:text-blue-700 transition mb-2">
-                              {test.name}
-                            </h4>
-
-                            {/* Specimen & Reporting Time */}
-                            <div className="space-y-1 mb-3 text-[11px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400 font-medium">Sample:</span>
-                                <span className="font-bold text-slate-700 truncate max-w-[120px]" title={details.sample}>
-                                  {details.sample}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-400 font-medium">Reporting:</span>
-                                <span className="font-bold text-emerald-700">⏱️ {details.turnaround}</span>
-                              </div>
-                            </div>
-
-                            {/* Fasting Badge */}
-                            <div className="mb-3">
-                              {details.isFastingRequired ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
-                                  <span>⚠️</span>
-                                  <span>10-12h Fasting</span>
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
-                                  <span>✅</span>
-                                  <span>No Fasting Req.</span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Price, Discount & Cart/Book Test Button */}
-                          <div className="pt-2 border-t border-slate-100 space-y-2">
-                            <div className="flex items-baseline justify-between">
-                              <div className="flex items-baseline gap-1.5">
-                                <span className="text-base sm:text-lg font-black text-[#123B6D]">₹{details.price}</span>
-                                <span className="text-xs text-slate-400 line-through">₹{details.mrp}</span>
-                              </div>
-                              <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                Save {details.discount}%
-                              </span>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={(e) => handleBookTestClick(e, test)}
-                              className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs active:scale-98 cursor-pointer"
-                              title="Book test online"
-                            >
-                              <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Book Test</span>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
+          {/* Active Filter & Test Count Status */}
+          <div className="flex items-center justify-between px-1 mb-5 text-xs font-semibold text-slate-500">
+            <span>
+              {searchTerm ? (
+                <span>
+                  Search results for &ldquo;<strong className="text-[#123B6D]">{searchTerm}</strong>&rdquo;
+                </span>
+              ) : (
+                <span>
+                  Category: <strong className="text-[#123B6D]">{selectedBookTestCategory}</strong>
+                </span>
+              )}
+            </span>
+            <span className="text-[11px] font-bold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+              Showing {displayedTests.length} of {filteredTests.length} Tests
+            </span>
           </div>
 
-          {/* 2 लाइन्स के ठीक नीचे: "View All Tests (500+ Tests Directory) →" बड़ा बटन */}
-          <div className="mt-10 text-center">
-            <button
-              type="button"
-              id="btn-view-all-tests"
-              onClick={() => {
-                setShowFullDirectory(!showFullDirectory);
-                setTimeout(() => {
-                  const el = document.getElementById('full-test-directory-view');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }, 100);
-              }}
-              className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-[#123B6D] via-[#1E4E8C] to-[#0F766E] hover:from-[#0e2c52] hover:to-[#0d5f58] text-white text-xs sm:text-sm font-black shadow-md hover:shadow-xl transition-all cursor-pointer transform hover:-translate-y-0.5 active:translate-y-0 border border-white/20"
-            >
-              <span>View All Tests (500+ Tests Directory)</span>
-              <ArrowRight className="w-4 h-4 text-amber-400" />
-            </button>
-          </div>
+          {/* 2. RESPONSIVE GRID (Mobile: 2 tests per row | Desktop: 4 per row) */}
+          {displayedTests.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5">
+              {displayedTests.map((test, idx) => {
+                const details = getTestDetails(test);
+                const testIdentifier = String(test.id || test.code || test.name);
+                const isItemInCart = cartItems.some(
+                  (ci) =>
+                    ci.id === testIdentifier ||
+                    ci.name.toLowerCase() === test.name.toLowerCase()
+                );
+                return (
+                  <div
+                    key={test.id || `test-${idx}`}
+                    onClick={() => setSelectedTestInfoModal(test)}
+                    className={`bg-white rounded-xl sm:rounded-2xl border transition-all p-3.5 sm:p-4 flex flex-col justify-between cursor-pointer group relative ${
+                      isItemInCart
+                        ? 'border-emerald-500/80 shadow-md ring-1 ring-emerald-400/30'
+                        : 'border-slate-200 hover:border-[#123B6D]/50 hover:shadow-md'
+                    }`}
+                  >
+                    <div>
+                      {/* Test Name: maximum 2 lines */}
+                      <h4 className="font-black text-xs sm:text-sm text-[#123B6D] line-clamp-2 leading-tight sm:leading-snug group-hover:text-blue-700 transition mb-1 min-h-[2rem] sm:min-h-[2.4rem]">
+                        {test.name}
+                      </h4>
 
-          {/* Expandable 500+ Tests Complete Directory Section */}
-          {showFullDirectory && (
-            <div id="full-test-directory-view" className="mt-12 pt-8 border-t border-slate-200 space-y-6 animate-in fade-in duration-200">
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#123B6D]/10 text-[#123B6D] text-xs font-bold mb-2">
-                    <span>Complete 500+ Pathology Directory</span>
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-black text-[#123B6D]">
-                    Search Blood Tests & View Exact Prices
-                  </h3>
-                  <p className="text-xs text-[#64748B] mt-1">
-                    Transparent rates with fast turnaround times and verified pathologist reporting.
-                  </p>
-                </div>
-
-                {/* Search Input */}
-                <div className="w-full md:w-80 relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search test (e.g. CBC, HbA1c, Thyroid)..."
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none bg-white shadow-xs font-medium"
-                  />
-                </div>
-              </div>
-
-              {/* Full Test Directory Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredTests.map((test) => {
-                  const details = getTestDetails(test);
-                  return (
-                    <div
-                      key={test.id}
-                      onClick={() => setSelectedTestInfoModal(test)}
-                      className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition flex flex-col justify-between cursor-pointer group"
-                    >
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-                            {test.category}
-                          </span>
-                          <span className="font-mono text-[11px] text-slate-400 font-bold">{details.code}</span>
-                        </div>
-
-                        <h4 className="text-sm font-bold text-[#123B6D] group-hover:text-blue-700 transition">{test.name}</h4>
-
-                        <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
-                          <div>
-                            <span className="block text-[10px] text-slate-400">Specimen</span>
-                            <span className="font-medium text-slate-700 truncate block">{details.sample}</span>
-                          </div>
-                          <div>
-                            <span className="block text-[10px] text-slate-400">Report In</span>
-                            <span className="font-medium text-slate-700">{details.turnaround}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                        <div>
-                          <span className="text-[10px] text-slate-400 block">Test Fee</span>
-                          <span className="text-base font-extrabold text-[#123B6D]">₹{details.price}</span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleWhatsAppBooking(test.name, details.price);
-                            }}
-                            className="p-1.5 rounded-lg bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#075e54] border border-[#25D366]/30 transition cursor-pointer"
-                            title="Book via WhatsApp"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => handleBookTestClick(e, test)}
-                            className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                          >
-                            <ShoppingCart className="w-3 h-3 text-amber-400" />
-                            <span>Book Test</span>
-                          </button>
-                        </div>
-                      </div>
+                      {/* Test For: 1-2 lines */}
+                      <p className="text-[10px] sm:text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                        <span className="font-bold text-slate-700">Test For:</span> {details.testFor}
+                      </p>
                     </div>
-                  );
-                })}
+
+                    {/* Single Price & Cart (+) Icon in ONE single line (no sale price / MRP) */}
+                    <div className="pt-2.5 mt-3 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-sm sm:text-base font-black text-[#123B6D]">₹{details.price}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleCartItem(test, e)}
+                        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shadow-xs active:scale-95 transition-all cursor-pointer group/btn ${
+                          isItemInCart
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white ring-2 ring-emerald-400/60 shadow-sm scale-105'
+                            : 'bg-[#123B6D] hover:bg-[#0e2c52] text-white'
+                        }`}
+                        title={isItemInCart ? 'Cart mein added hai (Click to remove)' : 'Add to Multi-Cart'}
+                      >
+                        {isItemInCart ? (
+                          <Check className="w-4 h-4 text-white stroke-[2.5] animate-in zoom-in-50 duration-150" />
+                        ) : (
+                          <div className="relative flex items-center justify-center">
+                            <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 group-hover/btn:scale-110 transition-transform" />
+                            <span className="absolute -top-1 -right-1.5 bg-emerald-500 text-white rounded-full w-3 h-3 flex items-center justify-center text-[9px] font-black leading-none shadow-2xs">
+                              +
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center max-w-md mx-auto my-6 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto text-2xl">
+                🔍
               </div>
+              <h4 className="font-extrabold text-base text-slate-800">No Tests Found</h4>
+              <p className="text-xs text-slate-500">
+                No pathology tests matched &ldquo;<strong>{searchTerm}</strong>&rdquo;. Try searching for CBC, Sugar, Thyroid, LFT, or contact our diagnostic helpline.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedBookTestCategory('All');
+                  setVisibleTestsCount(isMobileScreen ? 20 : 40);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition cursor-pointer"
+              >
+                Clear Search &amp; Filters
+              </button>
             </div>
           )}
 
+          {/* 3. SHOW MORE BUTTON (Mobile: 20 initially / Desktop: 40 initially, Show More button if more available) */}
+          {filteredTests.length > visibleTestsCount && (
+            <div className="mt-8 sm:mt-10 text-center">
+              <button
+                type="button"
+                onClick={() => setVisibleTestsCount((prev) => prev + (isMobileScreen ? 20 : 40))}
+                className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 rounded-2xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-98"
+              >
+                <span>Show More Tests ({filteredTests.length - visibleTestsCount} More Available)</span>
+                <ChevronDown className="w-4 h-4 text-amber-400" />
+              </button>
+            </div>
+          )}
+
+          {/* WhatsApp Direct Inquiry Link */}
           <div className="text-center mt-8">
             <a
               href={`https://wa.me/91${cleanWhatsapp}?text=${encodeURIComponent(
@@ -2257,7 +2110,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-xs font-bold text-[#123B6D] hover:underline"
             >
-              <span>Can't find a test? Ask us directly on WhatsApp (+91 {cleanWhatsapp})</span>
+              <span>Can't find a specific test? Ask us directly on WhatsApp (+91 {cleanWhatsapp})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
           </div>
@@ -3246,6 +3099,11 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}
         initialSelection={selectedTestOrPackage}
+        initialTests={
+          cartItems.length > 0
+            ? cartItems.map((ci) => ({ name: ci.name, price: ci.price, type: 'test' as const }))
+            : undefined
+        }
         onOpenReportPortal={handleCheckReport}
       />
 
@@ -3432,17 +3290,16 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   </div>
                 </div>
 
-                {/* Pricing & Discount */}
+                {/* Single Price (No sale price or MRP) */}
                 <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-100 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Special Offer Fee</span>
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">Test Fee</span>
                     <div className="flex items-baseline gap-2 mt-0.5">
                       <span className="text-xl font-black text-[#123B6D]">₹{details.price}</span>
-                      <span className="text-xs text-slate-400 line-through">₹{details.mrp}</span>
                     </div>
                   </div>
-                  <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-300">
-                    Save {details.discount}%
+                  <span className="text-xs font-bold text-[#123B6D] bg-white px-3 py-1 rounded-full border border-blue-200">
+                    Standard Rate
                   </span>
                 </div>
               </div>
@@ -3472,15 +3329,53 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   <button
                     type="button"
                     onClick={() => {
+                      handleToggleCartItem(selectedTestInfoModal);
+                    }}
+                    className={`px-3.5 py-2.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
+                      cartItems.some((ci) => ci.name === selectedTestInfoModal.name)
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300'
+                    }`}
+                  >
+                    {cartItems.some((ci) => ci.name === selectedTestInfoModal.name) ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>In Multi-Cart</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Add to Cart</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
                       const test = selectedTestInfoModal;
+                      const testId = String(test.id || test.code || test.name);
+                      const testPrice = details.price;
+                      if (!cartItems.some((ci) => ci.id === testId || ci.name === test.name)) {
+                        setCartItems((prev) => [
+                          ...prev,
+                          {
+                            id: testId,
+                            name: test.name,
+                            price: testPrice,
+                            code: details.code,
+                            category: test.category,
+                            sampleType: details.sample,
+                            turnaroundTime: details.turnaround,
+                          },
+                        ]);
+                      }
                       setSelectedTestInfoModal(null);
-                      setSelectedTestOrPackage(`${test.name} (₹${details.price})`);
                       setIsBookingModalOpen(true);
                     }}
                     className="px-4 py-2.5 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white font-black text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer active:scale-98"
                   >
                     <ShoppingCart className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Book Test Now</span>
+                    <span>Proceed to Book</span>
                   </button>
                 </div>
               </div>
@@ -3667,6 +3562,183 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 <span>Save &amp; Publish Banners</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification for Cart Actions */}
+      {cartToast && (
+        <div className="fixed top-20 sm:top-24 right-4 z-50 animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className="bg-[#123B6D] text-white px-4 py-3 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-3 max-w-sm">
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-xs shrink-0 ${
+                cartToast.isRemove ? 'bg-amber-500' : 'bg-emerald-500'
+              }`}
+            >
+              {cartToast.isRemove ? '✕' : '✓'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold leading-tight truncate">
+                <strong className="text-amber-300">{cartToast.testName}</strong>
+              </p>
+              <p className="text-[11px] text-slate-200 mt-0.5">
+                {cartToast.isRemove
+                  ? `Cart se hata diya gaya (${cartItems.length} tests bache)`
+                  : `Multi-Cart mein add ho gaya (Total ${cartItems.length} tests • ₹${cartTotalPrice})`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setCartToast(null);
+                setIsCartDrawerOpen(true);
+              }}
+              className="text-[10px] font-bold text-amber-300 hover:text-white underline shrink-0 cursor-pointer"
+            >
+              View Cart
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Side Capsule Cart Button (Small & Compact in Footer Corner) */}
+      {cartItems.length > 0 && !isBookingModalOpen && (
+        <div className="fixed bottom-5 right-4 sm:bottom-6 sm:right-6 z-40 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <button
+            type="button"
+            onClick={() => setIsCartDrawerOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-full bg-[#123B6D] hover:bg-[#0e2c52] text-white shadow-xl hover:shadow-2xl active:scale-95 transition-all border border-white/30 cursor-pointer group"
+            title={`View Cart (${cartItems.length} Tests • ₹${cartTotalPrice})`}
+          >
+            <div className="relative flex items-center">
+              <ShoppingCart className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+              <span className="absolute -top-1.5 -right-2 bg-emerald-500 text-white text-[9px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center leading-none shadow-xs">
+                {cartItems.length}
+              </span>
+            </div>
+            <span className="font-extrabold text-xs sm:text-sm text-amber-300">
+              ₹{cartTotalPrice}
+            </span>
+            <span className="text-[11px] font-bold text-blue-100">
+              Cart
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Multi-Cart Drawer / List Modal */}
+      {isCartDrawerOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => setIsCartDrawerOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-slate-800 animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-[#123B6D] text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                  <ShoppingCart className="w-5 h-5 text-amber-300" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black leading-tight">
+                    Diagnostic Multi-Cart ({cartItems.length} Tests)
+                  </h3>
+                  <p className="text-[11px] text-blue-100">
+                    Review selected tests before proceeding to booking
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCartDrawerOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Cart Items List */}
+            <div className="p-6 space-y-3 overflow-y-auto flex-1">
+              {cartItems.length === 0 ? (
+                <div className="text-center py-8 space-y-2">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl">
+                    🛒
+                  </div>
+                  <p className="text-sm font-bold text-slate-700">Aapka cart khali hai</p>
+                  <p className="text-xs text-slate-400">Tests section se tests cart mein add karein</p>
+                </div>
+              ) : (
+                cartItems.map((item, idx) => (
+                  <div
+                    key={`${item.id}-${idx}`}
+                    className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 pr-2">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 text-[#123B6D] flex items-center justify-center font-bold text-xs shrink-0">
+                        🧪
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                          {item.name}
+                        </h4>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                          {item.code && <span className="font-mono bg-slate-200 px-1 rounded">{item.code}</span>}
+                          {item.category && <span>{item.category}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-sm sm:text-base font-black text-[#123B6D]">
+                        ₹{item.price}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFromCart(item.id, item.name)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                        title="Remove test"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Footer Summary & Action */}
+            {cartItems.length > 0 && (
+              <div className="p-5 bg-slate-50 border-t border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-600">Total Booking Amount:</span>
+                  <span className="text-xl font-black text-[#123B6D]">₹{cartTotalPrice}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleClearCart}
+                    className="px-3.5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleProceedToBooking}
+                    className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-[#123B6D] via-[#1E4E8C] to-[#0F766E] hover:from-[#0e2c52] hover:to-[#0d5f58] text-white text-xs sm:text-sm font-black shadow-lg transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                  >
+                    <ShoppingCart className="w-4 h-4 text-amber-400" />
+                    <span>Proceed to Book ({cartItems.length} Tests)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

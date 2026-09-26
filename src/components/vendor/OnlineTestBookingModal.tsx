@@ -30,6 +30,7 @@ interface OnlineTestBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialSelection?: string;
+  initialTests?: { name: string; price: number; type: 'test' | 'package' }[];
   onOpenReportPortal?: (reportId?: string, mobile?: string) => void;
 }
 
@@ -37,6 +38,7 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
   isOpen,
   onClose,
   initialSelection = '',
+  initialTests,
   onOpenReportPortal,
 }) => {
   const {
@@ -91,6 +93,11 @@ export const OnlineTestBookingModal: React.FC<OnlineTestBookingModalProps> = ({
     setIsSubmitting(false);
     setConfirmedEntry(null);
     setUpiRefNumber('');
+
+    if (initialTests && initialTests.length > 0) {
+      setSelectedTests(initialTests);
+      return;
+    }
 
     if (initialSelection) {
       // Check if it matches a package
