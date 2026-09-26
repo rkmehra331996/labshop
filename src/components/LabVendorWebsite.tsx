@@ -2539,10 +2539,10 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
               <span>NABL Accredited &bull; ISO 15189:2022 Certified Medical Laboratory</span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-[#123B6D] tracking-tight">
-              About Our Laboratory &amp; Medical Leadership
+              {vendorLabSettings?.aboutTitle || 'About Our Laboratory & Medical Leadership'}
             </h2>
             <p className="text-xs sm:text-sm text-[#64748B] leading-relaxed">
-              Serving patients, referring physicians, and hospital networks with uncompromising diagnostic precision, automated pathology, and compassionate care since {currentLabItem?.establishedYear || 2012}.
+              {vendorLabSettings?.aboutSubtitle || `Serving patients, referring physicians, and hospital networks with uncompromising diagnostic precision, automated pathology, and compassionate care since ${vendorLabSettings?.establishedYear || currentLabItem?.establishedYear || 2012}.`}
             </p>
           </div>
 
@@ -2565,16 +2565,24 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                   </div>
                 </div>
 
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Founded with a singular dedication to diagnostic excellence, <strong>{labName}</strong> bridges the gap between modern clinical science and patient-centered healthcare. From routine health panels to specialized diagnostic assays, our laboratory is trusted by families, clinicians, and medical networks.
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                  {vendorLabSettings?.aboutStory || (
+                    <>
+                      Founded with a singular dedication to diagnostic excellence, <strong>{labName}</strong> bridges the gap between modern clinical science and patient-centered healthcare. From routine health panels to specialized diagnostic assays, our laboratory is trusted by families, clinicians, and medical networks.
+                    </>
+                  )}
                 </p>
 
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                   We operate in strict compliance with <strong>ISO 15189:2022</strong> and <strong>NABL (National Accreditation Board for Testing and Calibration Laboratories)</strong> standards (Accreditation No: <span className="font-mono font-bold text-[#123B6D]">{labNabl}</span>). Every specimen undergoes rigorous multi-tier internal quality controls (IQC) and participating International External Quality Assessment Schemes (EQAS).
                 </p>
 
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Equipped with advanced fully-automated biochemistry analyzers, 5-part hematology counters, and bidirectionally interfaced barcode systems, we maintain sample integrity and deliver verified digital reports on time.
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                  {vendorLabSettings?.aboutHeritage || (
+                    <>
+                      Equipped with advanced fully-automated biochemistry analyzers, 5-part hematology counters, and bidirectionally interfaced barcode systems, we maintain sample integrity and deliver verified digital reports on time.
+                    </>
+                  )}
                 </p>
               </div>
             </div>
@@ -2585,7 +2593,7 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 {/* Director Badge */}
                 <div className="absolute -top-3.5 right-6 bg-[#123B6D] text-white text-[10px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1.5">
                   <Award className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Chief Medical Director &amp; Founder</span>
+                  <span>{vendorLabSettings?.founderDesignation || 'Chief Medical Director & Founder'}</span>
                 </div>
 
                 <div className="space-y-5">
@@ -2595,8 +2603,8 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     <div className="relative shrink-0">
                       <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 border-emerald-500/80 shadow-md bg-slate-100">
                         <img
-                          src="/src/assets/images/founder_pathologist_1790345211989.jpg"
-                          alt="Dr. R. K. Sharma - Founder & Chief Medical Director"
+                          src={vendorLabSettings?.founderPhotoUrl || '/src/assets/images/founder_pathologist_1790345211989.jpg'}
+                          alt={vendorLabSettings?.founderName || 'Founder & Chief Medical Director'}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
@@ -2609,16 +2617,16 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     <div className="space-y-1 min-w-0">
                       <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#0F766E] flex items-center gap-1">
                         <Sparkles className="w-3 h-3 text-amber-500" />
-                        <span>AIIMS Gold Medalist</span>
+                        <span>{vendorLabSettings?.founderBadge || 'AIIMS Gold Medalist'}</span>
                       </div>
                       <h3 className="text-lg sm:text-xl font-black text-[#123B6D] leading-tight truncate">
-                        Dr. R. K. Sharma
+                        {vendorLabSettings?.founderName || 'Dr. R. K. Sharma'}
                       </h3>
                       <div className="text-xs font-bold text-slate-800">
-                        MBBS, MD (Pathology)
+                        {vendorLabSettings?.founderDegrees || 'MBBS, MD (Pathology)'}
                       </div>
                       <div className="text-[11px] text-slate-500 font-medium">
-                        Chief Pathologist &bull; 18+ Years Clinical Experience
+                        {vendorLabSettings?.founderExperience || 'Chief Pathologist • 18+ Years Clinical Experience'}
                       </div>
                     </div>
                   </div>
@@ -2631,29 +2639,31 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                     <div className="text-xs font-bold uppercase tracking-wider text-[#123B6D] flex items-center gap-1.5 pt-1">
                       <span>Message from Chief Medical Director</span>
                     </div>
-                    <p className="text-xs text-slate-700 leading-relaxed italic">
-                      &ldquo;A pathology report is not merely numbers on paper; a doctor relies on it to prescribe life-saving medicine, and a patient trusts it with their health. At our laboratory, our sacred commitment is diagnostic accuracy, uncompromising sample purity, and delivering every report with complete transparency.&rdquo;
+                    <p className="text-xs text-slate-700 leading-relaxed italic whitespace-pre-line">
+                      &ldquo;{vendorLabSettings?.founderMessage || 'A pathology report is not merely numbers on paper; a doctor relies on it to prescribe life-saving medicine, and a patient trusts it with their health. At our laboratory, our sacred commitment is diagnostic accuracy, uncompromising sample purity, and delivering every report with complete transparency.'}&rdquo;
                     </p>
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                      <span className="font-extrabold text-[#123B6D]">— Dr. R. K. Sharma</span>
-                      <span className="text-slate-500 font-medium">Consultant Pathologist</span>
+                      <span className="font-extrabold text-[#123B6D]">
+                        — {vendorLabSettings?.founderName || 'Dr. R. K. Sharma'}
+                      </span>
+                      <span className="text-slate-500 font-medium">
+                        {vendorLabSettings?.founderDesignation?.split('&')[0]?.trim() || 'Consultant Pathologist'}
+                      </span>
                     </div>
                   </div>
 
                   {/* Clinical Credentials List */}
                   <div className="space-y-1.5 text-xs text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>MD Pathology from AIIMS &bull; Senior Resident Ex-Fellow</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Fellow of Indian College of Pathologists (FICP)</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Lead Auditor for NABL / ISO 15189 Quality Systems</span>
-                    </div>
+                    {(vendorLabSettings?.founderCredentials || [
+                      'MD Pathology from AIIMS • Senior Resident Ex-Fellow',
+                      'Fellow of Indian College of Pathologists (FICP)',
+                      'Lead Auditor for NABL / ISO 15189 Quality Systems',
+                    ]).map((cred, cIdx) => (
+                      <div key={cIdx} className="flex items-center gap-2">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>{cred}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -2885,71 +2895,85 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
                 </div>
               </div>
 
-              {/* 5. Line: Social Media Small Icons */}
-              <div className="flex items-start gap-3.5 pt-3 border-t border-slate-200">
-                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0">
-                  <Share2 className="w-4 h-4" />
-                </div>
-                <div className="min-w-0">
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Social Media</span>
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={stickyWhatsappUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="WhatsApp"
-                      className="w-7 h-7 rounded-full bg-white hover:bg-emerald-50 text-emerald-600 border border-slate-200 hover:border-emerald-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                    </a>
-                    <a
-                      href="https://facebook.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Facebook"
-                      className="w-7 h-7 rounded-full bg-white hover:bg-blue-50 text-[#1877F2] border border-slate-200 hover:border-blue-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                    >
-                      <Facebook className="w-3.5 h-3.5" />
-                    </a>
-                    <a
-                      href="https://instagram.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Instagram"
-                      className="w-7 h-7 rounded-full bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                    >
-                      <Instagram className="w-3.5 h-3.5" />
-                    </a>
-                    <a
-                      href="https://twitter.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Twitter / X"
-                      className="w-7 h-7 rounded-full bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 hover:border-slate-400 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                    >
-                      <Twitter className="w-3.5 h-3.5" />
-                    </a>
-                    <a
-                      href="https://youtube.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="YouTube"
-                      className="w-7 h-7 rounded-full bg-white hover:bg-red-50 text-red-600 border border-slate-200 hover:border-red-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                    >
-                      <Youtube className="w-3.5 h-3.5" />
-                    </a>
-                    <a
-                      href="https://linkedin.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="LinkedIn"
-                      className="w-7 h-7 rounded-full bg-white hover:bg-sky-50 text-[#0A66C2] border border-slate-200 hover:border-sky-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
-                    >
-                      <Linkedin className="w-3.5 h-3.5" />
-                    </a>
+              {/* 5. Line: Social Media Small Icons (Edit / Disable support) */}
+              {vendorLabSettings?.socialMedia?.enabled !== false && (
+                <div className="flex items-start gap-3.5 pt-3 border-t border-slate-200">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center shrink-0">
+                    <Share2 className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Social Media</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(vendorLabSettings?.socialMedia?.whatsapp || stickyWhatsappUrl) && (
+                        <a
+                          href={vendorLabSettings?.socialMedia?.whatsapp ? `https://wa.me/${vendorLabSettings.socialMedia.whatsapp.replace(/\D/g, '')}` : stickyWhatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="WhatsApp"
+                          className="w-7 h-7 rounded-full bg-white hover:bg-emerald-50 text-emerald-600 border border-slate-200 hover:border-emerald-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      {(vendorLabSettings?.socialMedia?.facebook || 'https://facebook.com') && (
+                        <a
+                          href={vendorLabSettings?.socialMedia?.facebook || 'https://facebook.com'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Facebook"
+                          className="w-7 h-7 rounded-full bg-white hover:bg-blue-50 text-[#1877F2] border border-slate-200 hover:border-blue-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                        >
+                          <Facebook className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      {(vendorLabSettings?.socialMedia?.instagram || 'https://instagram.com') && (
+                        <a
+                          href={vendorLabSettings?.socialMedia?.instagram || 'https://instagram.com'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Instagram"
+                          className="w-7 h-7 rounded-full bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 hover:border-rose-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                        >
+                          <Instagram className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      {(vendorLabSettings?.socialMedia?.twitter || 'https://twitter.com') && (
+                        <a
+                          href={vendorLabSettings?.socialMedia?.twitter || 'https://twitter.com'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Twitter / X"
+                          className="w-7 h-7 rounded-full bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 hover:border-slate-400 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                        >
+                          <Twitter className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      {(vendorLabSettings?.socialMedia?.youtube || 'https://youtube.com') && (
+                        <a
+                          href={vendorLabSettings?.socialMedia?.youtube || 'https://youtube.com'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="YouTube"
+                          className="w-7 h-7 rounded-full bg-white hover:bg-red-50 text-red-600 border border-slate-200 hover:border-red-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                        >
+                          <Youtube className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      {vendorLabSettings?.socialMedia?.linkedin && (
+                        <a
+                          href={vendorLabSettings.socialMedia.linkedin}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="LinkedIn"
+                          className="w-7 h-7 rounded-full bg-white hover:bg-sky-50 text-[#0A66C2] border border-slate-200 hover:border-sky-300 flex items-center justify-center transition shadow-2xs hover:scale-105"
+                        >
+                          <Linkedin className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Right Side: Form (name, phone, subject, message) */}
@@ -3531,6 +3555,9 @@ export const LabVendorWebsite: React.FC<LabVendorWebsiteProps> = ({
         labName={labName}
         labPhone={labPhone}
         labEmail={labEmail}
+        customTerms={vendorLabSettings?.termsAndConditions}
+        customPrivacy={vendorLabSettings?.privacyPolicy}
+        customRefund={vendorLabSettings?.refundPolicy}
       />
 
       {/* Website QR Modal */}

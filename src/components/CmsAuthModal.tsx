@@ -407,7 +407,17 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
 
     setTimeout(() => {
       const targetRole = mainRole === 'super_admin' ? 'admin' : 'vendor';
-      const targetLab = mainRole === 'super_admin' ? 'all' : selectedLabId;
+      
+      // Auto-resolve laboratory based on owner credentials
+      const cleanInput = emailOrPhone.trim().toLowerCase();
+      const cleanDigits = cleanInput.replace(/\D/g, '');
+      const matchedLab = vendorLabsList.find(
+        (l) =>
+          (cleanDigits.length >= 7 && (l.phone || '').replace(/\D/g, '').endsWith(cleanDigits)) ||
+          (l.email && l.email.toLowerCase() === cleanInput) ||
+          l.id.toLowerCase() === cleanInput
+      );
+      const targetLab = mainRole === 'super_admin' ? 'all' : (matchedLab ? matchedLab.id : selectedLabId || selectedVendorLabId || 'lab-apex');
 
       const result = login(
         targetRole,
@@ -827,6 +837,9 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     onClick={() => {
                       setMainRole('super_admin');
                       setLoginError('');
+                      setEmailOrPhone('');
+                      setPassword('');
+                      setPinCode('');
                     }}
                     className={`p-3.5 rounded-xl border text-left transition flex flex-col gap-1.5 cursor-pointer ${
                       mainRole === 'super_admin'
@@ -857,6 +870,9 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     onClick={() => {
                       setMainRole('vendor_owner');
                       setLoginError('');
+                      setEmailOrPhone('');
+                      setPassword('');
+                      setPinCode('');
                     }}
                     className={`p-3.5 rounded-xl border text-left transition flex flex-col gap-1.5 cursor-pointer ${
                       mainRole === 'vendor_owner'
@@ -885,25 +901,6 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
 
               {/* Login Form for SuperAdmin / Admin (labowner) */}
               <form onSubmit={handleMainWebsiteLogin} className="space-y-3.5 pt-1">
-                {mainRole === 'vendor_owner' && (
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Target Laboratory (लैब चुनें)
-                    </label>
-                    <select
-                      value={selectedLabId}
-                      onChange={(e) => setSelectedLabId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-bold text-slate-800"
-                    >
-                      {vendorLabsList.map((lab) => (
-                        <option key={lab.id} value={lab.id}>
-                          {lab.name} ({lab.city || lab.state || 'Punjab'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
                 <div>
                   <label className="block text-[11px] font-bold text-slate-700 mb-1">
                     {mainRole === 'super_admin'
@@ -915,11 +912,12 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     <input
                       type="text"
                       required
+                      autoComplete="off"
                       value={emailOrPhone}
                       onChange={(e) => setEmailOrPhone(e.target.value)}
                       placeholder={
                         mainRole === 'super_admin'
-                          ? 'rkmehra331996@gmail.com'
+                          ? ''
                           : '10-digit mobile number or owner email'
                       }
                       className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none placeholder:text-slate-400 font-medium"
@@ -936,9 +934,10 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
+                      autoComplete="off"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter password"
+                      placeholder={mainRole === 'super_admin' ? '' : 'Enter password'}
                       className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none placeholder:text-slate-400"
                     />
                     <button
@@ -958,16 +957,17 @@ _Powered by indianlalaji.com - India's Premier Pathology Lab Software_`;
                       <span>6-Digit Security PIN *</span>
                     </span>
                     <span className="text-[10px] text-slate-400 font-mono">
-                      {mainRole === 'super_admin' ? 'Master PIN: 199633' : '6 numeric digits'}
+                      {mainRole === 'super_admin' ? '' : '6 numeric digits'}
                     </span>
                   </label>
                   <input
                     type="password"
                     maxLength={6}
                     required
+                    autoComplete="off"
                     value={pinCode}
                     onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
-                    placeholder="6-digit security PIN"
+                    placeholder={mainRole === 'super_admin' ? '' : '6-digit security PIN'}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-[#123B6D]/30 focus:outline-none font-mono tracking-widest placeholder:text-slate-400"
                   />
                 </div>

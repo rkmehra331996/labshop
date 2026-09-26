@@ -170,6 +170,27 @@ export interface VendorWebsiteSections {
   footer: boolean;
 }
 
+export interface VendorBannerItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  imageUrl: string;
+  linkUrl?: string;
+  buttonText?: string;
+  active: boolean;
+}
+
+export interface VendorSocialLinks {
+  enabled: boolean;
+  facebook?: string;
+  instagram?: string;
+  twitter?: string;
+  youtube?: string;
+  linkedin?: string;
+  whatsapp?: string;
+}
+
 export interface VendorLabSettings {
   labId?: string;
   labShopId?: string;
@@ -204,6 +225,30 @@ export interface VendorLabSettings {
   announcementText?: string;
   heroBackgroundImageUrl?: string;
   heroBanners?: string[];
+  banners?: VendorBannerItem[];
+  // About Us Section
+  aboutTitle?: string;
+  aboutSubtitle?: string;
+  aboutStory?: string;
+  aboutHeritage?: string;
+  establishedYear?: number | string;
+  // Founder Section
+  founderName?: string;
+  founderDesignation?: string;
+  founderDegrees?: string;
+  founderExperience?: string;
+  founderBadge?: string;
+  founderPhotoUrl?: string;
+  founderMessage?: string;
+  founderCredentials?: string[];
+  // Contact Us Map
+  contactGoogleMapUrl?: string;
+  // Social Media
+  socialMedia?: VendorSocialLinks;
+  // Legal Policies
+  termsAndConditions?: string;
+  privacyPolicy?: string;
+  refundPolicy?: string;
   sections?: Partial<VendorWebsiteSections>;
   // 1 or 2 QR Code images for payment
   qrCode1Url?: string;
@@ -294,6 +339,7 @@ export interface TestItem {
   unit: string;
   normalRange: string;
   priceINR: number;
+  mrpINR?: number;
   turnaroundTime?: string;
   turnaroundHours?: number | string;
   tatHours?: number;
@@ -302,6 +348,8 @@ export interface TestItem {
   labId?: string;
   status?: 'Active' | 'Inactive';
   isActive?: boolean;
+  fastingRequired?: boolean;
+  instructions?: string;
 }
 
 export interface Patient {

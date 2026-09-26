@@ -43,6 +43,13 @@ import {
   Receipt,
   AlertCircle,
   Image as ImageIcon,
+  Award,
+  Layers,
+  ChevronDown,
+  ChevronRight,
+  Menu,
+  PlusCircle,
+  ListFilter,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -58,6 +65,7 @@ import {
 import { VendorWebsiteCmsTab } from './vendor/VendorWebsiteCmsTab';
 import { VendorBillingTab } from './vendor/VendorBillingTab';
 import { VendorTestsTab } from './vendor/VendorTestsTab';
+import { VendorPackagesTab } from './vendor/VendorPackagesTab';
 import { DoctorCommissionModal } from './vendor/DoctorCommissionModal';
 
 interface LabVendorDashboardProps {
@@ -104,6 +112,16 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
   const [activeTab, setActiveTab] = useState<
     'website' | 'billing' | 'tests' | 'packages' | 'doctors' | 'profile' | 'staff'
   >('website');
+
+  const [websiteSubTab, setWebsiteSubTab] = useState<
+    'banners' | 'about' | 'founder' | 'team' | 'contact' | 'social' | 'legal' | 'sections'
+  >('banners');
+  const [isWebsiteMenuOpen, setIsWebsiteMenuOpen] = useState(true);
+  const [testSubTab, setTestSubTab] = useState<'list' | 'add'>('list');
+  const [isTestsMenuOpen, setIsTestsMenuOpen] = useState(true);
+  const [packageSubTab, setPackageSubTab] = useState<'list' | 'add'>('list');
+  const [isPackagesMenuOpen, setIsPackagesMenuOpen] = useState(true);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [isDoctorCommissionModalOpen, setIsDoctorCommissionModalOpen] = useState(false);
   const [selectedDoctorForCommission, setSelectedDoctorForCommission] = useState<VendorDoctor | null>(null);
@@ -741,223 +759,810 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
-        {/* Quick Nav / Tabs Strip */}
-        <div className="bg-white rounded-2xl p-2.5 border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {/* 1. Website Editor & Sections ON/OFF */}
-            <button
-              onClick={() => setActiveTab('website')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition cursor-pointer ${
-                activeTab === 'website' || activeTab === 'profile'
-                  ? 'bg-amber-400 text-slate-950 shadow-xs'
-                  : 'bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100'
-              }`}
-            >
-              <Globe className="w-3.5 h-3.5 text-amber-950" />
-              <span>🌐 Vendor's Website & Sections</span>
-            </button>
-
-            {/* 2. Billing & Earnings */}
-            <button
-              onClick={() => setActiveTab('billing')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                activeTab === 'billing'
-                  ? 'bg-[#123B6D] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-              <span>💳 Billing & Earnings</span>
-            </button>
-
-            {/* 3. Tests (Add / Edit / Delete) */}
-            <button
-              onClick={() => setActiveTab('tests')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                activeTab === 'tests'
-                  ? 'bg-[#123B6D] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <FlaskConical className="w-3.5 h-3.5 text-indigo-300" />
-              <span>🧪 Tests Catalog ({vendorTests.length})</span>
-            </button>
-
-            {/* Separator */}
-            <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
-
-            <button
-              onClick={() => setActiveTab('packages')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                activeTab === 'packages'
-                  ? 'bg-[#123B6D] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <Package className="w-3.5 h-3.5" />
-              <span>Packages ({vendorPackages.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('doctors')}
-              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
-                activeTab === 'doctors'
-                  ? 'bg-[#123B6D] text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Doctors ({vendorDoctors.length})</span>
-            </button>
-
-            {/* Separator */}
-            <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
-
-            {/* 6. Staff Passwords & Roles (Reception & Technician) */}
-            <button
-              onClick={() => setActiveTab('staff')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
-                activeTab === 'staff'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'
-              }`}
-            >
-              <KeyRound className={`w-3.5 h-3.5 ${activeTab === 'staff' ? 'text-white' : 'text-rose-600'}`} />
-              <span>🔐 Staff Passwords & Access ({staffAccounts.length})</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Quick jump to Technician Dashboard */}
-            <button
-              onClick={() => onNavigateView('technician_dashboard')}
-              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-              title="Open Technician Department Dashboard"
-            >
-              <span>🔬 Technician Dept ➔</span>
-            </button>
-
-            {/* Quick jump to reception */}
-            <button
-              onClick={() => onNavigateView('reception_dashboard')}
-              className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-              title="Open Reception Entry Dashboard"
-            >
-              <span>🖥️ Reception Counter ➔</span>
-            </button>
+      {/* Main Content Area: Responsive Left Sidebar + Main Panel */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 flex-1 w-full space-y-4">
+        {/* Mobile Header Bar with Sidebar Menu Toggle */}
+        <div className="lg:hidden bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            className="flex items-center gap-2 bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs cursor-pointer transition active:scale-95"
+          >
+            <Menu className="w-4 h-4 text-amber-400" />
+            <span>{isMobileSidebarOpen ? 'Close Menu' : '☰ Dashboard & Website Sidebar'}</span>
+          </button>
+          <div className="text-right">
+            <span className="text-[10px] font-bold text-slate-400 block uppercase">Current View</span>
+            <span className="text-xs font-black text-[#123B6D]">
+              {activeTab === 'website' ? `🌐 Website: ${websiteSubTab}` : activeTab.toUpperCase()}
+            </span>
           </div>
         </div>
 
-        {/* 1. VENDOR'S OWN WEBSITE CMS & SECTIONS ON/OFF TAB */}
-        {(activeTab === 'website' || activeTab === 'profile') && (
-          <VendorWebsiteCmsTab onPreviewWebsite={() => onNavigateView('vendor_website')} />
-        )}
+        {/* 2-Column Responsive Layout: Sidebar (Left) + Content Panel (Right) */}
+        <div className="flex flex-col lg:flex-row items-start gap-6">
+          {/* ======================================================== */}
+          {/* VENDOR DASHBOARD SIDEBAR */}
+          {/* ======================================================== */}
+          <aside
+            id="vendor-dashboard-sidebar"
+            className={`w-full lg:w-72 xl:w-80 shrink-0 space-y-4 ${
+              isMobileSidebarOpen ? 'block' : 'hidden lg:block'
+            }`}
+          >
+            {/* Lab Info Card in Sidebar */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs">
+              <div className="flex items-center gap-3">
+                {vendorLabSettings?.logoUrl ? (
+                  <img
+                    src={vendorLabSettings.logoUrl}
+                    alt={vendorLabSettings.labName}
+                    referrerPolicy="no-referrer"
+                    className="w-11 h-11 rounded-xl object-contain bg-slate-50 border border-slate-200 p-1"
+                  />
+                ) : (
+                  <div className="w-11 h-11 rounded-xl bg-[#123B6D] text-white flex items-center justify-center font-black text-sm">
+                    {vendorLabSettings.labName.charAt(0) || 'L'}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-extrabold text-xs text-slate-900 truncate">
+                    {vendorLabSettings.labName}
+                  </h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      ● Active Lab Vendor
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono truncate">
+                      {vendorLabSettings.labId || activeTenantId || 'apex'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar Navigation Container */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-3 shadow-2xs space-y-4">
+              {/* SECTION 1: WEBSITE SECTION (Accordion with sub-items) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2">
+                    CMS Management
+                  </span>
+                </div>
+
+                <div className="rounded-xl border border-amber-300/80 bg-amber-50/50 overflow-hidden shadow-2xs">
+                  {/* Website Section Header Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('website');
+                      setIsWebsiteMenuOpen(!isWebsiteMenuOpen);
+                    }}
+                    className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                      activeTab === 'website'
+                        ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                        : 'bg-amber-100/70 text-slate-900 font-bold hover:bg-amber-200/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Globe className="w-4 h-4 text-[#123B6D] shrink-0" />
+                      <span className="text-xs font-black truncate">1. Website Section</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/80 text-slate-800">
+                        8 Tools
+                      </span>
+                      {isWebsiteMenuOpen ? (
+                        <ChevronDown className="w-4 h-4 text-slate-800" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-slate-800" />
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Website Section Sub-Items (The exact items specified by user) */}
+                  {isWebsiteMenuOpen && (
+                    <div className="p-1.5 space-y-1 bg-white/95 border-t border-amber-200/70">
+                      {/* 1. banner Section : change/delete */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('website');
+                          setWebsiteSubTab('banners');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'website' && websiteSubTab === 'banners'
+                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                            : 'text-slate-700 hover:bg-amber-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <ImageIcon className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'banners' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
+                          <span className="truncate">Banner Section</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'banners'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          change/delete
+                        </span>
+                      </button>
+
+                      {/* 2. about us Section : Edit */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('website');
+                          setWebsiteSubTab('about');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'website' && websiteSubTab === 'about'
+                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                            : 'text-slate-700 hover:bg-amber-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Sparkles className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'about' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                          <span className="truncate">About Us Section</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'about'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        }`}>
+                          Edit
+                        </span>
+                      </button>
+
+                      {/* 3. Founder Section : edit */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('website');
+                          setWebsiteSubTab('founder');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'website' && websiteSubTab === 'founder'
+                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                            : 'text-slate-700 hover:bg-amber-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Award className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'founder' ? 'text-amber-400' : 'text-amber-600'}`} />
+                          <span className="truncate">Founder Section</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'founder'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-amber-50 text-amber-800 border border-amber-200'
+                        }`}>
+                          edit
+                        </span>
+                      </button>
+
+                      {/* 4. team Section : add /edit/delete */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('website');
+                          setWebsiteSubTab('team');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'website' && websiteSubTab === 'team'
+                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                            : 'text-slate-700 hover:bg-amber-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Users className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'team' ? 'text-amber-400' : 'text-blue-600'}`} />
+                          <span className="truncate">Team Section</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'team'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-blue-50 text-blue-800 border border-blue-200'
+                        }`}>
+                          add /edit/delete
+                        </span>
+                      </button>
+
+                      {/* 5. Contact us : Edit */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('website');
+                          setWebsiteSubTab('contact');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'website' && websiteSubTab === 'contact'
+                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                            : 'text-slate-700 hover:bg-amber-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Phone className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'contact' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                          <span className="truncate">Contact Us</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'contact'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        }`}>
+                          Edit
+                        </span>
+                      </button>
+
+                      {/* 6. Social Media : Edit, disable */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('website');
+                          setWebsiteSubTab('social');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'website' && websiteSubTab === 'social'
+                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                            : 'text-slate-700 hover:bg-amber-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Share2 className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'social' ? 'text-amber-400' : 'text-indigo-600'}`} />
+                          <span className="truncate">Social Media</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'social'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-indigo-50 text-indigo-800 border border-indigo-200'
+                        }`}>
+                          Edit, disable
+                        </span>
+                      </button>
+
+                      {/* 7. Legal page : T&C, P&P, Refund : edit */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('website');
+                          setWebsiteSubTab('legal');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'website' && websiteSubTab === 'legal'
+                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                            : 'text-slate-700 hover:bg-amber-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <FileText className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'legal' ? 'text-amber-400' : 'text-slate-600'}`} />
+                          <span className="truncate">Legal Pages</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'legal'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          T&C, P&P, Refund
+                        </span>
+                      </button>
+
+                      {/* 8. Sections ON/OFF & Settings */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('website');
+                          setWebsiteSubTab('sections');
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                          activeTab === 'website' && websiteSubTab === 'sections'
+                            ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                            : 'text-slate-700 hover:bg-amber-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <Layers className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'website' && websiteSubTab === 'sections' ? 'text-amber-400' : 'text-slate-600'}`} />
+                          <span className="truncate">Sections ON/OFF</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                          activeTab === 'website' && websiteSubTab === 'sections'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          Settings
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SECTION 2: ONLINE TEST (1. ADD >, 2. LIST > EDIT / DELETE) */}
+              <div className="rounded-xl border border-teal-300/80 bg-teal-50/50 overflow-hidden shadow-2xs">
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('tests');
+                    setIsTestsMenuOpen(!isTestsMenuOpen);
+                  }}
+                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                    activeTab === 'tests'
+                      ? 'bg-teal-700 text-white font-black shadow-xs'
+                      : 'bg-teal-100/70 text-slate-900 font-bold hover:bg-teal-200/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FlaskConical className={`w-4 h-4 shrink-0 ${activeTab === 'tests' ? 'text-amber-300' : 'text-teal-700'}`} />
+                    <span className="text-xs font-black truncate">2. Online Test</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      activeTab === 'tests' ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800'
+                    }`}>
+                      {vendorTests.length} Tests
+                    </span>
+                    {isTestsMenuOpen ? (
+                      <ChevronDown className={`w-4 h-4 ${activeTab === 'tests' ? 'text-white' : 'text-slate-800'}`} />
+                    ) : (
+                      <ChevronRight className={`w-4 h-4 ${activeTab === 'tests' ? 'text-white' : 'text-slate-800'}`} />
+                    )}
+                  </div>
+                </button>
+
+                {/* Sub-Items: 1. Add >, 2. List > Edit/Delete */}
+                {isTestsMenuOpen && (
+                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-teal-200/70">
+                    {/* 1. Add > */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('tests');
+                        setTestSubTab('add');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'tests' && testSubTab === 'add'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-teal-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                        <span className="truncate">1. Add Test</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'tests' && testSubTab === 'add'
+                          ? 'bg-amber-400 text-slate-950 font-black'
+                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      }`}>
+                        Add &gt;
+                      </span>
+                    </button>
+
+                    {/* 2. List > Edit/Delete */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('tests');
+                        setTestSubTab('list');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'tests' && testSubTab === 'list'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-teal-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <ListFilter className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'tests' && testSubTab === 'list' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
+                        <span className="truncate">2. Test List</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'tests' && testSubTab === 'list'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-blue-50 text-blue-800 border border-blue-200'
+                      }`}>
+                        Edit / Delete
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 3: TEST PACKAGE (1. ADD, 2. LIST > EDIT / DELETE) */}
+              <div className="rounded-xl border border-amber-300/80 bg-amber-50/50 overflow-hidden shadow-2xs">
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('packages');
+                    setIsPackagesMenuOpen(!isPackagesMenuOpen);
+                  }}
+                  className={`w-full px-3 py-2.5 flex items-center justify-between gap-2 text-left transition cursor-pointer ${
+                    activeTab === 'packages'
+                      ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                      : 'bg-amber-100/70 text-slate-900 font-bold hover:bg-amber-200/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Package className="w-4 h-4 text-[#123B6D] shrink-0" />
+                    <span className="text-xs font-black truncate">3. Test Package</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/80 text-slate-800">
+                      {vendorPackages.length} Pkgs
+                    </span>
+                    {isPackagesMenuOpen ? (
+                      <ChevronDown className="w-4 h-4 text-slate-800" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-slate-800" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Sub-Items: 1. add, 2. list > edit/delete */}
+                {isPackagesMenuOpen && (
+                  <div className="p-1.5 space-y-1 bg-white/95 border-t border-amber-200/70">
+                    {/* 1. add */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('packages');
+                        setPackageSubTab('add');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'packages' && packageSubTab === 'add'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-amber-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <PlusCircle className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'packages' && packageSubTab === 'add' ? 'text-amber-400' : 'text-emerald-600'}`} />
+                        <span className="truncate">1. Add Package</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'packages' && packageSubTab === 'add'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                      }`}>
+                        Add &gt;
+                      </span>
+                    </button>
+
+                    {/* 2. list > edit/delete */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('packages');
+                        setPackageSubTab('list');
+                        setIsMobileSidebarOpen(false);
+                      }}
+                      className={`w-full px-2.5 py-2 rounded-lg text-xs font-bold flex items-center justify-between gap-1.5 transition text-left cursor-pointer ${
+                        activeTab === 'packages' && packageSubTab === 'list'
+                          ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                          : 'text-slate-700 hover:bg-amber-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <ListFilter className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'packages' && packageSubTab === 'list' ? 'text-amber-400' : 'text-[#123B6D]'}`} />
+                        <span className="truncate">2. Package List</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        activeTab === 'packages' && packageSubTab === 'list'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-blue-50 text-blue-800 border border-blue-200'
+                      }`}>
+                        Edit / Delete
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 3: LAB OPERATIONS & BILLING */}
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 block mb-1">
+                  Lab Operations
+                </span>
+
+                {/* Billing */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('billing');
+                    setIsMobileSidebarOpen(false);
+                  }}
+                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition cursor-pointer ${
+                    activeTab === 'billing'
+                      ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <DollarSign className={`w-4 h-4 ${activeTab === 'billing' ? 'text-emerald-300' : 'text-emerald-600'}`} />
+                    <span className="truncate">💳 Billing &amp; QR Codes</span>
+                  </div>
+                </button>
+
+                {/* Tests */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('tests');
+                    setIsMobileSidebarOpen(false);
+                  }}
+                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition cursor-pointer ${
+                    activeTab === 'tests'
+                      ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <FlaskConical className={`w-4 h-4 ${activeTab === 'tests' ? 'text-indigo-300' : 'text-indigo-600'}`} />
+                    <span className="truncate">🧪 Tests Catalog</span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    activeTab === 'tests' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {vendorTests.length}
+                  </span>
+                </button>
+
+                {/* Packages */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('packages');
+                    setIsMobileSidebarOpen(false);
+                  }}
+                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition cursor-pointer ${
+                    activeTab === 'packages'
+                      ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <Package className={`w-4 h-4 ${activeTab === 'packages' ? 'text-amber-300' : 'text-amber-600'}`} />
+                    <span className="truncate">📦 Health Packages</span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    activeTab === 'packages' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {vendorPackages.length}
+                  </span>
+                </button>
+
+                {/* Doctors */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('doctors');
+                    setIsMobileSidebarOpen(false);
+                  }}
+                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition cursor-pointer ${
+                    activeTab === 'doctors'
+                      ? 'bg-[#123B6D] text-white shadow-2xs font-black'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <Users className={`w-4 h-4 ${activeTab === 'doctors' ? 'text-blue-300' : 'text-blue-600'}`} />
+                    <span className="truncate">👨‍⚕️ Doctor Commissions</span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    activeTab === 'doctors' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {vendorDoctors.length}
+                  </span>
+                </button>
+
+                {/* Staff Passwords & Roles */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('staff');
+                    setIsMobileSidebarOpen(false);
+                  }}
+                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-2 transition cursor-pointer ${
+                    activeTab === 'staff'
+                      ? 'bg-rose-600 text-white shadow-2xs font-black'
+                      : 'text-rose-800 bg-rose-50/70 hover:bg-rose-100 border border-rose-200/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <KeyRound className={`w-4 h-4 ${activeTab === 'staff' ? 'text-white' : 'text-rose-600'}`} />
+                    <span className="truncate">🔐 Staff Passwords &amp; Access</span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    activeTab === 'staff' ? 'bg-white/20 text-white' : 'bg-rose-200 text-rose-900'
+                  }`}>
+                    {staffAccounts.length}
+                  </span>
+                </button>
+              </div>
+
+              {/* SECTION 3: QUICK PORTAL JUMPS & PREVIEW */}
+              <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 block mb-1">
+                  Quick Portals
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => onNavigateView('technician_dashboard')}
+                  className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center justify-between transition cursor-pointer"
+                >
+                  <span>🔬 Technician Dept</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-emerald-600" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onNavigateView('reception_dashboard')}
+                  className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 flex items-center justify-between transition cursor-pointer"
+                >
+                  <span>🖥️ Reception Counter</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-teal-600" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onNavigateView('vendor_website')}
+                  className="w-full px-3 py-2 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-[#123B6D] border border-blue-200 flex items-center justify-between transition cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Eye className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Live Website Preview</span>
+                  </span>
+                  <ExternalLink className="w-3.5 h-3.5 text-[#123B6D]" />
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          {/* ======================================================== */}
+          {/* MAIN CONTENT PANEL */}
+          {/* ======================================================== */}
+          <main className="flex-1 w-full min-w-0 space-y-6">
+            {/* Top Quick Strip (Active Section & Direct Jumps) */}
+            <div className="bg-white rounded-2xl p-2.5 border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  onClick={() => setActiveTab('website')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'website' || activeTab === 'profile'
+                      ? 'bg-amber-400 text-slate-950 shadow-xs'
+                      : 'bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5 text-amber-950" />
+                  <span>🌐 Website Section</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('billing')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'billing'
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>💳 Billing</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('tests');
+                    setTestSubTab('list');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'tests'
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <FlaskConical className="w-3.5 h-3.5 text-indigo-300" />
+                  <span>🧪 Online Tests ({vendorTests.length})</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('packages');
+                    setPackageSubTab('list');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'packages'
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Packages ({vendorPackages.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('doctors')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'doctors'
+                      ? 'bg-[#123B6D] text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Doctors ({vendorDoctors.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('staff')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition cursor-pointer ${
+                    activeTab === 'staff'
+                      ? 'bg-rose-600 text-white shadow-xs'
+                      : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'
+                  }`}
+                >
+                  <KeyRound className={`w-3.5 h-3.5 ${activeTab === 'staff' ? 'text-white' : 'text-rose-600'}`} />
+                  <span>🔐 Staff Access ({staffAccounts.length})</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onNavigateView('technician_dashboard')}
+                  className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  title="Open Technician Department Dashboard"
+                >
+                  <span>🔬 Tech Dept ➔</span>
+                </button>
+                <button
+                  onClick={() => onNavigateView('reception_dashboard')}
+                  className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  title="Open Reception Entry Dashboard"
+                >
+                  <span>🖥️ Reception ➔</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 1. VENDOR'S OWN WEBSITE CMS & SECTIONS ON/OFF TAB */}
+            {(activeTab === 'website' || activeTab === 'profile') && (
+              <VendorWebsiteCmsTab
+                onPreviewWebsite={() => onNavigateView('vendor_website')}
+                activeSubTab={websiteSubTab}
+                onSubTabChange={(sub) => setWebsiteSubTab(sub)}
+              />
+            )}
 
         {/* 2. PAYMENT & BILLING (1 or 2 QR CODES & LEDGER) TAB */}
         {activeTab === 'billing' && (
           <VendorBillingTab />
         )}
 
-        {/* 3. TESTS (ADD / EDIT / DELETE) TAB */}
+        {/* 2. ONLINE TEST (1. ADD, 2. LIST > EDIT / DELETE) TAB */}
         {activeTab === 'tests' && (
-          <VendorTestsTab />
+          <VendorTestsTab
+            activeSubTab={testSubTab}
+            onSubTabChange={(tab) => setTestSubTab(tab)}
+            onPreviewWebsite={() => onNavigateView('vendor_website')}
+          />
         )}
 
-        {/* 1. HEALTH PACKAGES TAB */}
+        {/* 2. TEST PACKAGE (ADD / LIST > EDIT & DELETE) TAB */}
         {activeTab === 'packages' && (
-          <div className="space-y-4">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-extrabold text-[#123B6D]">
-                  Health Checkup Packages
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Add, edit, or delete preventive health packages displayed on your lab website.
-                </p>
-              </div>
-              <button
-                onClick={handleOpenAddPackage}
-                className="bg-[#123B6D] hover:bg-[#0e2c52] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
-              >
-                <Plus className="w-4 h-4 text-amber-400" />
-                <span>Add New Package</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {vendorPackages.map((pkg) => {
-                const discount = Math.round(((pkg.mrpINR - pkg.priceINR) / pkg.mrpINR) * 100);
-                return (
-                  <div
-                    key={pkg.id}
-                    className={`bg-white rounded-2xl border ${
-                      pkg.isPopular ? 'border-amber-400 ring-2 ring-amber-400/20' : 'border-slate-200'
-                    } p-5 shadow-2xs flex flex-col justify-between`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-[#123B6D]">
-                          {pkg.testsCount} Parameters
-                        </span>
-                        {pkg.isPopular && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400 text-slate-950">
-                            Best Value
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="font-extrabold text-sm text-slate-900">{pkg.name}</h3>
-                      <p className="text-xs text-slate-500 mt-1 mb-3">{pkg.description}</p>
-
-                      <div className="py-2 px-3 rounded-xl bg-slate-50 border border-slate-100 mb-4 flex items-baseline justify-between">
-                        <div>
-                          <span className="text-xl font-black text-[#123B6D]">₹{pkg.priceINR}</span>
-                          <span className="text-xs text-slate-400 line-through ml-2">₹{pkg.mrpINR}</span>
-                        </div>
-                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                          {discount}% OFF
-                        </span>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                          Included Tests:
-                        </span>
-                        {pkg.features.map((feat, i) => (
-                          <div key={i} className="text-xs text-slate-600 flex items-start gap-1.5">
-                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                            <span>{feat}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleOpenEditPackage(pkg)}
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1"
-                        >
-                          <Edit2 className="w-3.5 h-3.5 text-blue-600" />
-                          <span>Edit</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeletePackage(pkg.id, pkg.name)}
-                          className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                          <span>Delete</span>
-                        </button>
-                      </div>
-                      <span className="text-[10px] font-mono text-slate-400">ID: {pkg.id}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <VendorPackagesTab
+            activeSubTab={packageSubTab}
+            onSubTabChange={(tab) => setPackageSubTab(tab)}
+            onPreviewWebsite={() => onNavigateView('website')}
+          />
         )}
 
         {/* 2. TESTS CATALOG TAB (Replaced with VendorTestsTab above) */}
@@ -1700,6 +2305,8 @@ export const LabVendorDashboard: React.FC<LabVendorDashboardProps> = ({ onNaviga
             </form>
           </div>
         )}
+          </main>
+        </div>
       </div>
 
       {/* MODAL: ADD / EDIT PACKAGE */}

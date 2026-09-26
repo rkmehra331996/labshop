@@ -261,6 +261,79 @@ const DEFAULT_VENDOR_LAB_SETTINGS: VendorLabSettings = {
     'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=1600&q=80',
     'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1600&q=80',
   ],
+  banners: [
+    {
+      id: 'banner-1',
+      title: 'Advanced Diagnostic Pathology & Automated Biochemistry',
+      subtitle: 'NABL Accredited & ISO 15189 Certified. 100% Verified Digital WhatsApp Reports.',
+      badge: 'NABL ACCREDITED',
+      imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=1600&q=80',
+      linkUrl: '#packages',
+      buttonText: 'Explore Health Packages',
+      active: true,
+    },
+    {
+      id: 'banner-2',
+      title: 'Free Doorstep Home Sample Collection',
+      subtitle: 'Certified phlebotomists with temperature-monitored cold chain sample transit.',
+      badge: 'HOME COLLECTION',
+      imageUrl: 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=1600&q=80',
+      linkUrl: '#home-collection',
+      buttonText: 'Book Sample Pickup',
+      active: true,
+    },
+    {
+      id: 'banner-3',
+      title: 'Preventative Full Body Health Screening Profiles',
+      subtitle: 'Flat 50% discount on Comprehensive Executive Full Body Health Checkup.',
+      badge: 'SPECIAL OFFER',
+      imageUrl: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1600&q=80',
+      linkUrl: '#packages',
+      buttonText: 'View 68+ Tests',
+      active: true,
+    },
+  ],
+  aboutTitle: 'About Our Laboratory & Medical Leadership',
+  aboutSubtitle: 'Serving patients, referring physicians, and hospital networks with uncompromising diagnostic precision, automated pathology, and compassionate care.',
+  aboutStory: 'Founded with a singular dedication to diagnostic excellence, our laboratory bridges the gap between modern clinical science and patient-centered healthcare. From routine health panels to specialized diagnostic assays, our laboratory is trusted by families, clinicians, and medical networks.',
+  aboutHeritage: 'We operate in strict compliance with ISO 15189:2022 and NABL standards. Every specimen undergoes rigorous multi-tier internal quality controls (IQC) and participating International External Quality Assessment Schemes (EQAS). Equipped with advanced fully-automated biochemistry analyzers and 5-part hematology counters.',
+  establishedYear: 2012,
+  founderName: 'Dr. R. K. Sharma',
+  founderDesignation: 'Chief Medical Director & Founder',
+  founderDegrees: 'MBBS, MD (Pathology)',
+  founderExperience: '18+ Years Clinical Experience',
+  founderBadge: 'AIIMS Gold Medalist',
+  founderPhotoUrl: '/src/assets/images/founder_pathologist_1790345211989.jpg',
+  founderMessage: 'A pathology report is not merely numbers on paper; a doctor relies on it to prescribe life-saving medicine, and a patient trusts it with their health. At our laboratory, our sacred commitment is diagnostic accuracy, uncompromising sample purity, and delivering every report with complete transparency.',
+  founderCredentials: [
+    'MD Pathology from AIIMS • Senior Resident Ex-Fellow',
+    'Fellow of Indian College of Pathologists (FICP)',
+    'Lead Auditor for NABL / ISO 15189 Quality Systems',
+  ],
+  contactGoogleMapUrl: '',
+  socialMedia: {
+    enabled: true,
+    facebook: 'https://facebook.com/apexdiagnostics',
+    instagram: 'https://instagram.com/apexdiagnostics',
+    twitter: 'https://twitter.com/apexdiagnostics',
+    youtube: 'https://youtube.com/@apexdiagnostics',
+    linkedin: 'https://linkedin.com/company/apexdiagnostics',
+    whatsapp: '917087033009',
+  },
+  termsAndConditions: `1. ACCEPTANCE OF TERMS: By accessing or utilizing the services provided by this diagnostic laboratory, patients and referring healthcare providers agree to abide by all clinical laboratory terms and protocols.
+2. DIAGNOSTIC SERVICES & TESTING: All testing is performed under strictly regulated NABL accredited and ISO 15189 standards using calibrated automated analyzers. Reports reflect specimen findings at the time of collection.
+3. SAMPLE COLLECTION & FASTING PROTOCOLS: Certain clinical tests mandate pre-test fasting, medication adjustments, or specific dietary preparations. Failure to adhere may affect diagnostic accuracy.
+4. DELIVERY OF RESULTS: Verified digital reports are dispatched via secure WhatsApp PDF and online patient portal. In cases of critical alert values, referring clinicians or patient emergency contacts will be promptly notified.
+5. LIMITATION OF LIABILITY: Test results should always be correlated with clinical symptoms and interpreted by a registered medical practitioner. No medical diagnosis is conclusive based solely on an isolated report.`,
+  privacyPolicy: `1. DATA CONFIDENTIALITY: We uphold stringent patient privacy and medical confidentiality in compliance with medical data security standards and healthcare data protection laws.
+2. COLLECTION OF INFORMATION: We collect necessary demographic and clinical details (e.g., patient name, age, gender, contact number, referring doctor) solely for accurate test processing, billing, and report generation.
+3. DIGITAL REPORT ACCESS: Patient test results are accessible only via authenticated credentials (Unique Report ID & registered Mobile Number) or direct authorized WhatsApp transmission.
+4. THIRD-PARTY SHARING: Patient diagnostic records are never sold, rented, or disclosed to unauthorized commercial third parties. Data is shared exclusively with treating medical practitioners upon patient consent or as required by statutory public health mandates.
+5. DATA STORAGE & RETENTION: Physical specimen records and digital pathology logs are safely archived in accordance with statutory medical record retention schedules.`,
+  refundPolicy: `1. CANCELLATION BEFORE SAMPLE COLLECTION: If a patient cancels a scheduled laboratory test or home sample collection appointment before the phlebotomist visits or sample is drawn, a 100% full refund will be processed promptly.
+2. POST-COLLECTION STATUS: Once a biological specimen has been collected, transported, or processed in the laboratory analyzer, cancellations or refunds cannot be issued due to incurred reagent and consumable costs.
+3. FAILED OR INCONCLUSIVE SAMPLES: In the rare event of hemolysis, lipemia, or insufficient sample volume necessitating a repeat test, a free recollected sample will be processed at no additional charge to the patient.
+4. REFUND DISPATCH TIMELINE: Approved digital payment refunds are credited back to the original source UPI / Bank Account within 2 to 5 business days.`,
 };
 
 export const DEFAULT_ALL_VENDOR_PACKAGES: VendorPackage[] = [
@@ -876,6 +949,55 @@ export function buildDefaultSettingsForLab(dirItem: any): VendorLabSettings {
       'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=1600&q=80',
       'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=1600&q=80',
     ],
+    banners: [
+      {
+        id: `banner-${shortId}-1`,
+        title: `Advanced Diagnostic Pathology at ${dirItem.name}`,
+        subtitle: '100% NABL Quality Standards & Verified Digital WhatsApp Reports.',
+        badge: 'QUALITY DIAGNOSTICS',
+        imageUrl: 'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=1600&q=80',
+        linkUrl: '#packages',
+        buttonText: 'Explore Health Packages',
+        active: true,
+      },
+      {
+        id: `banner-${shortId}-2`,
+        title: `Home Sample Collection in ${dirItem.city || 'City'}`,
+        subtitle: 'Safe, punctual doorstep blood sample pickup by trained phlebotomists.',
+        badge: 'HOME COLLECTION',
+        imageUrl: 'https://images.unsplash.com/photo-1582719471384-894fbb16e074?auto=format&fit=crop&w=1600&q=80',
+        linkUrl: '#home-collection',
+        buttonText: 'Book Sample Pickup',
+        active: true,
+      },
+    ],
+    aboutTitle: `About ${dirItem.name} & Clinical Heritage`,
+    aboutSubtitle: `Serving patients with accurate diagnostics and compassionate care in ${dirItem.city || 'City'}.`,
+    aboutStory: `${dirItem.name} is dedicated to providing clinical excellence, advanced diagnostics, and timely report delivery. Trusted by referring physicians and healthcare practitioners across the region.`,
+    aboutHeritage: `Equipped with modern automated diagnostic analyzers and strict internal quality assurance, we follow NABL and ISO medical laboratory standards.`,
+    establishedYear: 2015,
+    founderName: dirItem.ownerName || 'Chief Medical Director',
+    founderDesignation: 'Chief Medical Director & Founder',
+    founderDegrees: 'MBBS, MD (Pathology)',
+    founderExperience: '15+ Years Clinical Experience',
+    founderBadge: 'Consultant Pathologist',
+    founderPhotoUrl: '/src/assets/images/founder_pathologist_1790345211989.jpg',
+    founderMessage: `Our mission is to empower patients and doctors with accurate, timely diagnostic insights with utmost reliability and transparency.`,
+    founderCredentials: [
+      'MD Pathology with Extensive Clinical Experience',
+      'Quality Manager for ISO 15189 Quality Systems',
+      'Committed to Ethical Diagnostic Healthcare',
+    ],
+    contactGoogleMapUrl: '',
+    socialMedia: {
+      enabled: true,
+      facebook: `https://facebook.com/${shortId}lab`,
+      instagram: `https://instagram.com/${shortId}lab`,
+      whatsapp: cleanPhone,
+    },
+    termsAndConditions: DEFAULT_VENDOR_LAB_SETTINGS.termsAndConditions,
+    privacyPolicy: DEFAULT_VENDOR_LAB_SETTINGS.privacyPolicy,
+    refundPolicy: DEFAULT_VENDOR_LAB_SETTINGS.refundPolicy,
     isWebsiteApproved: Boolean(dirItem.isWebsiteApproved ?? (dirItem.status === 'Active')),
     status: dirItem.status || 'Draft',
   };
@@ -3180,15 +3302,17 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       inputIdentifier === 'admin@indianlalaji.com' ||
       inputIdentifier === 'admin' ||
       inputIdentifier === 'superadmin' ||
-      inputIdentifier === 'super_admin';
+      inputIdentifier === 'super_admin' ||
+      inputIdentifier === 'rkmehra331996' ||
+      inputIdentifier === 'mehra';
 
     if (role === 'admin' || isSuperAdminEmail) {
       // Validate Super Admin Identifier
-      if (!isSuperAdminEmail && inputIdentifier !== 'mehra') {
+      if (!isSuperAdminEmail) {
         return {
           success: false,
           targetView: 'website',
-          error: 'Access Denied: Invalid Super Admin email or username. Central Portal is restricted to authorized platform administrators.',
+          error: 'Access Denied: Invalid Super Admin Master Email ID. Central Portal is restricted to authorized platform administrators.',
         };
       }
 
@@ -3199,7 +3323,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return {
           success: false,
           targetView: 'website',
-          error: 'Incorrect Super Admin password. Demo password is: admin123',
+          error: 'Incorrect Super Admin password. Please check your credentials.',
         };
       }
 
@@ -3210,7 +3334,7 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return {
             success: false,
             targetView: 'website',
-            error: 'Invalid 6-digit Super Admin security PIN. Demo PIN is: 199633',
+            error: 'Invalid 6-digit Super Admin security PIN. Please check your PIN.',
           };
         }
       }
