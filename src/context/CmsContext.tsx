@@ -5489,6 +5489,8 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateStaffAccount,
         resetStaffPassword,
         deleteStaffAccount,
+        transferStaffDataAndDelete,
+        updateAdminProfile,
 
         companySettings,
         updateCompanySettings,

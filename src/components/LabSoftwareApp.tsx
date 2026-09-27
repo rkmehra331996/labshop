@@ -518,36 +518,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
                   <span>🔬</span>
                   <span>Technician Lab Workstation & Reports</span>
                 </span>
-                {/* Active Workstation / Device selector */}
-                <div
-                  id="tech-device-selector"
-                  className="inline-flex items-center bg-white/15 p-0.5 rounded-lg border border-white/20 text-[11px]"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setActiveBranchId('branch-1')}
-                    className={`px-2 py-0.5 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
-                      activeBranchId === 'branch-1'
-                        ? 'bg-amber-400 text-slate-950 shadow-xs'
-                        : 'text-slate-200 hover:text-white'
-                    }`}
-                    title="Device A: Counter #1 (Reception & Billing)"
-                  >
-                    <span>🖥️ Device A</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveBranchId('branch-2')}
-                    className={`px-2 py-0.5 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
-                      activeBranchId === 'branch-2'
-                        ? 'bg-amber-400 text-slate-950 shadow-xs'
-                        : 'text-slate-200 hover:text-white'
-                    }`}
-                    title="Device B: Counter #2 (Lab Testing Workstation)"
-                  >
-                    <span>💻 Device B</span>
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -581,62 +551,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
           </div>
         </div>
 
-        {/* Navigation Tabs (Dashboard, Patient Queue, Reception Queue, Results) */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex overflow-x-auto border-t border-white/10 text-xs">
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`py-2 px-3.5 font-bold border-b-2 whitespace-nowrap transition ${
-              activeTab === 'dashboard'
-                ? 'border-amber-400 text-amber-300'
-                : 'border-transparent text-slate-300 hover:text-white'
-            }`}
-          >
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab('patients')}
-            className={`py-2 px-3.5 font-bold border-b-2 whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeTab === 'patients'
-                ? 'border-amber-400 text-amber-300'
-                : 'border-transparent text-slate-300 hover:text-white'
-            }`}
-          >
-            <span>Patient Queue</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px]">{patients.length}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('reception_orders')}
-            className={`py-2 px-3.5 font-bold border-b-2 whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeTab === 'reception_orders'
-                ? 'border-amber-400 text-amber-300'
-                : 'border-transparent text-slate-300 hover:text-white'
-            }`}
-          >
-            <span>📥 Reception Desk Queue</span>
-            {awaitingAcceptCount > 0 ? (
-              <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] animate-pulse">
-                {awaitingAcceptCount} New
-              </span>
-            ) : (
-              <span className="px-1.5 py-0.5 rounded-full bg-white/20 text-[10px]">
-                {pendingReceptionEntries.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('results')}
-            className={`py-2 px-3.5 font-bold border-b-2 whitespace-nowrap transition flex items-center gap-1.5 ${
-              activeTab === 'results'
-                ? 'border-amber-400 text-amber-300'
-                : 'border-transparent text-slate-300 hover:text-white'
-            }`}
-          >
-            <span>Result Entry & Sign-off</span>
-            <span className="px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black border border-amber-400/30">
-              Enter Results
-            </span>
-          </button>
-        </div>
       </header>
 
       {/* Offline Alert Banner if simulated offline */}
@@ -656,74 +570,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
         {/* TAB 1: DASHBOARD */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
-            {/* Reception Queue Incoming Samples Alert */}
-            {awaitingAcceptCount > 0 && (
-              <div className="bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-teal-500/15 border border-amber-400/40 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 font-black flex items-center justify-center text-sm shadow-xs shrink-0">
-                    📥
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900 flex items-center gap-2">
-                      <span>{awaitingAcceptCount} Patient Specimen(s) Waiting for Acceptance</span>
-                      <span className="bg-amber-400 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
-                        Reception Action
-                      </span>
-                    </h4>
-                    <p className="text-[11px] text-slate-600">
-                      The reception desk has registered patients and dispatched their samples to the lab technician. Click to accept specimen and prepare reports.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('reception_orders')}
-                  className="bg-[#123B6D] hover:bg-blue-900 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer"
-                >
-                  <FlaskConical className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Review & Accept Samples ({awaitingAcceptCount}) ➔</span>
-                </button>
-              </div>
-            )}
-
-            {/* 6 Core Metrics as specified */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Today's Patients</span>
-                <div className="text-2xl font-black text-[#172033] mt-0.5">126</div>
-                <div className="text-[10px] text-emerald-600 font-medium">↑ 14% vs yesterday</div>
-              </div>
-
-              <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Today's Tests</span>
-                <div className="text-2xl font-black text-[#0F766E] mt-0.5">284</div>
-                <div className="text-[10px] text-slate-500 font-medium">18 Profiles</div>
-              </div>
-
-              <div className="bg-white p-3.5 rounded-xl border border-amber-200 bg-amber-50/20 shadow-xs">
-                <span className="text-[11px] font-semibold text-amber-800 uppercase">Pending Reports</span>
-                <div className="text-2xl font-black text-amber-800 mt-0.5">18</div>
-                <div className="text-[10px] text-amber-700 font-medium">Pathologist Queue</div>
-              </div>
-
-              <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Completed Reports</span>
-                <div className="text-2xl font-black text-[#16A34A] mt-0.5">246</div>
-                <div className="text-[10px] text-emerald-600 font-medium">96% On Time</div>
-              </div>
-
-              <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-                <span className="text-[11px] font-semibold text-slate-500 uppercase">Today's Collection</span>
-                <div className="text-2xl font-black text-[#123B6D] mt-0.5">₹42,850</div>
-                <div className="text-[10px] text-emerald-600 font-medium">UPI: ₹34,100</div>
-              </div>
-
-              <div className="bg-white p-3.5 rounded-xl border border-rose-200 bg-rose-50/20 shadow-xs">
-                <span className="text-[11px] font-semibold text-rose-800 uppercase">Due Amount</span>
-                <div className="text-2xl font-black text-rose-600 mt-0.5">₹8,420</div>
-                <div className="text-[10px] text-slate-500 font-medium">Pending balance</div>
-              </div>
-            </div>
 
             {/* Quick Action Strip */}
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
@@ -1000,6 +846,14 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
                 <div>
                   <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('dashboard')}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer mr-1 border border-slate-200"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Back to Dashboard</span>
+                    </button>
                     <h2 className="text-base font-extrabold text-[#172033]">
                       Report Maker & Pathologist Verification Desk
                     </h2>
