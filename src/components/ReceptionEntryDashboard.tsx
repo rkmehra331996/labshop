@@ -137,7 +137,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
   const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Card'>('UPI');
   const [notes, setNotes] = useState('');
   const [testSearch, setTestSearch] = useState('');
-  const [selectedDropdownTest, setSelectedDropdownTest] = useState('');
 
   // Load unsaved active draft from localStorage on initial render
   useEffect(() => {
@@ -693,6 +692,17 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   // Lab Technician Pipeline Actions
   const handleSendToLab = (entry: ReceptionPatientEntry) => {
+    if (
+      entry.sentToTechnician ||
+      entry.technicianStatus === 'Sent to Lab' ||
+      entry.technicianStatus === 'Accepted' ||
+      entry.technicianStatus === 'Report Generated' ||
+      entry.status === 'In Lab' ||
+      entry.status === 'Report Ready'
+    ) {
+      showToast(`⚠️ Token ${entry.tokenNumber} is already sent to the lab!`);
+      return;
+    }
     sendEntryToTechnician(entry.id);
     showToast(`🧪 Token ${entry.tokenNumber} (${entry.patientName}) sent to Lab Technician!`);
   };
@@ -932,44 +942,12 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   {labName}
                 </span>
               </div>
-              {/* Konsa dashboard open hai uska naam + Device A / Device B selector */}
+              {/* Dashboard badge */}
               <div className="flex items-center gap-2 flex-wrap mt-0.5">
                 <span className="bg-amber-400 text-slate-950 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1">
                   <span>🖥️</span>
                   <span>Reception Entry & Billing Dashboard</span>
                 </span>
-                {/* Active Device Toggle: Device A & Device B */}
-                <div
-                  id="reception-device-selector"
-                  className="inline-flex items-center bg-teal-950/70 p-0.5 rounded-lg border border-teal-400/40 text-[11px]"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setActiveBranchId('branch-1')}
-                    className={`px-2 py-0.5 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
-                      activeBranchId === 'branch-1'
-                        ? 'bg-amber-400 text-slate-950 shadow-xs'
-                        : 'text-teal-200 hover:text-white'
-                    }`}
-                    title="Device A: Counter #1 (Reception & Billing)"
-                  >
-                    <span>🖥️ Device A</span>
-                    <span className="text-[9px] opacity-80">(Counter 1)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveBranchId('branch-2')}
-                    className={`px-2 py-0.5 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
-                      activeBranchId === 'branch-2'
-                        ? 'bg-amber-400 text-slate-950 shadow-xs'
-                        : 'text-teal-200 hover:text-white'
-                    }`}
-                    title="Device B: Counter #2 (Lab Testing Workstation)"
-                  >
-                    <span>💻 Device B</span>
-                    <span className="text-[9px] opacity-80">(Counter 2)</span>
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -1040,89 +1018,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
       {/* 2. Main Content Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 w-full space-y-6">
-        {/* Today's Reception Metrics Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {/* Card 1: Today's Patients */}
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Today's Tokens</span>
-              <span className="text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                {activeBranchId === 'branch-2' ? 'Device B (Counter 2)' : 'Device A (Counter 1)'}
-              </span>
-            </div>
-            <div className="text-2xl font-black text-[#172033] mt-1">
-              {totalPatientsToday} <span className="text-xs font-medium text-slate-400">Patients</span>
-            </div>
-            <div className="text-[11px] text-slate-500 mt-0.5">Live queue active</div>
-          </div>
-
-          {/* Card 2: Total Net Billed */}
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Total Billed</span>
-              <span className="text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded text-[10px] font-bold">Net Invoiced</span>
-            </div>
-            <div className="text-2xl font-black text-[#123B6D] mt-1">
-              ₹{totalNetBilled.toLocaleString('en-IN')}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-0.5">After test discounts</div>
-          </div>
-
-          {/* Card 3: Today's Collection */}
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Total Collected</span>
-              <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] font-bold">Received</span>
-            </div>
-            <div className="text-2xl font-black text-emerald-700 mt-1">
-              ₹{totalTotalCollection.toLocaleString('en-IN')}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-0.5 flex gap-2">
-              <span>Cash: ₹{totalCashCollected}</span>
-              <span>•</span>
-              <span>UPI: ₹{totalUpiCollected}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsCashClosingOpen(true)}
-              className="mt-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg w-full flex items-center justify-center gap-1 cursor-pointer transition"
-            >
-              <Calculator className="w-3 h-3 text-emerald-600" />
-              <span>Daily Tally Sheet</span>
-            </button>
-          </div>
-
-          {/* Card 4: Pending Due Balance */}
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Pending Due</span>
-              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${totalDuePending > 0 ? 'text-rose-700 bg-rose-50' : 'text-emerald-700 bg-emerald-50'}`}>
-                {totalDuePending > 0 ? `${patientsWithDueCount} Pending` : 'All Clear'}
-              </span>
-            </div>
-            <div className={`text-2xl font-black mt-1 ${totalDuePending > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
-              ₹{totalDuePending.toLocaleString('en-IN')}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-0.5">
-              {totalDuePending > 0 ? 'To collect on report pickup' : 'No outstanding balances'}
-            </div>
-          </div>
-
-          {/* Card 5: Lab Pipeline */}
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs col-span-2 sm:col-span-1">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-              <span>Reports Ready</span>
-              <span className="text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded text-[10px] font-bold">{reportsReadyCount} Ready</span>
-            </div>
-            <div className="text-2xl font-black text-[#0F766E] mt-1">
-              {reportsReadyCount} <span className="text-xs font-medium text-slate-400">Ready</span>
-            </div>
-            <div className="text-[11px] text-slate-500 mt-0.5">
-              {waitingSamplesCount} samples in phlebotomy
-            </div>
-          </div>
-        </div>
-
         {/* 3. Split Workstation Layout: Left Form + Right Live Queue */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left: New Patient Fast Entry & Billing Form (5 Cols) */}
@@ -1376,38 +1271,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                       <X className="w-3.5 h-3.5" />
                     </button>
                   )}
-                </div>
-
-                {/* Select a test & Add selected test — inline */}
-                <div className="flex items-center gap-2">
-                  <select
-                    value={selectedDropdownTest}
-                    onChange={(e) => setSelectedDropdownTest(e.target.value)}
-                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-800 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none"
-                  >
-                    <option value="">-- Select a test --</option>
-                    {filteredAvailableTests.map((t) => (
-                      <option key={t.name} value={t.name}>
-                        {t.name} (₹{t.price})
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedDropdownTest) {
-                        if (!selectedTests.includes(selectedDropdownTest)) {
-                          setSelectedTests((prev) => [...prev, selectedDropdownTest]);
-                        }
-                        setSelectedDropdownTest('');
-                      }
-                    }}
-                    disabled={!selectedDropdownTest}
-                    className="bg-[#0F766E] hover:bg-[#0d655e] disabled:opacity-40 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs whitespace-nowrap"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add Selected Test</span>
-                  </button>
                 </div>
 
                 {/* Test List */}
@@ -1741,7 +1604,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
               </div>
 
               {/* 4. Submit & Token Generation */}
-              <div className="pt-2 space-y-2">
+              <div className="pt-2">
                 <button
                   type="submit"
                   className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-3 rounded-xl font-black text-sm transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-98"
@@ -1750,25 +1613,16 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   <span>Submit Entry</span>
                   <ArrowRight className="w-4 h-4 text-amber-300" />
                 </button>
-
-                <button
-                  type="button"
-                  onClick={handleRegisterAndSendToLab}
-                  className="w-full bg-purple-700 hover:bg-purple-800 text-white py-2 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer opacity-90 hover:opacity-100"
-                  title="Submit entry and dispatch specimen to Lab Technician workstation"
-                >
-                  <FlaskConical className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Submit & Send to Lab Tech</span>
-                </button>
               </div>
             </form>
           </div>
 
           {/* Right: Today's Live Queue & Token Calling Board (7 Cols) */}
           <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-            {/* Board Header: Reception List */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-              <div>
+            {/* Board Header: Left → Reception List Info | Right → Search by Token No. & Mobile No. */}
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              {/* Left Side: Reception List & Patients Count */}
+              <div className="shrink-0">
                 <h2 className="text-base font-black text-[#172033] flex items-center gap-2">
                   <span>📋 Reception List</span>
                   <span className="bg-emerald-100 text-emerald-900 text-xs font-bold px-2 py-0.5 rounded-full">
@@ -1777,16 +1631,11 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                 </h2>
                 <p className="text-[11px] text-slate-500">Live patient queue with independent search & filters</p>
               </div>
-            </div>
 
-            {/* Search: One inline search row: Search by Token Number [] | Mobile Number [] */}
-            <div className="space-y-1.5">
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                Search
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {/* Right Side: Search by Token Number & Mobile Number */}
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full xl:w-auto">
                 {/* Search by Token Number */}
-                <div className="relative">
+                <div className="relative w-full sm:w-44">
                   <span className="absolute left-2.5 top-2 text-[10px] font-black text-slate-400 uppercase tracking-wider">
                     TK
                   </span>
@@ -1794,8 +1643,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                     type="text"
                     value={searchToken}
                     onChange={(e) => setSearchToken(e.target.value)}
-                    placeholder="Search by Token Number..."
-                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none placeholder:text-slate-400 font-mono"
+                    placeholder="Search Token No..."
+                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none placeholder:text-slate-400 font-mono shadow-2xs"
                   />
                   {searchToken && (
                     <button
@@ -1810,14 +1659,14 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                 </div>
 
                 {/* Search by Mobile Number */}
-                <div className="relative">
+                <div className="relative w-full sm:w-48">
                   <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
                   <input
                     type="tel"
                     value={searchMobile}
                     onChange={(e) => setSearchMobile(e.target.value)}
-                    placeholder="Mobile Number..."
-                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none placeholder:text-slate-400 font-mono"
+                    placeholder="Search Mobile No..."
+                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none placeholder:text-slate-400 font-mono shadow-2xs"
                   />
                   {searchMobile && (
                     <button
@@ -1944,17 +1793,14 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                 </div>
               ) : (
                 filteredQueue.map((entry) => {
-                  const statusColors = {
-                    Waiting: 'bg-amber-100 text-amber-900 border-amber-300',
-                    'Sample Collected': 'bg-blue-100 text-blue-900 border-blue-300',
-                    'In Lab': 'bg-purple-100 text-purple-900 border-purple-300',
-                    'Report Ready': 'bg-emerald-100 text-emerald-900 border-emerald-300',
-                  }[entry.status];
-
-                  const isReportReady =
-                    entry.status === 'Report Ready' ||
+                  const isAlreadySent = Boolean(
+                    entry.sentToTechnician ||
+                    entry.technicianStatus === 'Sent to Lab' ||
+                    entry.technicianStatus === 'Accepted' ||
                     entry.technicianStatus === 'Report Generated' ||
-                    Boolean(entry.reportId);
+                    entry.status === 'In Lab' ||
+                    entry.status === 'Report Ready'
+                  );
 
                   const paymentStatusType: 'Full Payment' | 'Advance' | 'Due' =
                     entry.dueAmount === 0 || entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid'
@@ -1963,419 +1809,176 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                       ? 'Advance'
                       : 'Due';
 
+                  const netTotal = Math.max(0, entry.totalAmount - (entry.discountINR || 0));
+
                   return (
                     <div
                       key={entry.id}
-                      className="border border-slate-200 rounded-xl p-3.5 hover:border-teal-300 hover:shadow-xs transition bg-white space-y-2"
+                      className="border border-slate-200 rounded-2xl p-4 hover:border-teal-300 hover:shadow-xs transition bg-white space-y-3"
                     >
-                      {/* Top Row: Token, Name, Payment Status, Stepper */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5">
-                          <span className="bg-[#123B6D] text-white text-xs font-black px-2.5 py-1 rounded-lg shrink-0">
-                            {entry.tokenNumber}
+                      {/* Header: Left → Token No. + Phone No. | Right → Sent to Lab button / badge */}
+                      <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-slate-100">
+                        {/* Left: Token No. + Phone No. (+ Patient Name & Details) */}
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="bg-[#123B6D] text-white text-xs font-black px-2.5 py-1 rounded-lg shrink-0 font-mono tracking-wide shadow-2xs">
+                            {entry.tokenNumber || entry.tokenNo}
                           </span>
-                          <div>
-                            <div className="font-extrabold text-sm text-[#172033] flex items-center gap-2">
-                              <span>{entry.patientName}</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-extrabold text-sm text-slate-900 truncate">
+                                {entry.patientName}
+                              </span>
                               <span className="text-xs text-slate-400 font-normal">
                                 ({entry.age}Y • {entry.gender})
                               </span>
                             </div>
-                            <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                              <span>UHID: {entry.uhid}</span>
-                              <span>•</span>
-                              <span>Mob: +91 {entry.mobile}</span>
-                              <span>•</span>
-                              <span>{entry.registeredAt}</span>
+                            <div className="text-xs font-semibold text-slate-600 flex items-center gap-1.5 mt-0.5 font-mono">
+                              <Phone className="w-3 h-3 text-slate-400 shrink-0" />
+                              <span>+91 {entry.mobile}</span>
+                              {entry.referringDoctor && (
+                                <span className="text-slate-400 font-normal font-sans text-[11px] truncate">
+                                  • Ref: {entry.referringDoctor.split(' ')[1] || entry.referringDoctor}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                          {/* Online Website Booking Pill */}
-                          {(entry.bookingSource === 'Website' || entry.notes?.toLowerCase().includes('website')) && (
-                            <span className="bg-sky-50 text-sky-900 border border-sky-300 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Globe className="w-3 h-3 text-sky-600" />
-                              <span>Website</span>
-                            </span>
-                          )}
-
-                          {/* Home Collection Badge */}
-                          {entry.visitType === 'Home Collection' && (
-                            <span className="bg-teal-50 text-teal-900 border border-teal-300 text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1">
-                              <Home className="w-3 h-3 text-teal-600" />
-                              <span>Home Pickup</span>
-                            </span>
-                          )}
-
-                          {/* Payment Status Pill */}
-                          {entry.paymentVerificationStatus === 'Pending Verification' ? (
-                            <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-amber-600" />
-                              <span>Pending Verification</span>
-                            </span>
-                          ) : paymentStatusType === 'Full Payment' ? (
-                            <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Check className="w-3 h-3 text-emerald-600" />
-                              <span>{entry.paymentMode === 'UPI' && (entry.bookingSource === 'Website' || entry.notes?.includes('UPI')) ? 'Online UPI Paid' : 'Full Paid'}</span>
-                            </span>
-                          ) : paymentStatusType === 'Advance' ? (
-                            <span className="bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <span>⚠️ Advance Paid</span>
-                            </span>
-                          ) : (
-                            <span className="bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <span>{(entry.bookingSource === 'Website' || entry.notes?.toLowerCase().includes('website')) ? '⚠️ Pay on Spot' : '❌ Payment Due'}</span>
-                            </span>
-                          )}
-
-                          {/* Lock badge if report ready */}
-                          {isReportReady && (
-                            <span
-                              className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5"
-                              title="Report is ready: Patient info and tests are locked. Remaining payment management only."
-                            >
-                              <Lock className="w-2.5 h-2.5 text-amber-700" />
-                              <span>Locked</span>
-                            </span>
-                          )}
-
-                          {/* Status Stepper Button */}
-                          <button
-                            onClick={() => handleAdvanceStatus(entry)}
-                            title="Click to advance status"
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer flex items-center gap-1 shrink-0 ${statusColors}`}
-                          >
-                            <Clock className="w-3 h-3" />
-                            <span>{entry.status}</span>
-                            <span className="text-[9px] opacity-60">➔</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Middle: Selected Tests & Doctor */}
-                      <div className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap gap-1 items-center">
-                          <span className="font-bold text-slate-700">Tests:</span>
-                          {entry.tests.map((t, idx) => (
-                            <span key={idx} className="bg-white border border-slate-200 px-1.5 py-0.5 rounded text-[11px]">
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="text-[11px] text-slate-500">
-                          Ref: <strong>{entry.referringDoctor.split(' ')[1] || entry.referringDoctor}</strong>
-                        </div>
-                      </div>
-
-                      {/* Home Collection Address & Preferred Slot */}
-                      {entry.address && (
-                        <div className="text-[11px] text-slate-700 bg-teal-50/70 px-2.5 py-1.5 rounded-lg border border-teal-200 flex flex-wrap items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5 min-w-0">
-                            <MapPin className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-                            <span>Address: <strong>{entry.address}</strong></span>
-                          </span>
-                          {entry.preferredTimeSlot && (
-                            <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-teal-200 text-teal-900 font-bold shrink-0">
-                              Slot: {entry.preferredTimeSlot}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Online UPI Verification Bar if UTR is provided */}
-                      {entry.upiTransactionRef && (
-                        <div className="text-[11px] bg-sky-50 px-2.5 py-1.5 rounded-lg border border-sky-200 flex flex-wrap items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5 text-sky-950">
-                            <QrCode className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-                            <span>Online UPI Ref / UTR: <strong className="font-mono">{entry.upiTransactionRef}</strong></span>
-                            {entry.paymentVerificationStatus === 'Pending Verification' && (
-                              <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.5 rounded">
-                                Verification Pending
-                              </span>
-                            )}
-                          </span>
-
-                          {entry.paymentVerificationStatus === 'Pending Verification' && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                updateReceptionEntry(entry.id, {
-                                  paymentVerificationStatus: 'Verified',
-                                  paymentStatus: 'Full Payment',
-                                  paidAmount: entry.totalAmount,
-                                  dueAmount: 0,
-                                });
-                                showToast(`✅ Payment verified for token ${entry.tokenNumber}! Status: Full Paid`);
-                              }}
-                              className="px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold text-[10px] cursor-pointer transition flex items-center gap-1 shadow-2xs"
-                            >
-                              <Check className="w-3 h-3 text-amber-300" />
-                              <span>Verify & Confirm Payment</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Lab Technician Pipeline Status Bar */}
-                      <div className="pt-0.5">
-                        {(!entry.sentToTechnician || entry.technicianStatus === 'Not Sent') ? (
-                          <div className="flex flex-wrap items-center justify-between gap-2 bg-purple-50/60 border border-purple-100 px-2.5 py-1.5 rounded-lg text-xs">
-                            <span className="text-purple-900 font-medium text-[11px] flex items-center gap-1.5">
-                              <FlaskConical className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                              <span>Lab Status: <strong>Not Sent Yet</strong> (Waiting at desk)</span>
-                            </span>
+                        {/* Right: Sent to Lab button (only before sending) OR Sent to Lab badge (after sending) */}
+                        <div className="shrink-0">
+                          {!isAlreadySent ? (
                             <button
                               type="button"
                               onClick={() => handleSendToLab(entry)}
-                              className="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white rounded-md text-[11px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
-                              title="Send sample entry to Lab Technician workstation"
+                              className="px-3 py-1.5 bg-[#0F766E] hover:bg-[#0d655e] text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs active:scale-98"
+                              title="Send specimen to Lab Technician workstation"
                             >
-                              <FlaskConical className="w-3 h-3 text-amber-300" />
-                              <span>Send to Lab Tech</span>
+                              <FlaskConical className="w-3.5 h-3.5 text-amber-300" />
+                              <span>Sent to Lab</span>
                             </button>
-                          </div>
-                        ) : entry.technicianStatus === 'Sent to Lab' ? (
-                          <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-lg text-xs">
-                            <span className="text-amber-900 font-medium text-[11px] flex items-center gap-1.5">
-                              <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0 animate-pulse" />
-                              <span>
-                                Sent to Lab {entry.sentToLabAt ? `(${entry.sentToLabAt})` : ''} • <strong>Specimen Dispatched to Technician</strong>
-                              </span>
-                            </span>
-                            <span className="text-[10px] bg-amber-200/80 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-md">
-                              Awaiting Technician
-                            </span>
-                          </div>
-                        ) : entry.technicianStatus === 'Accepted' ? (
-                          <div className="flex flex-wrap items-center justify-between gap-2 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg text-xs">
-                            <span className="text-blue-900 font-medium text-[11px] flex items-center gap-1.5">
-                              <FlaskConical className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                              <span>Sample Accepted by Technician • <strong>Testing in Progress</strong></span>
-                            </span>
-                            <span className="text-[10px] bg-blue-100 text-blue-800 border border-blue-300 font-bold px-2 py-0.5 rounded-md">
-                              In Lab Analysis
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="bg-emerald-50/80 border border-emerald-200 p-2.5 rounded-lg text-xs space-y-2">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0">
-                                  ✓
-                                </span>
-                                <div>
-                                  <div className="text-emerald-950 font-extrabold text-xs flex items-center gap-1.5">
-                                    <span>Report Ready from Technician</span>
-                                    {entry.reportId && (
-                                      <span className="font-mono bg-emerald-100/90 text-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                        {entry.reportId}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="text-[11px] text-slate-600 flex items-center gap-1.5 mt-0.5">
-                                    <span>Payment Check:</span>
-                                    {entry.dueAmount === 0 ? (
-                                      <span className="text-emerald-700 font-bold bg-emerald-100/80 px-1.5 py-0.2 rounded text-[10px] flex items-center gap-0.5">
-                                        <Check className="w-3 h-3" /> Fully Cleared (₹0 Due)
-                                      </span>
-                                    ) : (
-                                      <span className="text-rose-700 font-extrabold bg-rose-100/80 px-1.5 py-0.2 rounded text-[10px] flex items-center gap-0.5">
-                                        <Lock className="w-3 h-3" /> Due Pending: ₹{entry.dueAmount}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Publish Status & Actions */}
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                {entry.isReportPublished ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span
-                                      className={`text-[10px] font-bold px-2 py-1 rounded-md border flex items-center gap-1 ${
-                                        entry.dueAmount > 0
-                                          ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                          : 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                                      }`}
-                                      title={entry.publishedAt ? `Published ${entry.publishedAt} by ${entry.publishedBy || 'Reception'}` : 'Published'}
-                                    >
-                                      <Globe className="w-3 h-3 text-emerald-700" />
-                                      <span>
-                                        {entry.dueAmount > 0 ? 'Published (Locked / Dues Pending)' : 'Published to Portal (Unlocked)'}
-                                      </span>
-                                    </span>
-                                    {entry.reportId && (
-                                      <button
-                                        type="button"
-                                        onClick={() => onOpenReportPortal?.(entry.reportId, entry.mobile)}
-                                        className="px-2 py-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-md text-[11px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
-                                        title="View customer report view on website"
-                                      >
-                                        <Eye className="w-3 h-3 text-teal-700" />
-                                        <span>Portal View</span>
-                                      </button>
-                                    )}
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        unpublishReport(entry.id);
-                                        showToast(`Report ${entry.reportId || entry.tokenNumber} unpublished from portal`);
-                                      }}
-                                      className="px-2 py-1 text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded text-[10px] font-medium transition cursor-pointer"
-                                      title="Unpublish report from patient portal"
-                                    >
-                                      Unpublish
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-wrap items-center gap-1.5">
-                                    <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-md">
-                                      Awaiting Publish
-                                    </span>
-                                    {entry.dueAmount > 0 ? (
-                                      <>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setCollectingPaymentEntry(entry);
-                                            setIsCollectPaymentOpen(true);
-                                          }}
-                                          className="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded-md text-[11px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
-                                          title={`Collect pending ₹${entry.dueAmount} and publish complete unblurred report`}
-                                        >
-                                          <IndianRupee className="w-3 h-3 text-amber-300" />
-                                          <span>Collect ₹{entry.dueAmount} & Publish</span>
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            publishReport(entry.id, currentUser?.name || 'Reception Staff');
-                                            showToast(`Report ${entry.reportId || entry.tokenNumber} published in Locked Mode (Customer must clear ₹${entry.dueAmount} due)`);
-                                          }}
-                                          className="px-2 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded-md text-[10px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
-                                          title="Publish now in locked mode with pending payment message"
-                                        >
-                                          <Lock className="w-3 h-3 text-amber-300" />
-                                          <span>Publish Locked</span>
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          publishReport(entry.id, currentUser?.name || 'Reception Staff');
-                                          showToast(`✓ Report ${entry.reportId || entry.tokenNumber} published! Patient can view and download.`);
-                                        }}
-                                        className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-md text-[11px] font-black shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
-                                        title="Payment is clear. Publish report so patient can view and download complete report"
-                                      >
-                                        <Globe className="w-3.5 h-3.5 text-amber-300" />
-                                        <span>Check Payment & Publish Report</span>
-                                      </button>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Bottom: Payment Summary & Action Buttons */}
-                      <div className="flex flex-wrap items-center justify-between pt-1 text-xs gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-bold text-[#123B6D]">
-                            Total: ₹{entry.totalAmount - (entry.discountINR || 0)}
-                          </span>
-                          <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
-                            Paid: ₹{entry.paidAmount} ({entry.paymentMode})
-                          </span>
-                          {entry.dueAmount > 0 ? (
-                            <span className="text-rose-700 font-black bg-rose-50 border border-rose-200 px-2 py-0.5 rounded text-[11px] flex items-center gap-1">
-                              <span>Due:</span>
-                              <span>₹{entry.dueAmount}</span>
-                            </span>
                           ) : (
-                            <span className="text-emerald-700 font-bold bg-emerald-50 text-[10px] px-1.5 py-0.5 rounded">
-                              ✓ Nil Due
-                            </span>
-                          )}
-                          {entry.balancePaidAmount && entry.balancePaidAmount > 0 && (
-                            <span className="text-teal-800 bg-teal-50 border border-teal-200 text-[10px] font-bold px-1.5 py-0.5 rounded" title="Includes later balance collection">
-                              (Bal Cleared: ₹{entry.balancePaidAmount})
+                            <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Sent to Lab</span>
                             </span>
                           )}
                         </div>
+                      </div>
 
-                        <div className="flex items-center gap-1.5">
-                          {/* Quick Collect Due Button */}
-                          {entry.dueAmount > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenCollectPayment(entry)}
-                              className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[11px] font-black shadow-2xs transition flex items-center gap-1 cursor-pointer"
-                              title="Collect remaining balance payment"
-                            >
-                              <IndianRupee className="w-3.5 h-3.5 text-amber-300" />
-                              <span>Collect Due ₹{entry.dueAmount}</span>
-                            </button>
-                          )}
+                      {/* Body: Display selected test list vertically when multiple tests are added */}
+                      <div className="py-0.5 space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                          <span>Selected Tests ({entry.tests?.length || 0}):</span>
+                          <span className="text-[10px] text-slate-400 font-normal font-sans">
+                            UHID: <strong className="font-mono text-slate-700">{entry.uhid}</strong> • {entry.registeredAt}
+                          </span>
+                        </div>
 
-                          {/* Edit Entry / Manage Payment Button */}
-                          {isReportReady ? (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEdit(entry)}
-                              title="Report is ready: Patient demographics & tests are locked. Manage remaining balance payment only."
-                              className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
-                            >
-                              <Lock className="w-3.5 h-3.5 text-amber-600" />
-                              <span>Manage Payment</span>
-                            </button>
+                        {/* Vertical Test List */}
+                        <div className="space-y-1">
+                          {entry.tests && entry.tests.length > 0 ? (
+                            entry.tests.map((testName, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-xs font-medium text-slate-800"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="w-4 h-4 rounded-full bg-teal-100 text-teal-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="truncate font-semibold">{testName}</span>
+                                </div>
+                              </div>
+                            ))
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEdit(entry)}
-                              title="Edit Patient Details & Billing"
-                              className="px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                              <span className="hidden sm:inline">Edit</span>
-                            </button>
+                            <div className="text-xs text-slate-400 italic py-1">No tests selected</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Footer: Left → Total Amount + Payment Status + Method (UPI/Cash) | Right → Edit + Delete buttons */}
+                      <div className="flex flex-wrap items-center justify-between pt-2.5 border-t border-slate-100 gap-2.5 text-xs">
+                        {/* Left: Total Amount + Payment Status + Method (UPI/Cash) */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* Total Amount */}
+                          <span className="font-black text-[#123B6D] text-sm font-mono">
+                            Total: ₹{netTotal}
+                          </span>
+
+                          <span className="text-slate-300">|</span>
+
+                          {/* Payment Status */}
+                          {paymentStatusType === 'Full Payment' ? (
+                            <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              <span>Full Payment</span>
+                            </span>
+                          ) : paymentStatusType === 'Advance' ? (
+                            <span className="bg-amber-50 text-amber-900 border border-amber-200 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span>Advance (Due: ₹{entry.dueAmount})</span>
+                            </span>
+                          ) : (
+                            <span className="bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span>Due Payment (₹{entry.dueAmount})</span>
+                            </span>
                           )}
 
-                          {/* Thermal Print Receipt Slip */}
+                          <span className="text-slate-300">|</span>
+
+                          {/* Method (UPI/Cash) */}
+                          <span className="text-slate-600 font-semibold text-[11px] bg-slate-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <span>Method:</span>
+                            <strong className="text-slate-900">
+                              {entry.paymentMode === 'UPI' ? '📱 UPI' : entry.paymentMode === 'Cash' ? '💵 Cash' : entry.paymentMode}
+                            </strong>
+                          </span>
+                        </div>
+
+                        {/* Right: Edit + Delete buttons */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {/* Edit button */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(entry)}
+                            className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                            title="Edit Patient Details & Billing"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-blue-700" />
+                            <span>Edit</span>
+                          </button>
+
+                          {/* Delete button */}
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(entry)}
+                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                            title="Delete Patient Entry"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </button>
+
+                          {/* Thermal Slip / Receipt */}
                           <button
                             type="button"
                             onClick={() => {
                               setSelectedReceipt(entry);
                               setIsReceiptModalOpen(true);
                             }}
-                            title="Print Thermal Slip / Receipt"
+                            title="Print / View Thermal Slip"
                             className="p-1.5 bg-slate-100 hover:bg-teal-100 hover:text-teal-800 rounded-lg text-slate-600 transition cursor-pointer"
                           >
                             <Printer className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* WhatsApp Token Slip */}
+                          {/* WhatsApp Share */}
                           <button
                             type="button"
                             onClick={() => handleWhatsAppReceipt(entry)}
-                            title="Send Receipt on WhatsApp"
+                            title="Send on WhatsApp"
                             className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition cursor-pointer"
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Delete Entry */}
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTarget(entry)}
-                            title="Delete Patient Entry from live queue"
-                            className="p-1.5 bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-700 rounded-lg transition cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
