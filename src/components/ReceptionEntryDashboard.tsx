@@ -40,6 +40,7 @@ import {
   Download,
   Calculator,
   Calendar,
+  RotateCcw,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -240,6 +241,11 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3500);
   };
+
+  // Entries returned by Technician requiring Reception attention
+  const returnedByTechnicianEntries = useMemo(() => {
+    return receptionEntries.filter((r) => r.returnedByTechnician);
+  }, [receptionEntries]);
 
   // Popular Quick-Click Tests
   const quickTestPills = [
@@ -1094,6 +1100,82 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                 <span className="bg-teal-100 text-teal-900 text-xs font-black px-2.5 py-1 rounded-lg">
                   TK-{100 + receptionEntries.length + 1}
                 </span>
+              </div>
+            )}
+
+            {/* Notification: Technician has returned the entry */}
+            {returnedByTechnicianEntries.length > 0 && (
+              <div className="bg-rose-50 border-2 border-rose-300 p-3.5 rounded-xl shadow-xs space-y-2.5 animate-in fade-in">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 text-rose-900">
+                    <span className="p-2 bg-rose-200 text-rose-800 rounded-xl">
+                      <RotateCcw className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h4 className="font-black text-sm text-slate-900">
+                        Technician has returned the entry.
+                      </h4>
+                      <p className="text-[11px] text-rose-800 font-medium">
+                        {returnedByTechnicianEntries.length} specimen/patient {returnedByTechnicianEntries.length === 1 ? 'entry was' : 'entries were'} returned to Reception with a technician clinical note.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="bg-rose-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs">
+                    Returned by Lab
+                  </span>
+                </div>
+
+                <div className="divide-y divide-rose-200 bg-white rounded-xl border border-rose-200 overflow-hidden">
+                  {returnedByTechnicianEntries.map((retEntry) => (
+                    <div key={retEntry.id} className="p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[11px] font-black bg-rose-100 text-rose-900 px-2 py-0.5 rounded-md border border-rose-200">
+                            {retEntry.tokenNumber || 'TK-101'}
+                          </span>
+                          <strong className="text-slate-900 font-bold">{retEntry.patientName}</strong>
+                          <span className="text-[11px] text-slate-500 font-mono">+91 {retEntry.mobile}</span>
+                        </div>
+                        {retEntry.returnReason && (
+                          <p className="text-xs text-rose-800 mt-1 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
+                            <strong>Technician Reason:</strong> {retEntry.returnReason}
+                          </p>
+                        )}
+                        <div className="text-[10px] text-slate-500 mt-1">
+                          Returned at: {retEntry.returnedAt || 'Today'} • Tests: {Array.isArray(retEntry.tests) ? retEntry.tests.join(', ') : retEntry.tests}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleLoadEntryToForm(retEntry)}
+                          className="px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                          title="Edit patient or tests for re-collection"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Edit / Re-collect</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateReceptionEntry(retEntry.id, {
+                              returnedByTechnician: false,
+                              technicianStatus: 'Pending',
+                              sentToTechnician: true,
+                            });
+                            showToast(`Sample re-sent to Technician for ${retEntry.patientName}`);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                          title="Re-send specimen to lab queue"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Re-send to Lab</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

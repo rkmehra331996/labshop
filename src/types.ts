@@ -417,6 +417,10 @@ export interface Patient {
   sentToReceptionDesk?: boolean;
   sentToReceptionAt?: string;
   technicianStatus?: string;
+  returnedByTechnician?: boolean;
+  returnReason?: string;
+  returnedAt?: string;
+  notes?: string;
 }
 
 export interface ReportItem {
@@ -569,7 +573,7 @@ export interface ReceptionPatientEntry {
   testNames?: string[];
   notes?: string;
   sentToTechnician?: boolean;
-  technicianStatus?: 'Not Sent' | 'Sent to Lab' | 'Accepted' | 'Report Generated' | 'Pending';
+  technicianStatus?: 'Not Sent' | 'Sent to Lab' | 'Accepted' | 'Report Generated' | 'Pending' | 'Returned';
   sentToLabAt?: string;
   reportId?: string;
   technicianNotes?: string;
@@ -601,6 +605,9 @@ export interface ReceptionPatientEntry {
   technicianName?: string;
   sentToReceptionDesk?: boolean;
   sentToReceptionAt?: string;
+  returnedByTechnician?: boolean;
+  returnReason?: string;
+  returnedAt?: string;
 }
 
 export type DomainRequestType = 'custom_domain' | 'subdomain';

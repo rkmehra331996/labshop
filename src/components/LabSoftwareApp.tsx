@@ -34,6 +34,11 @@ import {
   LogOut,
   Calendar,
   X,
+  Receipt,
+  RotateCcw,
+  XCircle,
+  AlertTriangle,
+  CheckCircle2,
 } from 'lucide-react';
 import { Patient, TestItem, LabReport, ReportItem, ReceptionPatientEntry } from '../types';
 import { CreateReportModal } from './CreateReportModal';
@@ -42,6 +47,7 @@ import { useCms } from '../context/CmsContext';
 import { TEST_TEMPLATES, checkIsAbnormal } from '../data/testTemplates';
 import { DashboardFooter } from './DashboardFooter';
 import { ErrorBoundary } from './ErrorBoundary';
+import { generateThermalReceiptPdf, buildReceiptInvoicePdf } from '../utils/pdfGenerator';
 
 interface LabSoftwareAppProps {
   onBackToWebsite: () => void;
@@ -89,6 +95,15 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
   // Toast notification for user actions (e.g. Send to Reception Desk, Start Testing)
   const [toastNotice, setToastNotice] = useState<string | null>(null);
 
+  // Receipt Modal State for Technician
+  const [selectedReceipt, setSelectedReceipt] = useState<ReceptionPatientEntry | null>(null);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+
+  // Cancellation / Return to Reception Modal State
+  const [cancellingPatient, setCancellingPatient] = useState<Patient | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelReasonError, setCancelReasonError] = useState('');
+
   // Independent Date Calculations
   const todayDateStr = new Date().toISOString().split('T')[0];
   const yesterdayDateObj = new Date();
@@ -118,9 +133,11 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
         : [];
 
       const tokenNumber = r.tokenNumber || r.tokenNo || `TK-${r.id.replace('rcp-', '')}`;
+      const isReturned = Boolean(r.returnedByTechnician);
       const isReportDone = r.status === 'Report Ready' || r.technicianStatus === 'Report Generated' || Boolean(r.reportId);
-      const isInTesting = !isReportDone && (r.technicianStatus === 'Accepted' || r.status === 'In Lab');
-      const workflowStatus = isReportDone ? 'Report Done' : isInTesting ? 'In Testing' : 'Waiting';
+      const isInTesting = !isReportDone && !isReturned && (r.technicianStatus === 'Accepted' || r.status === 'In Lab');
+      const isWaiting = !isReportDone && !isInTesting && !isReturned;
+      const workflowStatus = isReturned ? 'Returned' : isReportDone ? 'Report Done' : isInTesting ? 'In Testing' : 'Waiting';
 
       return {
         id: r.id,
@@ -148,6 +165,10 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
         sentToReceptionDesk: Boolean(r.sentToReceptionDesk),
         sentToReceptionAt: r.sentToReceptionAt,
         technicianStatus: r.technicianStatus,
+        returnedByTechnician: r.returnedByTechnician,
+        returnReason: r.returnReason,
+        returnedAt: r.returnedAt,
+        notes: r.notes,
       };
     });
   }, [receptionEntries, vendorLabSettings?.address]);
@@ -441,8 +462,111 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
       technicianStatus: 'Accepted',
       status: 'In Lab',
     });
-    setToastNotice(`Specimen accepted for ${patient.name} (${patient.tokenNumber || patient.uhid}). Moved to "In Testing" tab.`);
+    setToastNotice(`Specimen accepted for ${patient.name} (${patient.tokenNumber || patient.uhid}). Moved to "In Test" tab.`);
     setTimeout(() => setToastNotice(null), 3500);
+  };
+
+  const handleOpenCancelModal = (patient: Patient) => {
+    setCancellingPatient(patient);
+    setCancelReason('');
+    setCancelReasonError('');
+  };
+
+  const handleConfirmCancel = () => {
+    if (!cancellingPatient) return;
+    if (!cancelReason.trim()) {
+      setCancelReasonError('Technician reason is required for returning/cancelling the entry.');
+      return;
+    }
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const reasonText = cancelReason.trim();
+
+    updateReceptionEntry(cancellingPatient.id, {
+      status: 'Waiting',
+      sentToTechnician: false,
+      technicianStatus: 'Returned',
+      returnedByTechnician: true,
+      returnReason: reasonText,
+      returnedAt: `Today, ${timeStr}`,
+      notes: cancellingPatient.notes
+        ? `${cancellingPatient.notes} • [Technician Return: ${reasonText}]`
+        : `[Technician Return: ${reasonText}]`,
+    });
+
+    setToastNotice(
+      `Entry for ${cancellingPatient.name} (${cancellingPatient.tokenNumber || cancellingPatient.uhid}) returned to Reception Desk. Reception received notification: “Technician has returned the entry.”`
+    );
+    setTimeout(() => setToastNotice(null), 5000);
+
+    setCancellingPatient(null);
+    setCancelReason('');
+    setCancelReasonError('');
+  };
+
+  const handleViewReceipt = (p: Patient) => {
+    const rec = receptionEntries.find((r) => r.id === p.id || r.uhid === p.uhid);
+    const entryForReceipt: ReceptionPatientEntry = rec || {
+      id: p.id,
+      uhid: p.uhid,
+      tokenNumber: p.tokenNumber || p.tokenNo || 'TK-101',
+      patientName: p.name,
+      age: p.age,
+      gender: p.gender,
+      mobile: p.mobile,
+      referringDoctor: p.referringDoctor,
+      tests: p.tests,
+      totalAmount: p.totalBill,
+      paidAmount: p.paidAmount,
+      dueAmount: p.dueAmount,
+      paymentMode: p.paymentMode,
+      registeredAt: p.registeredAt,
+      entryDate: p.entryDate,
+      sampleType: 'Blood / Specimen',
+      status: 'Waiting',
+      paymentStatus: p.dueAmount === 0 ? 'Paid' : 'Due',
+    };
+    setSelectedReceipt(entryForReceipt);
+    setIsReceiptModalOpen(true);
+  };
+
+  const handleShareReceipt = async (entry: ReceptionPatientEntry) => {
+    try {
+      const netAmount = (entry.totalAmount || 0) - (entry.discountINR || 0);
+      const shareText =
+        `🧾 *${labName}* - Token & Invoice Receipt\n` +
+        `--------------------------------\n` +
+        `🎟️ Token No: *${entry.tokenNumber}*\n` +
+        `🆔 UHID: ${entry.uhid}\n` +
+        `👤 Patient: *${entry.patientName}* (${entry.age} Y / ${entry.gender})\n` +
+        `📱 Mobile: +91 ${entry.mobile}\n` +
+        `👨‍⚕️ Ref Doctor: ${entry.referringDoctor}\n` +
+        `🔬 Tests: ${entry.tests.join(', ')}\n` +
+        `💰 Total: ₹${netAmount} | Paid: ₹${entry.paidAmount} | Due: ₹${entry.dueAmount || 0}\n` +
+        `💳 Mode: ${entry.paymentMode}\n` +
+        `⏰ Registered: ${entry.registeredAt}\n` +
+        `--------------------------------\n` +
+        `Thank you for choosing ${labName}!`;
+
+      const cleanMobile = entry.mobile.replace(/\D/g, '').slice(-10);
+      const url = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(shareText)}`;
+      window.open(url, '_blank');
+      setToastNotice(`Receipt PDF ready & WhatsApp opened for ${entry.patientName}!`);
+      setTimeout(() => setToastNotice(null), 3000);
+    } catch (err) {
+      console.error(err);
+      setToastNotice('Failed to share receipt. Please try again.');
+      setTimeout(() => setToastNotice(null), 3000);
+    }
+  };
+
+  const handlePrintReceipt = (entry: ReceptionPatientEntry) => {
+    try {
+      generateThermalReceiptPdf(entry, labName);
+      setToastNotice('Preparing thermal receipt for print/download...');
+      setTimeout(() => setToastNotice(null), 2500);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleDeleteReport = (report: LabReport) => {
@@ -467,9 +591,15 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
   };
 
   const handleReportCreated = (report: LabReport, patientId?: string) => {
-    addLabReport(report);
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const stampedReport: LabReport = {
+      ...report,
+      sentToReceptionDesk: true,
+      sentToReceptionAt: `Today, ${timeStr}`,
+    };
+    addLabReport(stampedReport);
 
-    // Sync with reception entry if applicable
+    // Sync with reception entry if applicable and send to Reception Desk
     const rec = receptionEntries.find(
       (r) =>
         r.id === patientId ||
@@ -479,8 +609,19 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
     );
     if (rec) {
       completeTechnicianReport(rec.id, report.reportId);
+      updateReceptionEntry(rec.id, {
+        reportId: report.reportId,
+        status: 'Report Ready',
+        technicianStatus: 'Report Generated',
+        sentToReceptionDesk: true,
+        sentToReceptionAt: `Today, ${timeStr}`,
+      });
     }
-    setPreviewReport(report);
+
+    setToastNotice(`Report completed and sent to Reception Desk for ${report.patientName}!`);
+    setTimeout(() => setToastNotice(null), 4500);
+
+    setPreviewReport(stampedReport);
   };
 
   const handleCreateReportForReceptionEntry = (entry: ReceptionPatientEntry) => {
@@ -766,7 +907,7 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
                 }`}
               >
                 <FlaskConical className="w-4 h-4" />
-                <span>In Testing</span>
+                <span>In Test</span>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                     patientTab === 'in_testing' ? 'bg-white/25 text-white' : 'bg-teal-100 text-teal-900'
@@ -1074,131 +1215,104 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
                             {/* Actions */}
                             <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                                {/* Waiting actions: Start Testing & Make Report */}
-                                {isWaiting && (
+                                {/* Common to all tabs: View Receipt */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewReceipt(p)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer border border-slate-300"
+                                  title="View registration and billing receipt"
+                                >
+                                  <Receipt className="w-3.5 h-3.5 text-slate-600" />
+                                  <span>View Receipt</span>
+                                </button>
+
+                                {/* 1. All Patients Tab: View Receipt ONLY (No Start Testing, No Make Report, No Edit, No Delete) */}
+                                {patientTab === 'all' && null}
+
+                                {/* 2. Waiting Tab: View Receipt, Start Testing, Cancel (No Edit, No Delete) */}
+                                {patientTab === 'waiting' && (
                                   <>
                                     <button
                                       type="button"
                                       onClick={() => handleStartTesting(p)}
-                                      className="px-2.5 py-1 rounded bg-teal-700 hover:bg-teal-800 text-white text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
-                                      title="Accept sample and move to In Testing"
+                                      className="px-2.5 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-[11px] font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+                                      title="Accept specimen and move to In Testing"
                                     >
-                                      <FlaskConical className="w-3 h-3" />
+                                      <FlaskConical className="w-3.5 h-3.5 text-teal-200" />
                                       <span>Start Testing</span>
                                     </button>
+
                                     <button
                                       type="button"
-                                      onClick={() => handleOpenCreateReportModal(p)}
-                                      className="px-2.5 py-1 rounded bg-[#123B6D] hover:bg-[#0e2c52] text-white text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
-                                      title="Create report for this patient"
+                                      onClick={() => handleOpenCancelModal(p)}
+                                      className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+                                      title="Cancel and return entry to Reception Desk with reason"
                                     >
-                                      <Plus className="w-3 h-3 text-amber-300" />
-                                      <span>Make Report</span>
+                                      <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+                                      <span>Cancel</span>
                                     </button>
                                   </>
                                 )}
 
-                                {/* In Testing actions: Make Report */}
-                                {isInTesting && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenCreateReportModal(p)}
-                                    className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-black transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
-                                    title="Enter test results and complete report"
-                                  >
-                                    <FlaskConical className="w-3.5 h-3.5 fill-slate-950" />
-                                    <span>+ Enter Results</span>
-                                  </button>
+                                {/* 3. In Test Tab: View Receipt, Make Report, Cancel (No Edit, No Delete). After completing report, it is sent to Reception Desk */}
+                                {patientTab === 'in_testing' && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenCreateReportModal(p)}
+                                      className="px-2.5 py-1.5 rounded-lg bg-[#123B6D] hover:bg-[#0e2c52] text-white text-[11px] font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+                                      title="Enter test results and complete diagnostic report"
+                                    >
+                                      <FileText className="w-3.5 h-3.5 text-amber-300" />
+                                      <span>Make Report</span>
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenCancelModal(p)}
+                                      className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+                                      title="Cancel test and return entry to Reception Desk with reason"
+                                    >
+                                      <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
+                                      <span>Cancel</span>
+                                    </button>
+                                  </>
                                 )}
 
-                                {/* Report Done actions: Send to Reception Desk & Edit Report (Locked once sent) */}
-                                {isReportDone && (
+                                {/* 4. Report Done Tab: View Receipt, View Report (No Edit, No Delete) */}
+                                {patientTab === 'report_done' && (
                                   <>
-                                    {/* Send to Reception Desk Button */}
-                                    {p.sentToReceptionDesk ? (
-                                      <span
-                                        className="px-2 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-300 text-[10px] font-bold flex items-center gap-1 select-none shadow-2xs"
-                                        title={`Report sent to Reception Desk at ${p.sentToReceptionAt || 'Today'}`}
-                                      >
-                                        <Check className="w-3 h-3 text-emerald-600" />
-                                        <span>Sent to Desk</span>
-                                      </span>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleSendToReceptionDesk(p)}
-                                        className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
-                                        title="Send report to Reception Desk. Note: Editing will be locked once sent."
-                                      >
-                                        <Share2 className="w-3 h-3 text-white" />
-                                        <span>Send to Reception Desk</span>
-                                      </button>
-                                    )}
-
-                                    {/* Edit Report Button (Disabled once sent) */}
-                                    {p.sentToReceptionDesk ? (
-                                      <button
-                                        type="button"
-                                        disabled
-                                        className="px-2.5 py-1 rounded bg-slate-100 text-slate-400 border border-slate-200 text-[11px] font-semibold flex items-center gap-1 cursor-not-allowed select-none"
-                                        title="Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing is disabled."
-                                      >
-                                        <Lock className="w-3 h-3 text-slate-400" />
-                                        <span>Edit Locked</span>
-                                      </button>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleOpenCreateReportModal(p)}
-                                        className="px-2.5 py-1 rounded bg-[#123B6D] hover:bg-[#0e2c52] text-white text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
-                                        title="Edit diagnostic report values and impression"
-                                      >
-                                        <Edit2 className="w-3 h-3 text-amber-300" />
-                                        <span>Edit Report</span>
-                                      </button>
-                                    )}
-
-                                    {/* View & Print Report */}
                                     <button
                                       type="button"
                                       onClick={() => handleOpenReportPreview(p.reportId, p.mobile)}
-                                      className="p-1.5 text-slate-600 hover:text-[#123B6D] hover:bg-slate-100 rounded cursor-pointer"
-                                      title="View & Print Report PDF"
+                                      className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+                                      title="View verified diagnostic report"
+                                    >
+                                      <Eye className="w-3.5 h-3.5 text-white" />
+                                      <span>View Report</span>
+                                    </button>
+
+                                    {/* Quick Thermal / PDF print */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenReportPreview(p.reportId, p.mobile)}
+                                      className="p-1.5 text-slate-600 hover:text-[#123B6D] hover:bg-slate-100 rounded-lg cursor-pointer"
+                                      title="Print Report PDF"
                                     >
                                       <Printer className="w-3.5 h-3.5" />
                                     </button>
 
-                                    {/* WhatsApp */}
+                                    {/* WhatsApp Report Share */}
                                     <button
                                       type="button"
                                       onClick={() => handleWhatsAppSend(p)}
-                                      className="p-1.5 text-[#0F766E] hover:text-emerald-700 hover:bg-emerald-50 rounded cursor-pointer"
-                                      title="Send WhatsApp Report"
+                                      className="p-1.5 text-[#0F766E] hover:text-emerald-700 hover:bg-emerald-50 rounded-lg cursor-pointer"
+                                      title="Send Report via WhatsApp"
                                     >
                                       <MessageSquare className="w-3.5 h-3.5" />
                                     </button>
                                   </>
                                 )}
-
-                                {/* Edit Patient details modal */}
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditPatient(p)}
-                                  className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded cursor-pointer"
-                                  title="Edit Patient Details"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-
-                                {/* Delete patient */}
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeletePatient(p)}
-                                  className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded cursor-pointer"
-                                  title="Delete Patient Record"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
                               </div>
                             </td>
                           </tr>
@@ -1221,22 +1335,9 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
                 <p className="text-xs text-slate-500">Fast 10-digit mobile lookup, Indian name formats, and direct test report generation</p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={handleOpenAddPatient}
-                  className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                  title="Patient entry is restricted to Reception Counter"
-                >
-                  <Lock className="w-3.5 h-3.5 text-amber-700" />
-                  <span>New Patient: Reception Desk Only</span>
-                </button>
-                <button
-                  onClick={() => handleOpenCreateReportModal()}
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3.5 py-2 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-                >
-                  <FlaskConical className="w-4 h-4 fill-slate-950 text-slate-950" />
-                  <span>+ Create Report</span>
-                </button>
+                <span className="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 font-medium">
+                  {patients.length} Registered Patients
+                </span>
               </div>
             </div>
 
@@ -2342,8 +2443,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
           allowNewPatientEntry={false}
           onReportCreated={(createdReport) => {
             handleReportCreated(createdReport, selectedPatientForReport?.id);
-            setPreviewReport(createdReport);
-            setIsPreviewModalOpen(true);
           }}
           preselectedPatient={selectedPatientForReport || undefined}
           onOpenReportPreview={(rptId, mob) => {
@@ -2352,16 +2451,312 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
         />
       </ErrorBoundary>
 
-      {/* MODAL: NABL Report Detail & Print/WhatsApp Preview */}
+      {/* MODAL: NABL Report Detail & Print/WhatsApp Preview - View Report Only (No Edit, No Delete) */}
       {previewReport && (
         <ReportDetailModal
           report={previewReport}
           isOpen={isPreviewModalOpen}
           onClose={() => setIsPreviewModalOpen(false)}
-          onEditReport={(report) => handleEditReport(report)}
-          onDeleteReport={(report) => handleDeleteReport(report)}
+          onEditReport={undefined}
+          onDeleteReport={undefined}
           onOpenPatientPortal={(rptId, mob) => onViewReport(rptId, mob)}
         />
+      )}
+
+      {/* VIEW RECEIPT MODAL */}
+      {isReceiptModalOpen && selectedReceipt && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150 max-h-[92vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#123B6D]/10 text-[#123B6D] flex items-center justify-center shrink-0">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                    Patient Invoice & Token Receipt
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Official Diagnostic Center Token Receipt
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsReceiptModalOpen(false);
+                  setSelectedReceipt(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Receipt Body */}
+            <div className="my-4 space-y-4 text-xs">
+              {/* Lab Info Banner */}
+              <div className="bg-[#123B6D]/5 border border-[#123B6D]/15 rounded-xl p-3 text-center">
+                <h4 className="font-black text-sm text-[#123B6D]">{labName}</h4>
+                <p className="text-[10px] text-slate-600 mt-0.5">
+                  {vendorLabSettings.address || 'Civil Hospital Road, Ludhiana - 141001'} • Ph: {vendorLabSettings.phone || '+91 7087033009'}
+                </p>
+              </div>
+
+              {/* Token, UHID, Date */}
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold block">Token Number</span>
+                  <span className="font-mono text-sm font-black text-[#123B6D]">
+                    {selectedReceipt.tokenNumber || 'TK-101'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold block">UHID</span>
+                  <span className="font-mono text-xs font-bold text-slate-800">
+                    {selectedReceipt.uhid || 'UHID-2026-001'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold block">Registered At</span>
+                  <span className="text-xs font-semibold text-slate-700">
+                    {selectedReceipt.registeredAt || 'Today'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold block">Payment Mode</span>
+                  <span className="inline-block px-2 py-0.5 text-[10px] font-bold rounded bg-slate-200 text-slate-800">
+                    {selectedReceipt.paymentMode || 'UPI'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Patient Details */}
+              <div className="border border-slate-200 rounded-xl p-3 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 text-[11px]">Patient Name:</span>
+                  <strong className="text-slate-900 font-extrabold">{selectedReceipt.patientName}</strong>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 text-[11px]">Age / Gender:</span>
+                  <span className="font-semibold text-slate-800">{selectedReceipt.age} Yrs / {selectedReceipt.gender}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 text-[11px]">Contact Mobile:</span>
+                  <span className="font-mono font-semibold text-slate-800">+91 {selectedReceipt.mobile}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 text-[11px]">Referring Doctor:</span>
+                  <span className="font-medium text-slate-800">{selectedReceipt.referringDoctor || 'Self / Walk-in'}</span>
+                </div>
+              </div>
+
+              {/* Tests Table */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <div className="bg-slate-100 px-3 py-2 text-[10px] font-bold text-slate-600 uppercase tracking-wider flex justify-between">
+                  <span>Investigation / Test</span>
+                  <span>Amount</span>
+                </div>
+                <div className="divide-y divide-slate-100 px-3 py-1">
+                  {(Array.isArray(selectedReceipt.tests) ? selectedReceipt.tests : [selectedReceipt.tests]).map((t, idx) => (
+                    <div key={idx} className="py-1.5 flex justify-between items-center text-xs">
+                      <span className="font-medium text-slate-800">{t}</span>
+                      <span className="font-mono text-slate-600">Included</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-slate-50 p-3 border-t border-slate-200 space-y-1">
+                  <div className="flex justify-between text-xs text-slate-600">
+                    <span>Total Amount:</span>
+                    <span className="font-bold text-slate-900">₹{selectedReceipt.totalAmount || 0}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-emerald-700 font-bold">
+                    <span>Paid Amount:</span>
+                    <span>₹{selectedReceipt.paidAmount || 0}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-black">
+                    <span className={(selectedReceipt.dueAmount || 0) > 0 ? 'text-rose-600' : 'text-emerald-700'}>
+                      Balance Due:
+                    </span>
+                    <span className={(selectedReceipt.dueAmount || 0) > 0 ? 'text-rose-600' : 'text-emerald-700'}>
+                      ₹{selectedReceipt.dueAmount || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => handlePrintReceipt(selectedReceipt)}
+                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs border border-slate-300"
+                title="Print thermal receipt slip"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print Slip</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleShareReceipt(selectedReceipt)}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                title="Send receipt details on patient WhatsApp"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>WhatsApp Receipt</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsReceiptModalOpen(false);
+                  setSelectedReceipt(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TECHNICIAN CANCELLATION / RETURN TO RECEPTION MODAL */}
+      {cancellingPatient && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-rose-200 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                    Cancel & Return Entry to Reception Desk
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Entry will be returned to the Reception Desk with technician notification
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCancellingPatient(null);
+                  setCancelReason('');
+                  setCancelReasonError('');
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Patient Snapshot */}
+            <div className="my-4 bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div>
+                <span className="font-mono text-[11px] font-bold bg-[#123B6D]/10 text-[#123B6D] px-2 py-0.5 rounded border border-[#123B6D]/20 mr-2">
+                  {cancellingPatient.tokenNumber || cancellingPatient.tokenNo || 'TK-101'}
+                </span>
+                <strong className="text-slate-900 text-sm">{cancellingPatient.name}</strong>
+                <span className="text-slate-500 text-[11px] ml-1.5">
+                  ({cancellingPatient.age} Y / {cancellingPatient.gender})
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-600 font-medium">
+                Tests: <span className="font-semibold text-slate-800">{Array.isArray(cancellingPatient.tests) ? cancellingPatient.tests.join(', ') : cancellingPatient.tests}</span>
+              </div>
+            </div>
+
+            {/* Important Workflow Notice */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-[11px] text-amber-900 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">Reception Notification Trigger</p>
+                <p className="text-amber-800 mt-0.5">
+                  After cancellation, the entry will be returned to the Reception Desk. Reception will receive a notification: <strong className="text-amber-950 font-black">“Technician has returned the entry.”</strong> along with the cancellation reason below.
+                </p>
+              </div>
+            </div>
+
+            {/* Required Reason Textarea */}
+            <div className="space-y-1.5 mb-4">
+              <label className="block text-xs font-bold text-slate-800">
+                Reason for Cancellation / Return <span className="text-rose-600">*</span>
+              </label>
+              <textarea
+                rows={3}
+                value={cancelReason}
+                onChange={(e) => {
+                  setCancelReason(e.target.value);
+                  if (cancelReasonError) setCancelReasonError('');
+                }}
+                placeholder="Technician must enter a reason in this text area (e.g. Hemolyzed specimen, insufficient sample quantity, clotted EDTA blood, doctor revoked order)..."
+                className={`w-full p-3 bg-slate-50 border rounded-xl text-xs font-medium focus:outline-none focus:ring-2 transition ${
+                  cancelReasonError
+                    ? 'border-rose-500 focus:ring-rose-500/30 bg-rose-50/30'
+                    : 'border-slate-300 focus:ring-rose-500/30 focus:border-rose-500'
+                }`}
+              />
+              {cancelReasonError && (
+                <p className="text-[11px] font-bold text-rose-600 flex items-center gap-1">
+                  <XCircle className="w-3.5 h-3.5" />
+                  <span>{cancelReasonError}</span>
+                </p>
+              )}
+
+              {/* Preset quick buttons */}
+              <div className="pt-1.5 flex flex-wrap gap-1.5 items-center">
+                <span className="text-[10px] font-bold text-slate-500">Quick suggestions:</span>
+                {[
+                  'Hemolyzed blood sample unsuitable for testing',
+                  'Insufficient specimen volume (QNS)',
+                  'Clotted EDTA blood specimen - CBC invalid',
+                  'Patient requested cancellation / Revoked',
+                  'Discrepancy in test order / tube labeling',
+                ].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      setCancelReason(preset);
+                      setCancelReasonError('');
+                    }}
+                    className="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200 cursor-pointer transition"
+                  >
+                    {preset.split(' - ')[0].slice(0, 26)}...
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setCancellingPatient(null);
+                  setCancelReason('');
+                  setCancelReasonError('');
+                }}
+                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer"
+              >
+                Keep in Lab
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCancel}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Confirm & Return to Reception</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* IN-APP DELETE CONFIRMATION MODAL */}
