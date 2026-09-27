@@ -604,6 +604,12 @@ export const VendorPatientsTab: React.FC<VendorPatientsTabProps> = ({ onOpenRepo
             setSuccessToast(`Patient details for ${updated.patientName} updated successfully!`);
             setTimeout(() => setSuccessToast(''), 2500);
           }}
+          availableTests={vendorTests?.map((t) => ({
+            name: t.name,
+            price: t.priceINR,
+            sample: t.sampleType,
+            category: t.category,
+          }))}
         />
       )}
 

@@ -726,15 +726,37 @@ export async function buildReceiptInvoicePdf(
   doc.setLineWidth(0.4);
   doc.roundedRect(4, 4, 97, pageHeight - 8, 4, 4, 'D');
 
-  // 1. Green Success Badge at Top (matches popup: Entry Submitted Successfully)
+  // 1. Green Success Badge at Top (matches popup: Entry Submitted)
+  const badgeText = 'Entry Submitted';
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  const badgeTextWidth = doc.getTextWidth(badgeText);
+  const iconWidth = 3;
+  const iconGap = 1.8;
+  const paddingX = 4.5;
+  const badgeW = iconWidth + iconGap + badgeTextWidth + paddingX * 2;
+  const badgeH = 6.8;
+  const badgeX = (105 - badgeW) / 2;
+  const badgeY = 8.5;
+
   doc.setFillColor(236, 253, 245); // #ECFDF5
   doc.setDrawColor(167, 243, 208); // #A7F3D0
-  doc.setLineWidth(0.3);
-  doc.roundedRect(20, 8, 65, 7, 3.5, 3.5, 'FD');
+  doc.setLineWidth(0.35);
+  doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 3.4, 3.4, 'FD');
+
+  // Vector checkmark (guarantees crisp rendering without font encoding/overflow issues)
+  const checkX = badgeX + paddingX;
+  const checkCenterY = badgeY + badgeH / 2;
+  doc.setDrawColor(5, 150, 105); // #059669
+  doc.setLineWidth(0.5);
+  doc.line(checkX, checkCenterY, checkX + 0.9, checkCenterY + 1.0);
+  doc.line(checkX + 0.9, checkCenterY + 1.0, checkX + 2.6, checkCenterY - 1.1);
+
+  // Badge text
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(6, 95, 70); // #065F46
-  doc.text('✓  Entry Submitted Successfully', 52.5, 12.8, { align: 'center' });
+  doc.text(badgeText, checkX + iconWidth + iconGap, badgeY + 4.6);
 
   // 2. Header Title: Token & Invoice
   doc.setFont('helvetica', 'bold');
@@ -880,7 +902,11 @@ export async function buildReceiptInvoicePdf(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(5, 150, 105);
-  doc.text(`Amount Paid (${entry?.paymentMode || 'Cash'}):`, 12, bY);
+  if (paid > 0) {
+    doc.text(`Amount Paid (${entry?.paymentMode || 'Cash'}):`, 12, bY);
+  } else {
+    doc.text('Amount Paid:', 12, bY);
+  }
   doc.setFont('helvetica', 'bold');
   doc.text(`Rs. ${paid}`, 93, bY, { align: 'right' });
 
@@ -901,7 +927,7 @@ export async function buildReceiptInvoicePdf(
     doc.setFontSize(8);
     doc.setTextColor(5, 150, 105); // Emerald
     doc.text('Payment Status:', 12, bY);
-    doc.text('✓ Full Payment Cleared', 93, bY, { align: 'right' });
+    doc.text('Full Payment Cleared', 93, bY, { align: 'right' });
   }
 
   curY += breakdownHeight + 5;

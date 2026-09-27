@@ -865,7 +865,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
         `🧪 Tests: ${entry.tests.join(', ')}\n` +
         `--------------------------------\n` +
         `💵 Net Bill: ₹${netAmount}\n` +
-        `✅ Paid: ₹${entry.paidAmount} (${entry.paymentMode})\n` +
+        `✅ Paid: ₹${entry.paidAmount}${entry.paidAmount > 0 ? ` (${entry.paymentMode})` : ''}\n` +
         `${entry.dueAmount > 0 ? `⚠️ Due Balance: ₹${entry.dueAmount}\n` : '✨ Status: Paid in Full (Nil Due)\n'}` +
         `📄 Attached PDF: *${filename}*\n\n` +
         `Thank you for choosing ${labName}!`;
@@ -1788,7 +1788,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
             </div>
 
             {/* Patients List Cards — Expanded vertical capacity for 5+ simultaneous entries */}
-            <div className="space-y-2 overflow-y-auto pr-1.5 flex-1 min-h-[580px] max-h-[calc(100vh-220px)] lg:max-h-[880px]">
+            <div className="space-y-2 overflow-y-auto pr-1 flex-1 min-h-[660px] max-h-[calc(100vh-140px)] xl:min-h-[760px] xl:max-h-[920px]">
               {filteredQueue.length === 0 ? (
                 <div className="text-center py-12 text-slate-400 text-sm">
                   No patient entries match the selected search or status filter.
@@ -1812,33 +1812,36 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                       : 'Due';
 
                   const netTotal = Math.max(0, entry.totalAmount - (entry.discountINR || 0));
+                  const hasMadePayment =
+                    (paymentStatusType === 'Full Payment' || paymentStatusType === 'Advance') &&
+                    (entry.paidAmount || 0) > 0;
 
                   return (
                     <div
                       key={entry.id}
-                      className="border border-slate-200 rounded-2xl p-4 hover:border-teal-300 hover:shadow-xs transition bg-white space-y-3"
+                      className="border border-slate-200 rounded-xl p-3 hover:border-teal-300 hover:shadow-xs transition bg-white space-y-2"
                     >
                       {/* Header: Left → Token No. + Phone No. | Right → Sent to Lab button / badge */}
-                      <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-slate-100">
+                      <div className="flex items-center justify-between gap-2.5 pb-2 border-b border-slate-100">
                         {/* Left: Token No. + Phone No. (+ Patient Name & Details) */}
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="bg-[#123B6D] text-white text-xs font-black px-2.5 py-1 rounded-lg shrink-0 font-mono tracking-wide shadow-2xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="bg-[#123B6D] text-white text-xs font-black px-2 py-0.5 rounded-md shrink-0 font-mono tracking-wide shadow-2xs">
                             {entry.tokenNumber || entry.tokenNo}
                           </span>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-extrabold text-sm text-slate-900 truncate">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
                                 {entry.patientName}
                               </span>
-                              <span className="text-xs text-slate-400 font-normal">
+                              <span className="text-[11px] text-slate-500 font-normal">
                                 ({entry.age}Y • {entry.gender})
                               </span>
                             </div>
-                            <div className="text-xs font-semibold text-slate-600 flex items-center gap-1.5 mt-0.5 font-mono">
+                            <div className="text-[11px] font-semibold text-slate-600 flex items-center gap-1 mt-0.5 font-mono">
                               <Phone className="w-3 h-3 text-slate-400 shrink-0" />
                               <span>+91 {entry.mobile}</span>
                               {entry.referringDoctor && (
-                                <span className="text-slate-400 font-normal font-sans text-[11px] truncate">
+                                <span className="text-slate-400 font-normal font-sans text-[10px] truncate">
                                   • Ref: {entry.referringDoctor.split(' ')[1] || entry.referringDoctor}
                                 </span>
                               )}
@@ -1852,58 +1855,52 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                             <button
                               type="button"
                               onClick={() => handleSendToLab(entry)}
-                              className="px-3 py-1.5 bg-[#0F766E] hover:bg-[#0d655e] text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs active:scale-98"
+                              className="px-2.5 py-1 bg-[#0F766E] hover:bg-[#0d655e] text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs active:scale-98"
                               title="Send specimen to Lab Technician workstation"
                             >
-                              <FlaskConical className="w-3.5 h-3.5 text-amber-300" />
+                              <FlaskConical className="w-3 h-3 text-amber-300" />
                               <span>Sent to Lab</span>
                             </button>
                           ) : (
                             <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                               <span>Sent to Lab</span>
                             </span>
                           )}
                         </div>
                       </div>
 
-                      {/* Body: Display selected test list vertically when multiple tests are added */}
-                      <div className="py-0.5 space-y-1.5">
-                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                          <span>Selected Tests ({entry.tests?.length || 0}):</span>
-                          <span className="text-[10px] text-slate-400 font-normal font-sans">
-                            UHID: <strong className="font-mono text-slate-700">{entry.uhid}</strong> • {entry.registeredAt}
-                          </span>
-                        </div>
-
-                        {/* Vertical Test List */}
-                        <div className="space-y-1">
-                          {entry.tests && entry.tests.length > 0 ? (
-                            entry.tests.map((testName, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-xs font-medium text-slate-800"
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <span className="w-4 h-4 rounded-full bg-teal-100 text-teal-800 text-[10px] font-black flex items-center justify-center shrink-0">
-                                    {idx + 1}
-                                  </span>
-                                  <span className="truncate font-semibold">{testName}</span>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-xs text-slate-400 italic py-1">No tests selected</div>
-                          )}
-                        </div>
+                      {/* Body: Compact Test Badges & Patient Meta */}
+                      <div className="flex flex-wrap items-center gap-1.5 py-0.5">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0 mr-0.5">
+                          Tests ({entry.tests?.length || 0}):
+                        </span>
+                        {entry.tests && entry.tests.length > 0 ? (
+                          entry.tests.map((testName, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800"
+                            >
+                              <span className="w-3.5 h-3.5 rounded-full bg-teal-100 text-teal-800 text-[9px] font-black inline-flex items-center justify-center shrink-0">
+                                {idx + 1}
+                              </span>
+                              <span className="truncate max-w-[200px]">{testName}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">No tests selected</span>
+                        )}
+                        <span className="text-[10px] text-slate-400 font-normal ml-auto shrink-0">
+                          UHID: <strong className="font-mono text-slate-700">{entry.uhid}</strong> • {entry.registeredAt}
+                        </span>
                       </div>
 
-                      {/* Footer: Left → Total Amount + Payment Status + Method (UPI/Cash) | Right → Edit + Delete buttons */}
-                      <div className="flex flex-wrap items-center justify-between pt-2.5 border-t border-slate-100 gap-2.5 text-xs">
+                      {/* Footer: Left → Total Amount + Payment Status + Method (UPI/Cash) | Right → Edit, Delete & Print Slip buttons (WhatsApp removed) */}
+                      <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 gap-2 text-xs">
                         {/* Left: Total Amount + Payment Status + Method (UPI/Cash) */}
                         <div className="flex flex-wrap items-center gap-2">
                           {/* Total Amount */}
-                          <span className="font-black text-[#123B6D] text-sm font-mono">
+                          <span className="font-black text-[#123B6D] text-xs sm:text-sm font-mono">
                             Total: ₹{netTotal}
                           </span>
 
@@ -1911,38 +1908,41 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
                           {/* Payment Status */}
                           {paymentStatusType === 'Full Payment' ? (
-                            <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                               <Check className="w-3 h-3 text-emerald-600" />
                               <span>Full Payment</span>
                             </span>
                           ) : paymentStatusType === 'Advance' ? (
-                            <span className="bg-amber-50 text-amber-900 border border-amber-200 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <span className="bg-amber-50 text-amber-900 border border-amber-200 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                               <span>Advance (Due: ₹{entry.dueAmount})</span>
                             </span>
                           ) : (
-                            <span className="bg-rose-50 text-rose-800 border border-rose-200 text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <span>Due Payment (₹{entry.dueAmount})</span>
+                            <span className="bg-rose-50 text-rose-800 border border-rose-200 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span>Due (₹{entry.dueAmount})</span>
                             </span>
                           )}
 
-                          <span className="text-slate-300">|</span>
-
-                          {/* Method (UPI/Cash) */}
-                          <span className="text-slate-600 font-semibold text-[11px] bg-slate-100 px-2 py-0.5 rounded-md flex items-center gap-1">
-                            <span>Method:</span>
-                            <strong className="text-slate-900">
-                              {entry.paymentMode === 'UPI' ? '📱 UPI' : entry.paymentMode === 'Cash' ? '💵 Cash' : entry.paymentMode}
-                            </strong>
-                          </span>
+                          {/* Method (UPI/Cash) — Only shown if payment was made (full or advance) */}
+                          {hasMadePayment && (
+                            <>
+                              <span className="text-slate-300">|</span>
+                              <span className="text-slate-600 font-semibold text-[10px] sm:text-[11px] bg-slate-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <span>Method:</span>
+                                <strong className="text-slate-900">
+                                  {entry.paymentMode === 'UPI' ? '📱 UPI' : entry.paymentMode === 'Cash' ? '💵 Cash' : entry.paymentMode}
+                                </strong>
+                              </span>
+                            </>
+                          )}
                         </div>
 
-                        {/* Right: Edit + Delete buttons */}
+                        {/* Right: Edit, Delete & Print Slip buttons (WhatsApp removed as requested) */}
                         <div className="flex items-center gap-1.5 shrink-0">
                           {/* Edit button */}
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(entry)}
-                            className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
                             title="Edit Patient Details & Billing"
                           >
                             <Edit2 className="w-3.5 h-3.5 text-blue-700" />
@@ -1953,34 +1953,25 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(entry)}
-                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
                             title="Delete Patient Entry"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                             <span>Delete</span>
                           </button>
 
-                          {/* Thermal Slip / Receipt */}
+                          {/* Thermal Slip / Receipt Print */}
                           <button
                             type="button"
                             onClick={() => {
                               setSelectedReceipt(entry);
                               setIsReceiptModalOpen(true);
                             }}
-                            title="Print / View Thermal Slip"
-                            className="p-1.5 bg-slate-100 hover:bg-teal-100 hover:text-teal-800 rounded-lg text-slate-600 transition cursor-pointer"
+                            title="Print / View Receipt & Slip"
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
                           >
                             <Printer className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* WhatsApp Share */}
-                          <button
-                            type="button"
-                            onClick={() => handleWhatsAppReceipt(entry)}
-                            title="Send on WhatsApp"
-                            className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition cursor-pointer"
-                          >
-                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>Print</span>
                           </button>
                         </div>
                       </div>
@@ -2010,7 +2001,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
             <div className="text-center mb-4">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold mb-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Entry Submitted Successfully</span>
+                <span>Entry Submitted</span>
               </div>
               <h3 className="text-lg font-black text-slate-900 tracking-tight">
                 Token & Invoice
@@ -2084,7 +2075,9 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-emerald-700 font-semibold">Amount Paid ({selectedReceipt.paymentMode}):</span>
+                  <span className="text-emerald-700 font-semibold">
+                    Amount Paid{selectedReceipt.paidAmount > 0 ? ` (${selectedReceipt.paymentMode})` : ''}:
+                  </span>
                   <span className="font-mono font-bold text-emerald-700">₹{selectedReceipt.paidAmount}</span>
                 </div>
                 {selectedReceipt.dueAmount > 0 ? (
@@ -2206,6 +2199,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
           onSave={handleSaveEdit}
           onSaveAndSendToLab={handleSaveAndSendToLab}
           vendorDoctors={vendorDoctors}
+          availableTests={allAvailableTests}
         />
       )}
 

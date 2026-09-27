@@ -1,6 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { X, Check, FlaskConical, AlertCircle, Save, Lock, CreditCard, IndianRupee } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  X,
+  Check,
+  AlertCircle,
+  Save,
+  Lock,
+  CreditCard,
+  IndianRupee,
+  Plus,
+  Search,
+  Trash2,
+  FlaskConical,
+} from 'lucide-react';
 import { ReceptionPatientEntry, VendorDoctor } from '../types';
+
+export interface TestOption {
+  name: string;
+  price: number;
+  sample?: string;
+  category?: string;
+}
 
 interface EditReceptionEntryModalProps {
   isOpen: boolean;
@@ -9,19 +28,34 @@ interface EditReceptionEntryModalProps {
   onSave: (updatedEntry: ReceptionPatientEntry) => void;
   onSaveAndSendToLab?: (updatedEntry: ReceptionPatientEntry) => void;
   vendorDoctors?: Array<VendorDoctor | { id: string; name: string; specialty?: string; specialization?: string }>;
+  availableTests?: TestOption[];
 }
 
-const COMMON_TESTS = [
-  { name: 'Complete Blood Count (CBC)', price: 350, sample: 'EDTA Whole Blood' },
-  { name: 'Fasting Blood Sugar (FBS)', price: 120, sample: 'Fluoride Plasma' },
-  { name: 'Kidney Function Test (KFT)', price: 600, sample: 'Serum Clot' },
-  { name: 'Liver Function Test (LFT)', price: 650, sample: 'Serum Clot' },
-  { name: 'Lipid Profile', price: 550, sample: 'Serum Clot' },
-  { name: 'Thyroid Profile (Total)', price: 450, sample: 'Serum Clot' },
-  { name: 'HbA1c (Glycosylated Hb)', price: 450, sample: 'EDTA Whole Blood' },
-  { name: 'Dengue Serology (NS1 + Platelets)', price: 800, sample: 'Serum + EDTA' },
-  { name: 'Urine Routine & Microscopic', price: 150, sample: 'Sterile Urine' },
-  { name: 'Vitamin D3 & B12 Combo', price: 1200, sample: 'Serum Clot' },
+const DEFAULT_POPULAR_TESTS: TestOption[] = [
+  { name: 'Complete Blood Count (CBC)', price: 350, sample: 'EDTA Whole Blood', category: 'Hematology' },
+  { name: 'Fasting Blood Sugar (FBS)', price: 120, sample: 'Fluoride Plasma', category: 'Biochemistry' },
+  { name: 'Post-Prandial Blood Sugar (PPBS)', price: 120, sample: 'Fluoride Plasma', category: 'Biochemistry' },
+  { name: 'Random Blood Sugar (RBS)', price: 100, sample: 'Fluoride Plasma', category: 'Biochemistry' },
+  { name: 'HbA1c (Glycosylated Hb)', price: 450, sample: 'EDTA Whole Blood', category: 'Biochemistry' },
+  { name: 'Kidney Function Test (KFT)', price: 600, sample: 'Serum Clot', category: 'Biochemistry' },
+  { name: 'Liver Function Test (LFT)', price: 650, sample: 'Serum Clot', category: 'Biochemistry' },
+  { name: 'Lipid Profile', price: 550, sample: 'Serum Clot', category: 'Biochemistry' },
+  { name: 'Thyroid Profile (Total - T3, T4, TSH)', price: 450, sample: 'Serum Clot', category: 'Endocrinology' },
+  { name: 'Serum Creatinine', price: 180, sample: 'Serum Clot', category: 'Biochemistry' },
+  { name: 'Blood Urea Nitrogen (BUN)', price: 180, sample: 'Serum Clot', category: 'Biochemistry' },
+  { name: 'Serum Uric Acid', price: 200, sample: 'Serum Clot', category: 'Biochemistry' },
+  { name: 'Serum Electrolytes (Na+, K+, Cl-)', price: 450, sample: 'Serum Clot', category: 'Biochemistry' },
+  { name: 'Urine Routine & Microscopic', price: 150, sample: 'Sterile Urine', category: 'Clinical Pathology' },
+  { name: 'Dengue Serology (NS1 + Platelets)', price: 800, sample: 'Serum + EDTA', category: 'Serology' },
+  { name: 'Widal Slide Agglutination', price: 250, sample: 'Serum Clot', category: 'Serology' },
+  { name: 'Vitamin D3 & B12 Combo', price: 1200, sample: 'Serum Clot', category: 'Vitamins' },
+  { name: 'Vitamin D (25-OH)', price: 750, sample: 'Serum Clot', category: 'Vitamins' },
+  { name: 'Vitamin B12 (Cyanocobalamin)', price: 650, sample: 'Serum Clot', category: 'Vitamins' },
+  { name: 'C-Reactive Protein (CRP Quantitative)', price: 380, sample: 'Serum Clot', category: 'Serology' },
+  { name: 'Full Body Health Checkup', price: 999, sample: 'EDTA + Serum + Urine', category: 'Popular Packages' },
+  { name: 'ESR (Westergren Method)', price: 100, sample: 'EDTA Blood', category: 'Hematology' },
+  { name: 'Blood Grouping & Rh Factor', price: 150, sample: 'EDTA Blood', category: 'Hematology' },
+  { name: 'Stool Routine & Occult Blood', price: 200, sample: 'Stool Specimen', category: 'Clinical Pathology' },
 ];
 
 export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = ({
@@ -31,6 +65,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   onSave,
   onSaveAndSendToLab,
   vendorDoctors = [],
+  availableTests,
 }) => {
   if (!isOpen || !entry) return null;
 
@@ -50,7 +85,9 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   const [totalAmount, setTotalAmount] = useState<number>(entry.totalAmount);
   const [discountINR, setDiscountINR] = useState<number>(entry.discountINR || 0);
   const [paidAmount, setPaidAmount] = useState<number>(entry.paidAmount);
-  const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI' | 'Card'>(entry.paymentMode || 'UPI');
+  const [paymentMode, setPaymentMode] = useState<'Cash' | 'UPI'>(
+    entry.paymentMode === 'Cash' ? 'Cash' : 'UPI'
+  );
   const [paymentStatus, setPaymentStatus] = useState<ReceptionPatientEntry['paymentStatus']>(
     entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid'
       ? 'Full Payment'
@@ -60,6 +97,12 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   );
   const [status, setStatus] = useState<ReceptionPatientEntry['status']>(entry.status);
   const [notes, setNotes] = useState(entry.notes || '');
+
+  // Search & custom test state
+  const [testSearch, setTestSearch] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customTestName, setCustomTestName] = useState('');
+  const [customTestPrice, setCustomTestPrice] = useState('');
 
   // Reset when entry changes
   useEffect(() => {
@@ -74,7 +117,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
       setTotalAmount(entry.totalAmount);
       setDiscountINR(entry.discountINR || 0);
       setPaidAmount(entry.paidAmount);
-      setPaymentMode(entry.paymentMode || 'UPI');
+      setPaymentMode(entry.paymentMode === 'Cash' ? 'Cash' : 'UPI');
       setPaymentStatus(
         entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid'
           ? 'Full Payment'
@@ -84,8 +127,52 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
       );
       setStatus(entry.status);
       setNotes(entry.notes || '');
+      setTestSearch('');
+      setShowCustomInput(false);
+      setCustomTestName('');
+      setCustomTestPrice('');
     }
   }, [entry]);
+
+  // Combined searchable test catalog
+  const catalog = useMemo<TestOption[]>(() => {
+    const map = new Map<string, TestOption>();
+    DEFAULT_POPULAR_TESTS.forEach((t) => map.set(t.name.toLowerCase().trim(), t));
+    if (availableTests && availableTests.length > 0) {
+      availableTests.forEach((t) => map.set(t.name.toLowerCase().trim(), t));
+    }
+    // Also include any tests currently on the patient entry so they have recognized metadata
+    (entry.tests || []).forEach((tName) => {
+      const key = tName.toLowerCase().trim();
+      if (!map.has(key)) {
+        map.set(key, { name: tName, price: 300, category: 'Prescribed' });
+      }
+    });
+    return Array.from(map.values());
+  }, [availableTests, entry.tests]);
+
+  // Lookup price of a test
+  const getTestPrice = (testName: string): number => {
+    const found = catalog.find((c) => c.name.toLowerCase().trim() === testName.toLowerCase().trim());
+    return found ? found.price : 300;
+  };
+
+  // Filter catalog by search query
+  const filteredCatalogTests = useMemo(() => {
+    if (!testSearch.trim()) return [];
+    const q = testSearch.toLowerCase().trim();
+    return catalog.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        (t.category && t.category.toLowerCase().includes(q)) ||
+        (t.sample && t.sample.toLowerCase().includes(q))
+    );
+  }, [catalog, testSearch]);
+
+  // Quick popular tests for fast toggle
+  const popularTests = useMemo(() => {
+    return DEFAULT_POPULAR_TESTS.slice(0, 10);
+  }, []);
 
   // Recalculate financial due
   const netPayable = Math.max(0, totalAmount - (discountINR || 0));
@@ -118,25 +205,62 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
     }
   };
 
-  const handleToggleTest = (testName: string, testPrice: number, suggestedSample?: string) => {
-    if (isReportReady) return; // Prevent changing tests once report is ready
+  // Add test to list and increment total amount
+  const handleAddTest = (test: TestOption) => {
+    if (isReportReady) return;
+    if (selectedTests.some((t) => t.toLowerCase().trim() === test.name.toLowerCase().trim())) {
+      return;
+    }
+    setSelectedTests((prev) => [...prev, test.name]);
+    setTotalAmount((prev) => prev + (test.price || 0));
+    if (test.sample && (!sampleType || sampleType.includes('EDTA'))) {
+      setSampleType(test.sample);
+    }
+  };
 
+  // Remove test from list and deduct from total amount
+  const handleRemoveTest = (testName: string) => {
+    if (isReportReady) return;
+    const price = getTestPrice(testName);
+    setSelectedTests((prev) => prev.filter((t) => t !== testName));
+    setTotalAmount((prev) => Math.max(0, prev - price));
+  };
+
+  // Add custom unlisted test
+  const handleAddCustomTest = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (isReportReady) return;
+    const name = customTestName.trim();
+    if (!name) return;
+    if (selectedTests.some((t) => t.toLowerCase().trim() === name.toLowerCase().trim())) {
+      alert('This test is already selected');
+      return;
+    }
+    const price = Math.max(0, Number(customTestPrice) || 0);
+    setSelectedTests((prev) => [...prev, name]);
+    setTotalAmount((prev) => prev + price);
+    setCustomTestName('');
+    setCustomTestPrice('');
+    setShowCustomInput(false);
+  };
+
+  const handleToggleTest = (testName: string, testPrice: number, suggestedSample?: string) => {
+    if (isReportReady) return;
     if (selectedTests.includes(testName)) {
-      const remaining = selectedTests.filter((t) => t !== testName);
-      setSelectedTests(remaining);
-      setTotalAmount((prev) => Math.max(0, prev - testPrice));
+      handleRemoveTest(testName);
     } else {
-      setSelectedTests([...selectedTests, testName]);
-      setTotalAmount((prev) => prev + testPrice);
-      if (suggestedSample && sampleType.includes('EDTA')) {
-        setSampleType(suggestedSample);
-      }
+      handleAddTest({ name: testName, price: testPrice, sample: suggestedSample });
     }
   };
 
   const handleSaveInternal = (sendToLab: boolean = false) => {
     if (!patientName.trim()) {
       alert('Patient name is required');
+      return;
+    }
+
+    if (selectedTests.length === 0) {
+      alert('Please add or select at least one diagnostic test.');
       return;
     }
 
@@ -375,77 +499,250 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
             </div>
           </div>
 
-          {/* Test Panels */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                <span>Diagnostic Tests Prescribed ({selectedTests.length} selected)</span>
-                {isReportReady && (
-                  <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" /> Locked by Report
-                  </span>
-                )}
-              </label>
-              {!isReportReady && <span className="text-[11px] text-slate-400">Click to toggle</span>}
-            </div>
-
-            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 border border-slate-200 rounded-xl bg-slate-50">
-              {COMMON_TESTS.map((t) => {
-                const isSelected = selectedTests.includes(t.name);
-                return (
-                  <button
-                    type="button"
-                    disabled={isReportReady}
-                    key={t.name}
-                    onClick={() => handleToggleTest(t.name, t.price, t.sample)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 ${
-                      isSelected
-                        ? isReportReady
-                          ? 'bg-teal-900/80 text-white border-teal-900 cursor-not-allowed'
-                          : 'bg-teal-700 text-white border-teal-800 shadow-2xs cursor-pointer'
-                        : isReportReady
-                        ? 'opacity-40 bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
-                        : 'bg-white text-slate-700 border-slate-200 hover:border-teal-300 hover:bg-teal-50/50 cursor-pointer'
-                    }`}
-                  >
-                    <span>{t.name}</span>
-                    <span className={`text-[10px] ${isSelected ? 'text-teal-200' : 'text-slate-400'}`}>
-                      ₹{t.price}
+          {/* Test Management: Selected Tests, Add & Remove */}
+          <div className="bg-slate-50/90 border border-slate-200 rounded-xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                  <FlaskConical className="w-3.5 h-3.5 text-teal-700" />
+                  <span>Prescribed Diagnostic Tests ({selectedTests.length})</span>
+                  {isReportReady && (
+                    <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                      <Lock className="w-2.5 h-2.5" /> Locked by Report
                     </span>
-                    {isSelected && <Check className="w-3 h-3" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                  )}
+                </label>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Add or remove diagnostic tests below. Total bill updates automatically.
+                </p>
+              </div>
 
-          {/* Sample Tube Type */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-              <span>Primary Sample Tube / Container</span>
-              {isReportReady && (
-                <span className="text-[10px] text-amber-700 font-bold flex items-center gap-0.5">
-                  <Lock className="w-2.5 h-2.5" /> Locked
-                </span>
+              {!isReportReady && (
+                <button
+                  type="button"
+                  onClick={() => setShowCustomInput(!showCustomInput)}
+                  className="text-xs font-bold text-teal-700 hover:text-teal-900 bg-white border border-teal-200 hover:border-teal-400 px-2.5 py-1 rounded-lg transition shadow-2xs flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>+ Custom Test</span>
+                </button>
               )}
-            </label>
-            <select
-              disabled={isReportReady}
-              value={sampleType}
-              onChange={(e) => setSampleType(e.target.value)}
-              className={`w-full px-3 py-2 border rounded-lg text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden ${
-                isReportReady
-                  ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
-                  : 'bg-white text-slate-900 border-slate-300'
-              }`}
-            >
-              <option value="EDTA Whole Blood (Lavender Tube)">EDTA Whole Blood (Lavender Tube - CBC / HbA1c)</option>
-              <option value="Serum Clot Activator (Yellow / Red Tube)">Serum Clot Activator (Yellow/Red - LFT/KFT/Lipid)</option>
-              <option value="Sodium Fluoride Plasma (Grey Tube)">Sodium Fluoride Plasma (Grey Tube - Fasting/PP Sugar)</option>
-              <option value="Serum Clot + EDTA Dual Tubes">Serum Clot + EDTA Dual Tubes</option>
-              <option value="Sterile Midstream Urine Container">Sterile Midstream Urine Container</option>
-              <option value="Sodium Citrate Plasma (Blue Tube)">Sodium Citrate Plasma (Blue Tube - PT/INR)</option>
-            </select>
+            </div>
+
+            {/* Currently Selected Tests (with prominent Remove 'X' buttons) */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-slate-600 block">
+                Selected Tests ({selectedTests.length}):
+              </span>
+              {selectedTests.length === 0 ? (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs font-bold text-rose-700 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>No tests selected. Please add at least one test below to proceed.</span>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-white border border-slate-200 rounded-lg shadow-2xs">
+                  {selectedTests.map((tName) => {
+                    const price = getTestPrice(tName);
+                    return (
+                      <div
+                        key={tName}
+                        className="inline-flex items-center gap-1.5 bg-blue-50/80 border border-blue-200 text-slate-800 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-2xs group hover:bg-blue-100/60 transition"
+                      >
+                        <span className="max-w-[240px] truncate">{tName}</span>
+                        <span className="text-[10px] font-extrabold text-[#123B6D] bg-white px-1.5 py-0.2 rounded border border-blue-200">
+                          ₹{price}
+                        </span>
+                        {!isReportReady && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTest(tName)}
+                            title={`Remove ${tName}`}
+                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-100 p-0.5 rounded transition cursor-pointer ml-0.5"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Custom Test Input if opened */}
+            {showCustomInput && !isReportReady && (
+              <div className="p-3 bg-teal-50/70 border border-teal-200 rounded-lg space-y-2">
+                <span className="text-[11px] font-bold text-teal-900 block">
+                  Add Custom / Other Diagnostic Test:
+                </span>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={customTestName}
+                    onChange={(e) => setCustomTestName(e.target.value)}
+                    placeholder="Test Name (e.g. Serum Ferritin, Blood Group)"
+                    className="flex-1 px-3 py-1.5 bg-white border border-teal-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
+                  />
+                  <div className="flex items-center gap-2">
+                    <div className="relative w-28">
+                      <span className="absolute left-2.5 top-1.5 text-xs font-bold text-slate-400">₹</span>
+                      <input
+                        type="number"
+                        value={customTestPrice}
+                        onChange={(e) => setCustomTestPrice(e.target.value)}
+                        placeholder="Price"
+                        className="w-full pl-6 pr-2.5 py-1.5 bg-white border border-teal-300 rounded-lg text-xs font-bold focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddCustomTest}
+                      disabled={!customTestName.trim()}
+                      className="bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomInput(false)}
+                      className="text-slate-500 hover:text-slate-700 px-2 py-1.5 text-xs font-bold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Search Test Catalog to Add */}
+            {!isReportReady && (
+              <div className="space-y-2 pt-1 border-t border-slate-200/70">
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={testSearch}
+                    onChange={(e) => setTestSearch(e.target.value)}
+                    placeholder="Search lab test to add (e.g. CBC, KFT, LFT, Thyroid, Lipid, Urine, Sugar)..."
+                    className="w-full pl-8 pr-8 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden placeholder:text-slate-400"
+                  />
+                  {testSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setTestSearch('')}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Search Results if user is typing */}
+                {testSearch.trim() ? (
+                  <div className="max-h-40 overflow-y-auto border border-teal-200 rounded-lg bg-white divide-y divide-slate-100 shadow-2xs">
+                    {filteredCatalogTests.length === 0 ? (
+                      <div className="p-3 text-center text-xs text-slate-500">
+                        No tests found matching "{testSearch}".
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomTestName(testSearch);
+                            setShowCustomInput(true);
+                            setTestSearch('');
+                          }}
+                          className="text-teal-700 font-bold ml-1.5 hover:underline cursor-pointer"
+                        >
+                          + Add as custom test
+                        </button>
+                      </div>
+                    ) : (
+                      filteredCatalogTests.map((t) => {
+                        const isAlreadySelected = selectedTests.some(
+                          (st) => st.toLowerCase().trim() === t.name.toLowerCase().trim()
+                        );
+                        return (
+                          <div
+                            key={t.name}
+                            className="px-3 py-2 flex items-center justify-between hover:bg-slate-50 transition text-xs"
+                          >
+                            <div className="min-w-0 pr-2">
+                              <span className="font-bold text-slate-800 block truncate">{t.name}</span>
+                              <span className="text-[10px] text-slate-400">
+                                {t.category || 'Diagnostic'} {t.sample ? `• ${t.sample}` : ''}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="font-bold text-slate-700 text-xs">₹{t.price}</span>
+                              {isAlreadySelected ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTest(t.name)}
+                                  className="bg-emerald-50 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 transition cursor-pointer"
+                                  title="Click to remove"
+                                >
+                                  <Check className="w-3 h-3 text-emerald-600" />
+                                  <span>Added</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddTest(t)}
+                                  className="bg-teal-700 hover:bg-teal-800 text-white px-2.5 py-0.5 rounded text-[11px] font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                  <span>Add</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                ) : (
+                  /* Popular Quick Pills */
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-500 mb-1.5 block">
+                      Quick Popular Tests (Click to Add or Remove):
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1.5 bg-white border border-slate-200 rounded-lg">
+                      {popularTests.map((t) => {
+                        const isSelected = selectedTests.some(
+                          (st) => st.toLowerCase().trim() === t.name.toLowerCase().trim()
+                        );
+                        return (
+                          <button
+                            type="button"
+                            key={t.name}
+                            onClick={() => (isSelected ? handleRemoveTest(t.name) : handleAddTest(t))}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition flex items-center gap-1.5 cursor-pointer ${
+                              isSelected
+                                ? 'bg-teal-700 text-white border-teal-800 shadow-2xs'
+                                : 'bg-white text-slate-700 border-slate-200 hover:border-teal-300 hover:bg-teal-50/50'
+                            }`}
+                          >
+                            <span>{t.name}</span>
+                            <span
+                              className={`text-[10px] ${
+                                isSelected ? 'text-teal-200' : 'text-slate-400 font-bold'
+                              }`}
+                            >
+                              ₹{t.price}
+                            </span>
+                            {isSelected ? (
+                              <Check className="w-3 h-3 text-teal-200" />
+                            ) : (
+                              <Plus className="w-3 h-3 text-slate-400" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Billing & Payment Adjustment (ALWAYS ACTIVE & MANAGABLE) */}
@@ -586,60 +883,28 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
             )}
 
             {/* Payment Mode */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-700">Payment Mode:</span>
-                {(['UPI', 'Cash', 'Card'] as const).map((m) => (
-                  <button
-                    type="button"
-                    key={m}
-                    onClick={() => setPaymentMode(m)}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold border transition cursor-pointer ${
-                      paymentMode === m
-                        ? 'bg-[#123B6D] text-white border-[#123B6D]'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                    }`}
-                  >
-                    {m === 'UPI' ? '📱 UPI' : m === 'Cash' ? '💵 Cash' : '💳 Card'}
-                  </button>
-                ))}
-              </div>
-
-              {!isReportReady && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-700">Queue Status:</span>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as any)}
-                    className="px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-semibold focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="Waiting">Waiting</option>
-                    <option value="Sample Collected">Sample Collected</option>
-                    <option value="In Lab">In Lab</option>
-                    <option value="Report Ready">Report Ready</option>
-                  </select>
-                </div>
-              )}
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-200">
+              <span className="text-xs font-bold text-slate-700">Payment Mode:</span>
+              {(['UPI', 'Cash'] as const).map((m) => (
+                <button
+                  type="button"
+                  key={m}
+                  onClick={() => setPaymentMode(m)}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
+                    paymentMode === m
+                      ? 'bg-[#123B6D] text-white border-[#123B6D] shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                  }`}
+                >
+                  {m === 'UPI' ? '📱 UPI' : '💵 Cash'}
+                </button>
+              ))}
             </div>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">
-              Front-Desk / Payment Remarks
-            </label>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Balance settled at counter • Verified by Reception Desk"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden"
-            />
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="bg-slate-50 border-t border-slate-200 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-2">
+        <div className="bg-slate-50 border-t border-slate-200 p-4 sm:p-5 flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={onClose}
@@ -648,30 +913,14 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
             Cancel
           </button>
 
-          <div className="flex items-center gap-2">
-            {/* Save & Send to Lab Tech (Only when report is NOT ready) */}
-            {!isReportReady && (
-              <button
-                type="button"
-                onClick={() => handleSaveInternal(true)}
-                className="px-3.5 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
-                title="Save changes and immediately dispatch to Lab Technician Workstation"
-              >
-                <FlaskConical className="w-3.5 h-3.5" />
-                <span>Save & Send to Lab</span>
-              </button>
-            )}
-
-            {/* Save Changes / Save Payment Settlement */}
-            <button
-              type="button"
-              onClick={() => handleSaveInternal(false)}
-              className="px-4 py-2 bg-[#123B6D] hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
-            >
-              <Save className="w-3.5 h-3.5" />
-              <span>{isReportReady ? 'Save Payment Settlement' : 'Save Changes'}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => handleSaveInternal(false)}
+            className="px-5 py-2 bg-[#123B6D] hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>{isReportReady ? 'Save Payment Settlement' : 'Save Changes'}</span>
+          </button>
         </div>
       </div>
     </div>
