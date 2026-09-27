@@ -137,14 +137,11 @@ export const LabSearchSection: React.FC<LabSearchSectionProps> = ({
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#123B6D] tracking-tight leading-tight">
-            Lab Search — Find Verified Diagnostic Centers
+            Lab Search
           </h2>
 
-          <p className="text-sm sm:text-base text-slate-600 mt-3 leading-relaxed">
-            Enter your registered 10-digit mobile number or laboratory name to instantly access your dedicated laboratory website.
-            <span className="block mt-1 text-[#123B6D] font-bold">
-              ★ 1 Mobile Number = 1 Dedicated Laboratory Website on {displayBrand}
-            </span>
+          <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+            Find Verified Diagnostic Centers • Enter your registered 10-digit mobile number or laboratory name to instantly access your dedicated laboratory website.
           </p>
         </div>
 
@@ -154,27 +151,14 @@ export const LabSearchSection: React.FC<LabSearchSectionProps> = ({
           <div className="absolute top-0 left-12 right-12 h-[3px] bg-gradient-to-r from-transparent via-[#123B6D] to-transparent rounded-full" />
 
           {/* Search Header Info */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-                  <span>Find Your Laboratory Website</span>
-                  <span className="text-xs text-teal-800 font-bold bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
-                    Live Portal
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-500">Search by 10-Digit Mobile, Lab Name, or City</p>
-              </div>
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5" />
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Instant Connect</span>
-              </span>
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                Find Your Laboratory Website
+              </h3>
             </div>
           </div>
 
