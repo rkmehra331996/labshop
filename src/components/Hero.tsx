@@ -104,23 +104,23 @@ export const Hero: React.FC<HeroProps> = ({
               {heroSubheading}
             </p>
 
-            {/* Key Lab Benefits Checklist */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-700">
+            {/* Key Lab Benefits Checklist - Left-Right 2 Columns on Mobile & Desktop */}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 pt-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium text-slate-700">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Offline-Ready & Multi-PC Sync</span>
+                <span>Cloud-Based System</span>
               </div>
-              <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-700">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium text-slate-700">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Instant WhatsApp PDF Reports</span>
+                <span>Online Reports</span>
               </div>
-              <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-700">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium text-slate-700">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>₹ INR Billing with UPI QR</span>
+                <span>Multi-Department</span>
               </div>
-              <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-700">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium text-slate-700">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Zero-Login Patient Portal</span>
+                <span className="leading-tight sm:leading-normal">One Click Report Generation</span>
               </div>
             </div>
 
