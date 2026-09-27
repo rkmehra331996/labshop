@@ -555,6 +555,7 @@ export interface ReceptionPatientEntry {
   paymentStatus: 'Full Payment' | 'Paid' | 'Advance' | 'Pending' | 'Partial' | 'Due' | 'Due Payment';
   status: 'Waiting' | 'Sample Collected' | 'In Lab' | 'Report Ready';
   registeredAt?: string;
+  entryDate?: string;
   entryTime?: string;
   testNames?: string[];
   notes?: string;
