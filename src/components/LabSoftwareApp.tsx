@@ -710,38 +710,6 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
 
-            {/* Quick Action Strip */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={handleOpenAddPatient}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                  title="Patient Registration is only allowed at Reception Counter"
-                >
-                  <Lock className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Patient Entry: Reception Only</span>
-                </button>
-                <button
-                  onClick={() => handleOpenCreateReportModal()}
-                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-                >
-                  <FlaskConical className="w-4 h-4 fill-slate-950 text-slate-950" />
-                  <span>+ Create Report</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab('results')}
-                  className="bg-[#0F766E] hover:bg-teal-800 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-                >
-                  <CheckCheck className="w-4 h-4" />
-                  <span>Result Workstation</span>
-                </button>
-              </div>
-
-              <div className="text-xs text-slate-600 font-medium">
-                Live Status: <strong className="text-emerald-700">Online & Sync Active</strong>
-              </div>
-            </div>
 
             {/* 3. Patient Tabs: All Patients | Waiting | In Testing | Report Done */}
             <div className="flex items-center gap-2 border-b border-slate-200 pb-3 overflow-x-auto">
