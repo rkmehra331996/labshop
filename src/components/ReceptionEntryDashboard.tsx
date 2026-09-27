@@ -1620,7 +1620,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
           </div>
 
           {/* Right: Today's Live Queue & Token Calling Board (7 Cols) */}
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3.5 flex flex-col">
             {/* Board Header: Left → Reception List Info | Right → Search by Token No. & Mobile No. */}
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               {/* Left Side: Reception List & Patients Count */}
@@ -1787,8 +1787,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
               })}
             </div>
 
-            {/* Patients List Cards */}
-            <div className="space-y-2.5 max-h-[620px] overflow-y-auto pr-1">
+            {/* Patients List Cards — Expanded vertical capacity for 5+ simultaneous entries */}
+            <div className="space-y-2 overflow-y-auto pr-1.5 flex-1 min-h-[580px] max-h-[calc(100vh-220px)] lg:max-h-[880px]">
               {filteredQueue.length === 0 ? (
                 <div className="text-center py-12 text-slate-400 text-sm">
                   No patient entries match the selected search or status filter.
