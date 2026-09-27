@@ -1827,8 +1827,6 @@ interface CmsContextType {
   updateStaffAccount: (id: string, updates: Partial<LabStaffAccount>) => void;
   resetStaffPassword: (id: string, newPassword: string) => void;
   deleteStaffAccount: (id: string) => void;
-  transferStaffDataAndDelete: (deletingStaffId: string, recipientStaffId: string) => void;
-  updateAdminProfile: (updates: { name: string; password?: string; pin?: string }) => void;
 
   // Company CMS
   companySettings: CompanySettings;
@@ -3469,190 +3467,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return updated;
     });
     deleteStaffAccountFromCloud(id);
-  };
-
-  const transferStaffDataAndDelete = (deletingStaffId: string, recipientStaffId: string) => {
-    const deletingStaff = allStaffAccounts.find((s) => s.id === deletingStaffId);
-    const recipientStaff = allStaffAccounts.find((s) => s.id === recipientStaffId);
-
-    if (!deletingStaff || !recipientStaff) {
-      console.warn('Cannot transfer data: invalid staff IDs', { deletingStaffId, recipientStaffId });
-      return;
-    }
-
-    const delNameLower = deletingStaff.name.trim().toLowerCase();
-    const recipientName = recipientStaff.name.trim();
-
-    // 1. If deleting Receptionist: transfer patient entries and bookings (Reception -> Reception)
-    if (deletingStaff.role === 'reception') {
-      setAllReceptionEntries((prev) => {
-        const updated = prev.map((entry) => {
-          const isAssigned =
-            entry.receptionistId === deletingStaff.id ||
-            (entry.receptionistName && entry.receptionistName.trim().toLowerCase() === delNameLower) ||
-            (entry.publishedBy && entry.publishedBy.trim().toLowerCase() === delNameLower);
-
-          if (isAssigned) {
-            const modified = {
-              ...entry,
-              receptionistId: recipientStaff.id,
-              receptionistName: recipientName,
-              publishedBy:
-                entry.publishedBy && entry.publishedBy.trim().toLowerCase() === delNameLower
-                  ? recipientName
-                  : entry.publishedBy,
-            };
-            syncReceptionEntryToCloud(modified);
-            return modified;
-          }
-          return entry;
-        });
-        try {
-          localStorage.setItem('cms_reception_entries', JSON.stringify(updated));
-        } catch {}
-        return updated;
-      });
-
-      setAllVendorBookings((prev) => {
-        const updated = prev.map((b) => {
-          if (
-            (b as any).assignedStaffId === deletingStaff.id ||
-            ((b as any).assignedStaffName && (b as any).assignedStaffName.trim().toLowerCase() === delNameLower)
-          ) {
-            const modified = {
-              ...b,
-              assignedStaffId: recipientStaff.id,
-              assignedStaffName: recipientName,
-            };
-            syncBookingToCloud(modified);
-            return modified;
-          }
-          return b;
-        });
-        try {
-          localStorage.setItem('cms_vendor_bookings', JSON.stringify(updated));
-        } catch {}
-        return updated;
-      });
-    }
-
-    // 2. If deleting Technician: transfer sample test parameters and reports (Technician -> Technician)
-    if (deletingStaff.role === 'technician') {
-      setAllReceptionEntries((prev) => {
-        const updated = prev.map((entry) => {
-          const isAssigned =
-            entry.technicianId === deletingStaff.id ||
-            (entry.technicianName && entry.technicianName.trim().toLowerCase() === delNameLower);
-
-          if (isAssigned) {
-            const modified = {
-              ...entry,
-              technicianId: recipientStaff.id,
-              technicianName: recipientName,
-            };
-            syncReceptionEntryToCloud(modified);
-            return modified;
-          }
-          return entry;
-        });
-        try {
-          localStorage.setItem('cms_reception_entries', JSON.stringify(updated));
-        } catch {}
-        return updated;
-      });
-
-      setAllReports((prev) => {
-        const updated = prev.map((rep) => {
-          const isAssigned =
-            (rep as any).technicianId === deletingStaff.id ||
-            ((rep as any).technicianName && (rep as any).technicianName.trim().toLowerCase() === delNameLower) ||
-            (rep.pathologistSignedBy && rep.pathologistSignedBy.trim().toLowerCase() === delNameLower) ||
-            (rep.cancelledBy && rep.cancelledBy.trim().toLowerCase() === delNameLower);
-
-          if (isAssigned) {
-            const modified = {
-              ...rep,
-              technicianId: recipientStaff.id,
-              technicianName: recipientName,
-              pathologistSignedBy:
-                rep.pathologistSignedBy && rep.pathologistSignedBy.trim().toLowerCase() === delNameLower
-                  ? recipientName
-                  : rep.pathologistSignedBy,
-              cancelledBy:
-                rep.cancelledBy && rep.cancelledBy.trim().toLowerCase() === delNameLower
-                  ? recipientName
-                  : rep.cancelledBy,
-            };
-            syncLabReportToCloud(modified);
-            return modified;
-          }
-          return rep;
-        });
-        try {
-          localStorage.setItem('cms_lab_reports', JSON.stringify(updated));
-        } catch {}
-        return updated;
-      });
-    }
-
-    // 3. Remove deleted staff account from local state and cloud
-    setAllStaffAccounts((prev) => {
-      const updated = prev.filter((s) => s.id !== deletingStaffId);
-      try {
-        localStorage.setItem('cms_lab_staff_accounts', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-    deleteStaffAccountFromCloud(deletingStaffId);
-  };
-
-  const updateAdminProfile = (updates: { name: string; password?: string; pin?: string }) => {
-    const cleanName = updates.name.trim();
-    const cleanPass = (updates.password || '').trim();
-    const cleanPin = (updates.pin || '').trim();
-
-    // 1. Update vendorLabSettings
-    updateVendorLabSettings({
-      ...(cleanName ? { ownerName: cleanName } : {}),
-      ...(cleanPass ? { ownerPassword: cleanPass } : {}),
-      ...(cleanPin ? { ownerPin: cleanPin } : {}),
-    });
-
-    // 2. Update credentials in lab list
-    if (cleanPass || cleanPin) {
-      const activeLabId = vendorLabSettings.labShopId || vendorLabSettings.labId || 'lab-apex';
-      updateVendorLabCredentials(
-        activeLabId,
-        cleanPass || vendorLabSettings.ownerPassword || 'owner123',
-        cleanPin || vendorLabSettings.ownerPin || '123456'
-      );
-    }
-
-    // 3. Update staffAccounts admin item
-    setAllStaffAccounts((prev) => {
-      const updated = prev.map((s) => {
-        if (s.role === 'admin') {
-          const mod = {
-            ...s,
-            ...(cleanName ? { name: cleanName } : {}),
-            ...(cleanPass ? { password: cleanPass } : {}),
-            ...(cleanPin ? { pin: cleanPin } : {}),
-          };
-          syncStaffAccountToCloud(mod);
-          return mod;
-        }
-        return s;
-      });
-      try {
-        localStorage.setItem('cms_lab_staff_accounts', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-
-    // 4. Update current user display name
-    if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'vendor')) {
-      setCurrentUser((prev) => (prev ? { ...prev, ...(cleanName ? { name: cleanName } : {}) } : null));
-    }
   };
 
   // Auth actions with strict credential verification
@@ -5489,8 +5303,6 @@ export const CmsProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateStaffAccount,
         resetStaffPassword,
         deleteStaffAccount,
-        transferStaffDataAndDelete,
-        updateAdminProfile,
 
         companySettings,
         updateCompanySettings,

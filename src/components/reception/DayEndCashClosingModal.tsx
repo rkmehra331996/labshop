@@ -1,21 +1,31 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   X,
+  Printer,
   Calendar,
   IndianRupee,
-  Clock,
-  Phone,
-  Filter,
-  Check,
-  Receipt,
-  FileDown,
-  CheckCircle2,
+  ShieldCheck,
   AlertTriangle,
+  CheckCircle2,
+  Clock,
+  ArrowRight,
+  Download,
+  FileText,
+  User,
+  Building,
+  RefreshCw,
+  Lock,
+  Save,
+  DollarSign,
+  CreditCard,
+  QrCode,
+  Coins,
+  Receipt,
+  History,
 } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { useCms } from '../../context/CmsContext';
 import { ReceptionPatientEntry } from '../../types';
+import { safePrint } from '../../utils/printHelper';
 
 interface DayEndCashClosingModalProps {
   isOpen: boolean;
@@ -25,849 +35,866 @@ interface DayEndCashClosingModalProps {
   staffName?: string;
 }
 
-type DateFilterOption = 'Today' | 'Yesterday' | 'This Week' | 'This Month' | 'Custom Date';
-type PaymentFilterOption = 'All' | 'Full Payment' | 'Advance Payment' | 'Due Payment';
+interface Denominations {
+  n500: number;
+  n200: number;
+  n100: number;
+  n50: number;
+  n20: number;
+  n10: number;
+  coins: number;
+}
 
-/**
- * Formats PDF filename strictly as: LABCODE_DATE_TIME.pdf
- * Example: ABC123_27-09-2026_03-21-PM.pdf
- */
-export const formatPdfFilename = (labCodeRaw?: string): string => {
-  const raw = labCodeRaw || 'ABC123';
-  const cleanCode = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase() || 'ABC123';
-
-  const now = new Date();
-  const dd = String(now.getDate()).padStart(2, '0');
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const yyyy = now.getFullYear();
-  const dateStr = `${dd}-${mm}-${yyyy}`;
-
-  let hours = now.getHours();
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours ? hours : 12; // 0 becomes 12 in 12-hour format
-  const hh = String(hours).padStart(2, '0');
-  const timeStr = `${hh}-${minutes}-${ampm}`;
-
-  return `${cleanCode}_${dateStr}_${timeStr}.pdf`;
-};
+interface SavedClosingRecord {
+  id: string;
+  date: string;
+  closedAt: string;
+  cashierName: string;
+  openingFloat: number;
+  systemCash: number;
+  systemUpi: number;
+  systemCard: number;
+  totalCollected: number;
+  totalNetBilled: number;
+  totalDue: number;
+  patientCount: number;
+  physicalCashCounted: number;
+  difference: number;
+  handoverTo: string;
+  notes: string;
+}
 
 export const DayEndCashClosingModal: React.FC<DayEndCashClosingModalProps> = ({
   isOpen,
   onClose,
+  defaultDate,
   receptionEntries: propReceptionEntries,
+  staffName,
 }) => {
-  const { receptionEntries: contextReceptionEntries, vendorLabSettings } = useCms();
-  const receptionEntries = propReceptionEntries || contextReceptionEntries || [];
+  const { receptionEntries: contextReceptionEntries, vendorLabSettings, currentUser } = useCms();
+  const receptionEntries = propReceptionEntries || contextReceptionEntries;
 
-  // Date Filter & Custom Range
-  const [selectedDateFilter, setSelectedDateFilter] = useState<DateFilterOption>('Today');
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
-  const [customStartDate, setCustomStartDate] = useState<string>(todayStr);
-  const [customEndDate, setCustomEndDate] = useState<string>(todayStr);
+  const [activeTab, setActiveTab] = useState<'closing' | 'history'>('closing');
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string>('Today');
+  const [selectedDeviceFilter, setSelectedDeviceFilter] = useState<'all' | 'branch-1' | 'branch-2'>('all');
+  const [cashierName, setCashierName] = useState<string>(
+    staffName || currentUser?.name || 'Receptionist (Counter #1)'
+  );
+  const [handoverTo, setHandoverTo] = useState<string>('Lab Owner / Accounts Manager');
+  const [closingNotes, setClosingNotes] = useState<string>('');
+  const [openingFloat, setOpeningFloat] = useState<number>(1000); // Morning change in drawer
 
-  // Payment Filter
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilterOption>('All');
+  // Denominations state
+  const [denominations, setDenominations] = useState<Denominations>({
+    n500: 0,
+    n200: 0,
+    n100: 0,
+    n50: 0,
+    n20: 0,
+    n10: 0,
+    coins: 0,
+  });
 
-  // Notification / Toast
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 4000);
-  };
-
-  // Helper to extract comparable date string 'YYYY-MM-DD' from an entry
-  const getEntryDateKey = (entry: ReceptionPatientEntry): string => {
-    if (entry.entryDate && /^\d{4}-\d{2}-\d{2}$/.test(entry.entryDate)) {
-      return entry.entryDate;
-    }
-    if (entry.registeredAt) {
-      const match = entry.registeredAt.match(/(\d{4})-(\d{2})-(\d{2})/);
-      if (match) return match[0];
-      const parsed = new Date(entry.registeredAt);
-      if (!isNaN(parsed.getTime())) {
-        return parsed.toISOString().split('T')[0];
-      }
-    }
-    return todayStr;
-  };
-
-  // Date Boundaries Calculation
-  const dateBoundaries = useMemo(() => {
-    const today = new Date();
-    const todayFormatted = today.toISOString().split('T')[0];
-
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayFormatted = yesterday.toISOString().split('T')[0];
-
-    // Monday of current week
-    const currentDay = today.getDay(); // 0 is Sunday
-    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + diffToMonday);
-    const mondayFormatted = monday.toISOString().split('T')[0];
-
-    // 1st day of current month
-    const firstDayMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const firstDayMonthFormatted = firstDayMonth.toISOString().split('T')[0];
-
-    return {
-      today: todayFormatted,
-      yesterday: yesterdayFormatted,
-      monday: mondayFormatted,
-      firstDayMonth: firstDayMonthFormatted,
-    };
-  }, []);
-
-  // Filtered Entries according to Date Filter and Payment Filter
-  const filteredEntries = useMemo(() => {
-    return receptionEntries.filter((entry) => {
-      const entryDate = getEntryDateKey(entry);
-
-      // 1. Date Filter Matching
-      let matchesDate = false;
-      if (selectedDateFilter === 'Today') {
-        matchesDate = entryDate === dateBoundaries.today;
-      } else if (selectedDateFilter === 'Yesterday') {
-        matchesDate = entryDate === dateBoundaries.yesterday;
-      } else if (selectedDateFilter === 'This Week') {
-        matchesDate = entryDate >= dateBoundaries.monday && entryDate <= dateBoundaries.today;
-      } else if (selectedDateFilter === 'This Month') {
-        matchesDate = entryDate >= dateBoundaries.firstDayMonth && entryDate <= dateBoundaries.today;
-      } else if (selectedDateFilter === 'Custom Date') {
-        const start = customStartDate || '1970-01-01';
-        const end = customEndDate || '2099-12-31';
-        matchesDate = entryDate >= start && entryDate <= end;
-      }
-
-      if (!matchesDate) return false;
-
-      // 2. Payment Filter Matching
-      const netTotal = Math.max(0, (entry.totalAmount || 0) - (entry.discountINR || 0));
-      const received = (entry.paidAmount || 0) + (entry.balancePaidAmount || 0);
-      const due = entry.dueAmount ?? Math.max(0, netTotal - received);
-
-      const isFull = due === 0 || entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid';
-      const isAdvance = (due > 0 && received > 0) || entry.paymentStatus === 'Advance' || entry.paymentStatus === 'Partial';
-      const isDue = (received === 0 && due > 0) || entry.paymentStatus === 'Due' || entry.paymentStatus === 'Due Payment';
-
-      if (paymentFilter === 'Full Payment') return isFull;
-      if (paymentFilter === 'Advance Payment') return isAdvance;
-      if (paymentFilter === 'Due Payment') return isDue;
-
-      return true;
-    });
-  }, [
-    receptionEntries,
-    selectedDateFilter,
-    customStartDate,
-    customEndDate,
-    paymentFilter,
-    dateBoundaries,
-  ]);
-
-  // Summary Metrics — Automatically calculated based on filtered entries
-  const metrics = useMemo(() => {
-    let totalEarning = 0; // Net Invoiced
-    let inPocket = 0; // Actually Received
-    let cashInPocket = 0;
-    let upiInPocket = 0;
-    let cardInPocket = 0;
-    let fullPaymentAmount = 0;
-    let fullPaymentCount = 0;
-    let advancePaymentAmount = 0;
-    let advancePaymentCount = 0;
-    let duePaymentAmount = 0;
-    let duePaymentCount = 0;
-
-    filteredEntries.forEach((entry) => {
-      const net = Math.max(0, (entry.totalAmount || 0) - (entry.discountINR || 0));
-      totalEarning += net;
-
-      // Received
-      const initialPaid = entry.paidAmount || 0;
-      const balancePaid = entry.balancePaidAmount || 0;
-      const totalRec = initialPaid + balancePaid;
-      inPocket += totalRec;
-
-      // Cash / UPI breakdown
-      if (entry.paymentMode === 'Cash') cashInPocket += initialPaid;
-      if (entry.paymentMode === 'UPI') upiInPocket += initialPaid;
-      if (entry.paymentMode === 'Card') cardInPocket += initialPaid;
-
-      if (entry.balancePaymentMode === 'Cash') cashInPocket += balancePaid;
-      if (entry.balancePaymentMode === 'UPI') upiInPocket += balancePaid;
-      if (entry.balancePaymentMode === 'Card') cardInPocket += balancePaid;
-
-      // Status Categorization
-      const due = entry.dueAmount ?? Math.max(0, net - totalRec);
-
-      if (due === 0 || entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid') {
-        fullPaymentAmount += totalRec;
-        fullPaymentCount++;
-      } else if (due > 0 && totalRec > 0) {
-        advancePaymentAmount += totalRec;
-        advancePaymentCount++;
-        duePaymentAmount += due;
-        duePaymentCount++;
-      } else {
-        duePaymentAmount += due;
-        duePaymentCount++;
-      }
-    });
-
-    return {
-      totalEarning,
-      inPocket,
-      cashInPocket,
-      upiInPocket,
-      cardInPocket,
-      fullPaymentAmount,
-      fullPaymentCount,
-      advancePaymentAmount,
-      advancePaymentCount,
-      duePaymentAmount,
-      duePaymentCount,
-      patientCount: filteredEntries.length,
-    };
-  }, [filteredEntries]);
-
-  // Download Complete Patient Earning Record PDF
-  const handleDownloadPdf = () => {
-    setIsDownloadingPdf(true);
+  const [savedSuccessMsg, setSavedSuccessMsg] = useState<string | null>(null);
+  const [closingHistory, setClosingHistory] = useState<SavedClosingRecord[]>(() => {
     try {
-      const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Pathology Laboratory';
-      const address = vendorLabSettings?.address || 'Main Hospital Road, Medical Enclave';
-      const phone = vendorLabSettings?.phone || '9876543210';
-      const rawLabCode =
-        vendorLabSettings?.labShopId ||
-        vendorLabSettings?.labId ||
-        vendorLabSettings?.nablAccreditationNo ||
-        'ABC123';
-
-      const filename = formatPdfFilename(rawLabCode);
-
-      const dateRangeLabel =
-        selectedDateFilter === 'Custom Date'
-          ? `${customStartDate} to ${customEndDate}`
-          : selectedDateFilter;
-
-      // Landscape A4 for wide table presentation
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const pageWidth = doc.internal.pageSize.getWidth(); // 297 mm
-      const pageHeight = doc.internal.pageSize.getHeight(); // 210 mm
-      const marginX = 14;
-
-      // 1. Top Header Banner
-      doc.setFillColor(15, 118, 110); // #0F766E Teal
-      doc.roundedRect(marginX, 12, pageWidth - marginX * 2, 22, 3, 3, 'F');
-
-      // Lab Name
-      doc.setTextColor(255, 255, 255);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(15);
-      doc.text(labName, marginX + 6, 20);
-
-      // Lab Details
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(204, 251, 241);
-      doc.text(`${address}  •  Phone: +91 ${phone}`, marginX + 6, 26);
-
-      // Top Right Header Info
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.setTextColor(253, 230, 138); // Amber
-      doc.text('PATIENT EARNING RECORD', pageWidth - marginX - 6, 19, { align: 'right' });
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(255, 255, 255);
-      doc.text(`Date: ${dateRangeLabel}  |  Payment Filter: ${paymentFilter}`, pageWidth - marginX - 6, 25, {
-        align: 'right',
-      });
-
-      // 2. Summary Metrics Strip
-      const metricY = 38;
-      const cardW = (pageWidth - marginX * 2 - 12) / 5;
-      const cardH = 15;
-
-      const metricsDefs = [
-        {
-          title: 'TOTAL EARNING',
-          val: `Rs. ${metrics.totalEarning.toLocaleString('en-IN')}`,
-          sub: `${metrics.patientCount} Patients Billed`,
-        },
-        {
-          title: 'IN POCKET (REC.)',
-          val: `Rs. ${metrics.inPocket.toLocaleString('en-IN')}`,
-          sub: `Cash: Rs. ${metrics.cashInPocket} • UPI: Rs. ${metrics.upiInPocket}`,
-        },
-        {
-          title: 'FULL PAYMENT',
-          val: `Rs. ${metrics.fullPaymentAmount.toLocaleString('en-IN')}`,
-          sub: `${metrics.fullPaymentCount} Cleared (Nil Due)`,
-        },
-        {
-          title: 'ADVANCE PAYMENT',
-          val: `Rs. ${metrics.advancePaymentAmount.toLocaleString('en-IN')}`,
-          sub: `${metrics.advancePaymentCount} Patients Advance`,
-        },
-        {
-          title: 'DUE PAYMENT',
-          val: `Rs. ${metrics.duePaymentAmount.toLocaleString('en-IN')}`,
-          sub: `${metrics.duePaymentCount} Pending Balance`,
-        },
-      ];
-
-      metricsDefs.forEach((m, idx) => {
-        const cx = marginX + idx * (cardW + 3);
-        doc.setFillColor(248, 250, 252);
-        doc.setDrawColor(226, 232, 240);
-        doc.roundedRect(cx, metricY, cardW, cardH, 2, 2, 'FD');
-
-        doc.setTextColor(100, 116, 139);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7);
-        doc.text(m.title, cx + 3, metricY + 4.2);
-
-        doc.setTextColor(15, 23, 42);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9.5);
-        doc.text(m.val, cx + 3, metricY + 9.5);
-
-        doc.setTextColor(148, 163, 184);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6.5);
-        doc.text(m.sub, cx + 3, metricY + 13.5);
-      });
-
-      // 3. Complete Patient Earning Record Table (WITHOUT In Pocket column)
-      const tableRows = filteredEntries.map((entry, idx) => {
-        const netTotal = Math.max(0, (entry.totalAmount || 0) - (entry.discountINR || 0));
-        const received = (entry.paidAmount || 0) + (entry.balancePaidAmount || 0);
-        const due = entry.dueAmount ?? Math.max(0, netTotal - received);
-
-        const statusLabel =
-          due === 0 || entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid'
-            ? 'Full Paid'
-            : due > 0 && received > 0
-            ? 'Advance'
-            : 'Due';
-
-        const token = entry.tokenNumber || entry.tokenNo || `TK-${101 + idx}`;
-        const dateTime = `${entry.entryDate || todayStr}\n${entry.registeredAt || 'Shift'}`;
-        const client = `${entry.patientName} (${entry.age || '-'}Y/${entry.gender?.[0] || '-'})\n+91 ${entry.mobile || ''}`;
-        const tests = Array.isArray(entry.tests) ? entry.tests.join(', ') : 'General Checkup';
-
-        return [
-          token,
-          dateTime,
-          client,
-          tests,
-          `Rs. ${netTotal.toLocaleString('en-IN')}`,
-          statusLabel,
-          due > 0 ? `Rs. ${due.toLocaleString('en-IN')}` : 'Rs. 0',
-        ];
-      });
-
-      autoTable(doc, {
-        startY: metricY + cardH + 4,
-        margin: { left: marginX, right: marginX, bottom: 16 },
-        head: [['TOKEN', 'DATE & TIME', 'CLIENT / MOBILE', 'TESTS SELECTED', 'TOTAL BILL', 'STATUS', 'DUE AMOUNT']],
-        body: tableRows.length > 0 ? tableRows : [['-', '-', 'No patient records found', '-', '-', '-', '-']],
-        foot:
-          filteredEntries.length > 0
-            ? [
-                [
-                  'TOTALS',
-                  `${filteredEntries.length} Patients`,
-                  '',
-                  '',
-                  `Rs. ${metrics.totalEarning.toLocaleString('en-IN')}`,
-                  `${metrics.fullPaymentCount} Full • ${metrics.advancePaymentCount} Adv`,
-                  `Rs. ${metrics.duePaymentAmount.toLocaleString('en-IN')}`,
-                ],
-              ]
-            : undefined,
-        theme: 'grid',
-        headStyles: {
-          fillColor: [30, 41, 59],
-          textColor: [255, 255, 255],
-          fontSize: 8,
-          fontStyle: 'bold',
-          halign: 'left',
-        },
-        footStyles: {
-          fillColor: [241, 245, 249],
-          textColor: [15, 23, 42],
-          fontSize: 8.5,
-          fontStyle: 'bold',
-        },
-        bodyStyles: {
-          fontSize: 8,
-          textColor: [30, 41, 59],
-          cellPadding: 2.5,
-        },
-        alternateRowStyles: {
-          fillColor: [248, 250, 252],
-        },
-        columnStyles: {
-          0: { cellWidth: 26, fontStyle: 'bold' },
-          1: { cellWidth: 32 },
-          2: { cellWidth: 54 },
-          3: { cellWidth: 'auto' },
-          4: { cellWidth: 30, halign: 'right', fontStyle: 'bold' },
-          5: { cellWidth: 26, halign: 'center', fontStyle: 'bold' },
-          6: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },
-        },
-        didDrawPage: (data) => {
-          // Dynamic Page Footer
-          const pageStr = `Page ${data.pageNumber} of ${doc.getNumberOfPages()}  •  Generated: ${new Date().toLocaleString('en-IN')}  •  ${labName}`;
-          doc.setFontSize(7.5);
-          doc.setTextColor(148, 163, 184);
-          doc.text(pageStr, pageWidth / 2, pageHeight - 8, { align: 'center' });
-        },
-      });
-
-      doc.save(filename);
-      showToast(`✅ PDF "${filename}" downloaded successfully!`);
-    } catch (err) {
-      console.error(err);
-      showToast('❌ Failed to generate PDF. Please try again.');
-    } finally {
-      setIsDownloadingPdf(false);
+      const stored = localStorage.getItem('reception_day_closings');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
     }
+  });
+
+  // Filter entries according to date & device selection
+  const relevantEntries = useMemo(() => {
+    if (selectedDeviceFilter === 'branch-1') {
+      return receptionEntries.filter((e) => !e.branchId || e.branchId === 'branch-1');
+    }
+    if (selectedDeviceFilter === 'branch-2') {
+      return receptionEntries.filter((e) => e.branchId === 'branch-2');
+    }
+    return receptionEntries;
+  }, [receptionEntries, selectedDateFilter, selectedDeviceFilter]);
+
+  // Calculations
+  const patientCount = relevantEntries.length;
+  const totalGrossBilled = relevantEntries.reduce((sum, e) => sum + (e.totalAmount || 0), 0);
+  const totalDiscounts = relevantEntries.reduce((sum, e) => sum + (e.discountINR || 0), 0);
+  const totalNetBilled = Math.max(0, totalGrossBilled - totalDiscounts);
+
+  // Collections by Payment Mode
+  const cashCollection = relevantEntries.reduce((sum, e) => {
+    let amt = 0;
+    if (e.paymentMode === 'Cash') amt += e.paidAmount || 0;
+    if (e.balancePaymentMode === 'Cash') amt += e.balancePaidAmount || 0;
+    return sum + amt;
+  }, 0);
+
+  const upiCollection = relevantEntries.reduce((sum, e) => {
+    let amt = 0;
+    if (e.paymentMode === 'UPI') amt += e.paidAmount || 0;
+    if (e.balancePaymentMode === 'UPI') amt += e.balancePaidAmount || 0;
+    return sum + amt;
+  }, 0);
+
+  const cardCollection = relevantEntries.reduce((sum, e) => {
+    let amt = 0;
+    if (e.paymentMode === 'Card') amt += e.paidAmount || 0;
+    if (e.balancePaymentMode === 'Card') amt += e.balancePaidAmount || 0;
+    return sum + amt;
+  }, 0);
+
+  const totalCollected = cashCollection + upiCollection + cardCollection;
+  const totalDuePending = relevantEntries.reduce((sum, e) => sum + (e.dueAmount || 0), 0);
+
+  // Physical Cash Calculation from denominations
+  const countedPhysicalCash = useMemo(() => {
+    return (
+      (denominations.n500 || 0) * 500 +
+      (denominations.n200 || 0) * 200 +
+      (denominations.n100 || 0) * 100 +
+      (denominations.n50 || 0) * 50 +
+      (denominations.n20 || 0) * 20 +
+      (denominations.n10 || 0) * 10 +
+      (denominations.coins || 0)
+    );
+  }, [denominations]);
+
+  // Expected Cash in Drawer = Opening Float + System Cash Collected
+  const expectedCashInDrawer = openingFloat + cashCollection;
+  const cashDifference = countedPhysicalCash - expectedCashInDrawer;
+
+  // Auto-fill denominations to match expected cash for convenience
+  const handleAutoFillDenominations = () => {
+    let remaining = expectedCashInDrawer;
+    const n500 = Math.floor(remaining / 500);
+    remaining %= 500;
+    const n200 = Math.floor(remaining / 200);
+    remaining %= 200;
+    const n100 = Math.floor(remaining / 100);
+    remaining %= 100;
+    const n50 = Math.floor(remaining / 50);
+    remaining %= 50;
+    const n20 = Math.floor(remaining / 20);
+    remaining %= 20;
+    const n10 = Math.floor(remaining / 10);
+    remaining %= 10;
+    const coins = remaining;
+
+    setDenominations({
+      n500,
+      n200,
+      n100,
+      n50,
+      n20,
+      n10,
+      coins,
+    });
+  };
+
+  // Reset denominations
+  const handleClearDenominations = () => {
+    setDenominations({
+      n500: 0,
+      n200: 0,
+      n100: 0,
+      n50: 0,
+      n20: 0,
+      n10: 0,
+      coins: 0,
+    });
+  };
+
+  // Save closing record
+  const handleSaveClosing = () => {
+    const nowTime = new Date().toLocaleString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const record: SavedClosingRecord = {
+      id: `CLOSING-${Date.now()}`,
+      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      closedAt: nowTime,
+      cashierName,
+      openingFloat,
+      systemCash: cashCollection,
+      systemUpi: upiCollection,
+      systemCard: cardCollection,
+      totalCollected,
+      totalNetBilled,
+      totalDue: totalDuePending,
+      patientCount,
+      physicalCashCounted: countedPhysicalCash,
+      difference: cashDifference,
+      handoverTo,
+      notes: closingNotes,
+    };
+
+    const updated = [record, ...closingHistory];
+    setClosingHistory(updated);
+    try {
+      localStorage.setItem('reception_day_closings', JSON.stringify(updated));
+    } catch {}
+
+    setSavedSuccessMsg('✅ Day-End Cash Register finalized & archived successfully!');
+    setTimeout(() => setSavedSuccessMsg(null), 4000);
+  };
+
+  // Print Tally Sheet
+  const handlePrintTallySheet = () => {
+    safePrint();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-6xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[94vh]">
-        {/* Top Header Bar */}
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
+        {/* Header Strip */}
         <div className="bg-[#0F766E] text-white px-6 py-4 flex items-center justify-between no-print">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center font-black text-xl border border-white/20 shadow-xs shrink-0">
-              📊
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-black text-xl border border-white/20">
+              💵
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg font-black tracking-tight text-white">
-                  Day & Cash Workspace
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-black tracking-tight">
+                  Day-End Reception Cash Closing (Daily Tally Sheet)
                 </h2>
-                <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
-                  Patient Earning Records
+                <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded uppercase">
+                  Daily Z-Register
                 </span>
               </div>
-              <p className="text-xs text-teal-100 mt-0.5 truncate">
-                {vendorLabSettings?.labName || 'Apex Diagnostic & Pathology Laboratory'} • Daily Register & Financial Summary
+              <p className="text-xs text-teal-100 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                <span>{vendorLabSettings?.labName || 'Apex Diagnostic & Pathology Laboratory'}</span>
+                <span>•</span>
+                <span className="font-semibold text-amber-300">
+                  {selectedDeviceFilter === 'branch-2' ? 'Device B (Counter 2)' : selectedDeviceFilter === 'branch-1' ? 'Device A (Counter 1)' : 'All Devices (Combined)'}
+                </span>
               </p>
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-2 text-teal-200 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer shrink-0"
-            title="Close modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Device Filter for Reconciliation */}
+            <div className="flex bg-teal-950/70 p-0.5 rounded-lg text-xs font-bold border border-teal-500/40">
+              <button
+                type="button"
+                onClick={() => setSelectedDeviceFilter('all')}
+                className={`px-2 py-1 rounded transition cursor-pointer ${
+                  selectedDeviceFilter === 'all' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-teal-100 hover:text-white'
+                }`}
+              >
+                All Devices
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDeviceFilter('branch-1')}
+                className={`px-2 py-1 rounded transition cursor-pointer ${
+                  selectedDeviceFilter === 'branch-1' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-teal-100 hover:text-white'
+                }`}
+              >
+                🖥️ Device A
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDeviceFilter('branch-2')}
+                className={`px-2 py-1 rounded transition cursor-pointer ${
+                  selectedDeviceFilter === 'branch-2' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-teal-100 hover:text-white'
+                }`}
+              >
+                💻 Device B
+              </button>
+            </div>
+
+            <div className="flex bg-teal-900/60 p-1 rounded-lg text-xs font-bold border border-teal-600/50">
+              <button
+                type="button"
+                onClick={() => setActiveTab('closing')}
+                className={`px-3 py-1 rounded-md transition cursor-pointer ${
+                  activeTab === 'closing' ? 'bg-white text-teal-900 shadow-xs' : 'text-teal-100 hover:text-white'
+                }`}
+              >
+                Today's Closing
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('history')}
+                className={`px-3 py-1 rounded-md transition cursor-pointer ${
+                  activeTab === 'history' ? 'bg-white text-teal-900 shadow-xs' : 'text-teal-100 hover:text-white'
+                }`}
+              >
+                Closing History ({closingHistory.length})
+              </button>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="p-1.5 text-teal-200 hover:text-white hover:bg-white/10 rounded-lg transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Modal Body Container */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50 text-[#172033] space-y-5">
-          {/* Toast Notification */}
-          {toastMessage && (
-            <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between shadow-2xs animate-in fade-in duration-200">
+        {/* Printable Paper Sheet */}
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50 text-[#172033] space-y-6">
+          {savedSuccessMsg && (
+            <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-between shadow-2xs">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>{toastMessage}</span>
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span>{savedSuccessMsg}</span>
               </div>
               <button
-                onClick={() => setToastMessage(null)}
-                className="text-emerald-700 hover:underline text-xs cursor-pointer ml-3"
+                onClick={() => setSavedSuccessMsg(null)}
+                className="text-emerald-700 hover:underline text-xs"
               >
                 Dismiss
               </button>
             </div>
           )}
 
-          {/* Controls Bar: Filters & Download Record - PDF Button */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3.5 no-print">
-            {/* Row 1: Date Filter Buttons + Download Record - PDF Button */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-teal-700" />
-                  <span>Date Filter:</span>
+          {activeTab === 'history' ? (
+            /* History Tab */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <History className="w-4 h-4 text-teal-600" />
+                  <span>Archived Day-End Closing Records</span>
+                </h3>
+                <span className="text-xs text-slate-500">
+                  Total Records: {closingHistory.length}
                 </span>
-                {(['Today', 'Yesterday', 'This Week', 'This Month', 'Custom Date'] as DateFilterOption[]).map(
-                  (opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setSelectedDateFilter(opt)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs ${
-                        selectedDateFilter === opt
-                          ? 'bg-[#0F766E] text-white shadow-xs'
-                          : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  )
-                )}
               </div>
 
-              {/* Single Download Record - PDF Action Button */}
-              <div>
-                <button
-                  type="button"
-                  onClick={handleDownloadPdf}
-                  disabled={isDownloadingPdf}
-                  className="bg-[#0F766E] hover:bg-[#0d655e] active:bg-[#0b544e] disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
-                  title="Download complete Patient Earning Record PDF"
-                >
-                  <FileDown className="w-4 h-4 text-amber-300" />
-                  <span>{isDownloadingPdf ? 'Generating PDF...' : 'Download Record - PDF'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Row 2: Custom Date Pickers & Payment Filter */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-100">
-              {/* Custom Date Pickers (if Custom Date is chosen) */}
-              {selectedDateFilter === 'Custom Date' ? (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-semibold text-slate-600">From:</span>
-                  <input
-                    type="date"
-                    value={customStartDate}
-                    onChange={(e) => setCustomStartDate(e.target.value)}
-                    className="px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-medium text-slate-800 outline-none focus:border-teal-600 bg-white"
-                  />
-                  <span className="text-xs font-semibold text-slate-600">To:</span>
-                  <input
-                    type="date"
-                    value={customEndDate}
-                    onChange={(e) => setCustomEndDate(e.target.value)}
-                    className="px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-medium text-slate-800 outline-none focus:border-teal-600 bg-white"
-                  />
+              {closingHistory.length === 0 ? (
+                <div className="bg-white p-12 text-center rounded-xl border border-slate-200 text-slate-500">
+                  <Receipt className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                  <p className="font-bold text-slate-700 text-sm">No past closing records found</p>
+                  <p className="text-xs mt-1">
+                    When you close today's register using the "Save & Finalize" button, the audit history will appear here.
+                  </p>
                 </div>
               ) : (
-                <div className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-teal-600" />
-                  <span>
-                    Showing report for: <strong>{selectedDateFilter}</strong> ({filteredEntries.length} patient records)
-                  </span>
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100 text-slate-700 uppercase font-bold text-[10px] border-b border-slate-200">
+                          <th className="py-2.5 px-3">Date / Timestamp</th>
+                          <th className="py-2.5 px-3">Cashier</th>
+                          <th className="py-2.5 px-3 text-center">Patients</th>
+                          <th className="py-2.5 px-3 text-right">Cash In Drawer</th>
+                          <th className="py-2.5 px-3 text-right">UPI Received</th>
+                          <th className="py-2.5 px-3 text-right">Total Realized</th>
+                          <th className="py-2.5 px-3 text-center">Tally Status</th>
+                          <th className="py-2.5 px-3">Handed Over To</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-medium">
+                        {closingHistory.map((rec) => (
+                          <tr key={rec.id} className="hover:bg-slate-50">
+                            <td className="py-2.5 px-3">
+                              <div className="font-bold text-slate-900">{rec.date}</div>
+                              <div className="text-[10px] text-slate-400">{rec.closedAt}</div>
+                            </td>
+                            <td className="py-2.5 px-3 font-semibold text-slate-800">
+                              {rec.cashierName}
+                            </td>
+                            <td className="py-2.5 px-3 text-center font-bold text-slate-700">
+                              {rec.patientCount}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700">
+                              ₹{rec.systemCash.toLocaleString('en-IN')}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono font-bold text-blue-700">
+                              ₹{rec.systemUpi.toLocaleString('en-IN')}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono font-black text-slate-900">
+                              ₹{rec.totalCollected.toLocaleString('en-IN')}
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              {rec.difference === 0 ? (
+                                <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                  BALANCED (₹0)
+                                </span>
+                              ) : rec.difference < 0 ? (
+                                <span className="bg-rose-100 text-rose-800 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                  SHORT -₹{Math.abs(rec.difference)}
+                                </span>
+                              ) : (
+                                <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                  EXCESS +₹{rec.difference}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-600 text-[11px]">
+                              {rec.handoverTo}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
+            </div>
+          ) : (
+            /* Active Day Closing Form & Tally Sheet */
+            <div className="space-y-6">
+              {/* Lab & Shift Header on Printed Slip */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 border-b border-slate-200 gap-3">
+                  <div>
+                    <h3 className="font-black text-base text-[#123B6D]">
+                      {vendorLabSettings?.labName || 'Apex Diagnostic & Pathology Laboratory'}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Daily Cash Counter Shift Closing • Date: {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <div className="bg-slate-100 px-3 py-1.5 rounded-lg font-mono">
+                      <span className="text-slate-400 mr-1">Shift:</span>
+                      <strong className="text-slate-800">Day General (Counter 1)</strong>
+                    </div>
+                  </div>
+                </div>
 
-              {/* Payment Filter */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <Filter className="w-3 h-3 text-slate-400" />
-                  <span>Payment Filter:</span>
-                </span>
-                <select
-                  value={paymentFilter}
-                  onChange={(e) => setPaymentFilter(e.target.value as PaymentFilterOption)}
-                  className="px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-bold text-slate-800 bg-white focus:ring-1 focus:ring-teal-600 outline-none cursor-pointer"
-                >
-                  <option value="All">All Payments</option>
-                  <option value="Full Payment">Full Payment</option>
-                  <option value="Advance Payment">Advance Payment</option>
-                  <option value="Due Payment">Due Payment</option>
-                </select>
+                {/* 4 Big Metrics Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Total Patients</span>
+                    <span className="text-xl font-black text-slate-900 mt-0.5 block">{patientCount}</span>
+                    <span className="text-[10px] text-slate-500">Registered today</span>
+                  </div>
+
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 block">Net Billed</span>
+                    <span className="text-xl font-black text-[#123B6D] mt-0.5 block">
+                      ₹{totalNetBilled.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-[10px] text-slate-500">Disc: ₹{totalDiscounts}</span>
+                  </div>
+
+                  <div className="bg-emerald-50/60 p-3 rounded-xl border border-emerald-200">
+                    <span className="text-[10px] font-bold uppercase text-emerald-700 block">Total Collection</span>
+                    <span className="text-xl font-black text-emerald-800 mt-0.5 block">
+                      ₹{totalCollected.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-[10px] text-emerald-600 font-medium">100% Realized</span>
+                  </div>
+
+                  <div className="bg-rose-50/60 p-3 rounded-xl border border-rose-200">
+                    <span className="text-[10px] font-bold uppercase text-rose-700 block">Pending Due</span>
+                    <span className="text-xl font-black text-rose-800 mt-0.5 block">
+                      ₹{totalDuePending.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-[10px] text-rose-600 font-medium">To collect on report</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Collections by Payment Method Breakdown */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center justify-between">
+                  <span>1. Mode-wise System Collections (Reconciled from Billing)</span>
+                  <span className="text-[11px] font-mono text-slate-500">Audited against token bills</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Cash Mode */}
+                  <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/30 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">
+                        ₹
+                      </div>
+                      <div>
+                        <div className="font-black text-slate-900 text-sm">Cash in Counter</div>
+                        <div className="text-[10px] text-slate-500">Physical notes to deposit</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-black text-emerald-800 font-mono">
+                        ₹{cashCollection.toLocaleString('en-IN')}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-semibold">
+                        {totalCollected > 0 ? Math.round((cashCollection / totalCollected) * 100) : 0}% of total
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* UPI Mode */}
+                  <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/30 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+                        <QrCode className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-black text-slate-900 text-sm">UPI / QR Bank</div>
+                        <div className="text-[10px] text-slate-500">PhonePe / GPay / Paytm</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-black text-blue-800 font-mono">
+                        ₹{upiCollection.toLocaleString('en-IN')}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-semibold">
+                        Direct to lab bank
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card POS Mode */}
+                  <div className="p-3.5 rounded-xl border border-purple-200 bg-purple-50/30 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center font-bold text-sm">
+                        <CreditCard className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-black text-slate-900 text-sm">Card POS Swipe</div>
+                        <div className="text-[10px] text-slate-500">Credit / Debit machine</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-black text-purple-800 font-mono">
+                        ₹{cardCollection.toLocaleString('en-IN')}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-semibold">
+                        Merchant settlement
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Physical Cash Drawer Denominations & Reconciliation Calculator */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200 pb-3 gap-2">
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                      <Coins className="w-4 h-4 text-amber-600" />
+                      <span>2. Physical Cash Drawer Denomination Tally (Count Physical Currency)</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Count each currency bundle in cash drawer to ensure zero leakage or shortage.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleAutoFillDenominations}
+                      className="text-[11px] bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-lg font-bold transition cursor-pointer"
+                      title="Auto-fill denominations matching expected cash"
+                    >
+                      ⚡ Auto-Fill Expected
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearDenominations}
+                      className="text-[11px] text-slate-500 hover:text-slate-800 px-2 py-1 transition cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Opening Float configuration */}
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div>
+                    <span className="font-bold text-slate-800 block">Morning Opening Cash Float (Change in Drawer):</span>
+                    <span className="text-[10px] text-slate-500">Cash present in drawer before morning shift starts</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 font-bold">₹</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={openingFloat}
+                      onChange={(e) => setOpeningFloat(Math.max(0, Number(e.target.value) || 0))}
+                      className="w-28 px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-right font-mono font-bold text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                {/* Denominations Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  {/* ₹500 Note */}
+                  <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+                    <div className="flex items-center justify-between font-bold text-slate-700 mb-1">
+                      <span className="bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded text-[11px]">₹500 Note</span>
+                      <span className="font-mono text-slate-900 font-black">₹{(denominations.n500 || 0) * 500}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-400 text-[10px]">Count:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={denominations.n500 || ''}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setDenominations({ ...denominations, n500: Math.max(0, parseInt(e.target.value) || 0) })
+                        }
+                        className="w-full px-2 py-1 bg-white border border-slate-300 rounded-md font-mono text-center font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* ₹200 Note */}
+                  <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+                    <div className="flex items-center justify-between font-bold text-slate-700 mb-1">
+                      <span className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded text-[11px]">₹200 Note</span>
+                      <span className="font-mono text-slate-900 font-black">₹{(denominations.n200 || 0) * 200}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-400 text-[10px]">Count:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={denominations.n200 || ''}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setDenominations({ ...denominations, n200: Math.max(0, parseInt(e.target.value) || 0) })
+                        }
+                        className="w-full px-2 py-1 bg-white border border-slate-300 rounded-md font-mono text-center font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* ₹100 Note */}
+                  <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+                    <div className="flex items-center justify-between font-bold text-slate-700 mb-1">
+                      <span className="bg-blue-100 text-blue-900 px-1.5 py-0.5 rounded text-[11px]">₹100 Note</span>
+                      <span className="font-mono text-slate-900 font-black">₹{(denominations.n100 || 0) * 100}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-400 text-[10px]">Count:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={denominations.n100 || ''}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setDenominations({ ...denominations, n100: Math.max(0, parseInt(e.target.value) || 0) })
+                        }
+                        className="w-full px-2 py-1 bg-white border border-slate-300 rounded-md font-mono text-center font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* ₹50 Note */}
+                  <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+                    <div className="flex items-center justify-between font-bold text-slate-700 mb-1">
+                      <span className="bg-cyan-100 text-cyan-900 px-1.5 py-0.5 rounded text-[11px]">₹50 Note</span>
+                      <span className="font-mono text-slate-900 font-black">₹{(denominations.n50 || 0) * 50}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-400 text-[10px]">Count:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={denominations.n50 || ''}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setDenominations({ ...denominations, n50: Math.max(0, parseInt(e.target.value) || 0) })
+                        }
+                        className="w-full px-2 py-1 bg-white border border-slate-300 rounded-md font-mono text-center font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* ₹20 Note */}
+                  <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+                    <div className="flex items-center justify-between font-bold text-slate-700 mb-1">
+                      <span className="bg-orange-100 text-orange-900 px-1.5 py-0.5 rounded text-[11px]">₹20 Note</span>
+                      <span className="font-mono text-slate-900 font-black">₹{(denominations.n20 || 0) * 20}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-400 text-[10px]">Count:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={denominations.n20 || ''}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setDenominations({ ...denominations, n20: Math.max(0, parseInt(e.target.value) || 0) })
+                        }
+                        className="w-full px-2 py-1 bg-white border border-slate-300 rounded-md font-mono text-center font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* ₹10 Note */}
+                  <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between">
+                    <div className="flex items-center justify-between font-bold text-slate-700 mb-1">
+                      <span className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded text-[11px]">₹10 Note</span>
+                      <span className="font-mono text-slate-900 font-black">₹{(denominations.n10 || 0) * 10}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-slate-400 text-[10px]">Count:</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={denominations.n10 || ''}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setDenominations({ ...denominations, n10: Math.max(0, parseInt(e.target.value) || 0) })
+                        }
+                        className="w-full px-2 py-1 bg-white border border-slate-300 rounded-md font-mono text-center font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Loose Coins Total */}
+                  <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 flex flex-col justify-between col-span-2">
+                    <div className="flex items-center justify-between font-bold text-slate-700 mb-1">
+                      <span className="bg-slate-200 text-slate-900 px-1.5 py-0.5 rounded text-[11px]">Loose Coins (₹1, ₹2, ₹5, ₹10)</span>
+                      <span className="font-mono text-slate-900 font-black">₹{denominations.coins || 0}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-400 text-[10px]">Total Coins (₹):</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={denominations.coins || ''}
+                        placeholder="0"
+                        onChange={(e) =>
+                          setDenominations({ ...denominations, coins: Math.max(0, parseInt(e.target.value) || 0) })
+                        }
+                        className="w-full px-2 py-1 bg-white border border-slate-300 rounded-md font-mono text-right font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reconciliation Match Box */}
+                <div className="p-4 rounded-xl border flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50">
+                  <div className="space-y-1 text-center sm:text-left">
+                    <div className="text-xs text-slate-500">
+                      Physical Cash Counted: <strong className="text-slate-900 font-mono text-sm">₹{countedPhysicalCash.toLocaleString('en-IN')}</strong>
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Expected in Drawer (Float ₹{openingFloat} + Collections ₹{cashCollection}):{' '}
+                      <strong className="text-[#123B6D] font-mono text-sm">₹{expectedCashInDrawer.toLocaleString('en-IN')}</strong>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {cashDifference === 0 ? (
+                      <div className="bg-emerald-100 border border-emerald-300 text-emerald-900 px-4 py-2 rounded-xl text-center">
+                        <div className="text-xs font-black uppercase flex items-center gap-1 justify-center">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>Tally Balanced</span>
+                        </div>
+                        <div className="text-sm font-black text-emerald-800">Exact Match (₹0 Diff)</div>
+                      </div>
+                    ) : cashDifference < 0 ? (
+                      <div className="bg-rose-100 border border-rose-300 text-rose-900 px-4 py-2 rounded-xl text-center">
+                        <div className="text-xs font-black uppercase flex items-center gap-1 justify-center">
+                          <AlertTriangle className="w-4 h-4 text-rose-600" />
+                          <span>Shortage in Drawer</span>
+                        </div>
+                        <div className="text-sm font-black text-rose-800 font-mono">
+                          - ₹{Math.abs(cashDifference).toLocaleString('en-IN')} Short
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-amber-100 border border-amber-300 text-amber-900 px-4 py-2 rounded-xl text-center">
+                        <div className="text-xs font-black uppercase flex items-center gap-1 justify-center">
+                          <AlertTriangle className="w-4 h-4 text-amber-600" />
+                          <span>Excess Cash in Drawer</span>
+                        </div>
+                        <div className="text-sm font-black text-amber-800 font-mono">
+                          + ₹{cashDifference.toLocaleString('en-IN')} Surplus
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Handover & Authorization */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Cashier / Shift Operator Name:
+                  </label>
+                  <input
+                    type="text"
+                    value={cashierName}
+                    onChange={(e) => setCashierName(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg font-medium text-slate-900"
+                    placeholder="e.g. S. Verma / Counter 1"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Physical Cash Handed Over To:
+                  </label>
+                  <input
+                    type="text"
+                    value={handoverTo}
+                    onChange={(e) => setHandoverTo(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg font-medium text-slate-900"
+                    placeholder="e.g. Dr. Rajesh Sharma / Safe Box #2 / Bank Deposit"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="font-bold text-slate-700 block mb-1">
+                    Closing Remarks / Shift Notes:
+                  </label>
+                  <input
+                    type="text"
+                    value={closingNotes}
+                    onChange={(e) => setClosingNotes(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-900"
+                    placeholder="e.g. All reports dispatched; UPI statement checked with PhonePe merchant app; drawer locked."
+                  />
+                </div>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Action Footer */}
+        <div className="bg-slate-100 px-6 py-3.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 no-print">
+          <div className="flex items-center gap-2 text-xs text-slate-600">
+            <ShieldCheck className="w-4 h-4 text-teal-600" />
+            <span>NABL / ISO 15189 Financial Audit Standard</span>
           </div>
 
-          {/* Report Display Container */}
-          <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
-            {/* Report Header Strip */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
-              <div>
-                <h3 className="text-lg sm:text-xl font-black text-[#123B6D] tracking-tight">
-                  {vendorLabSettings?.labName || 'Apex Diagnostic & Pathology Laboratory'}
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {vendorLabSettings?.address || 'Main Hospital Road, Medical Enclave'} • Phone: +91 {vendorLabSettings?.phone || '9876543210'}
-                </p>
-              </div>
-              <div className="sm:text-right">
-                <div className="inline-block bg-teal-50 border border-teal-200 px-3 py-1 rounded-xl text-xs font-black text-[#0F766E] uppercase tracking-wider">
-                  Patient Earning Record
-                </div>
-                <div className="text-[11px] text-slate-500 mt-1 flex items-center sm:justify-end gap-1.5">
-                  <span>Date:</span>
-                  <strong className="text-slate-800">
-                    {selectedDateFilter === 'Custom Date' ? `${customStartDate} to ${customEndDate}` : selectedDateFilter}
-                  </strong>
-                  <span>•</span>
-                  <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handlePrintTallySheet}
+              className="bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            >
+              <Printer className="w-3.5 h-3.5 text-slate-600" />
+              <span>Print Tally Sheet</span>
+            </button>
 
-            {/* 5 Summary Cards: Automatically updated according to date range */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              {/* Card 1: Total Earning */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100/60 p-3.5 rounded-2xl border border-blue-200 shadow-2xs">
-                <div className="text-[11px] font-black text-blue-900 uppercase tracking-wider flex items-center justify-between">
-                  <span>Total Earning</span>
-                  <IndianRupee className="w-3.5 h-3.5 text-blue-700" />
-                </div>
-                <div className="text-xl sm:text-2xl font-black text-[#123B6D] mt-1 font-mono">
-                  ₹{metrics.totalEarning.toLocaleString('en-IN')}
-                </div>
-                <div className="text-[10px] text-blue-700 mt-0.5 font-medium truncate">
-                  Net Billed ({metrics.patientCount} Patients)
-                </div>
-              </div>
+            <button
+              type="button"
+              onClick={handleSaveClosing}
+              className="bg-[#0F766E] hover:bg-teal-700 text-white px-4 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Save & Finalize Closing</span>
+            </button>
 
-              {/* Card 2: In Pocket — actually received amount */}
-              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/60 p-3.5 rounded-2xl border border-emerald-200 shadow-2xs">
-                <div className="text-[11px] font-black text-emerald-900 uppercase tracking-wider flex items-center justify-between">
-                  <span>In Pocket</span>
-                  <span className="text-[10px] bg-emerald-200 text-emerald-900 font-black px-1.5 py-0.2 rounded">
-                    Received
-                  </span>
-                </div>
-                <div className="text-xl sm:text-2xl font-black text-emerald-700 mt-1 font-mono">
-                  ₹{metrics.inPocket.toLocaleString('en-IN')}
-                </div>
-                <div className="text-[10px] text-emerald-800 mt-0.5 font-semibold flex items-center gap-1.5 flex-wrap">
-                  <span>💵 Cash: ₹{metrics.cashInPocket.toLocaleString('en-IN')}</span>
-                  <span>•</span>
-                  <span>📱 UPI: ₹{metrics.upiInPocket.toLocaleString('en-IN')}</span>
-                </div>
-              </div>
-
-              {/* Card 3: Full Payment */}
-              <div className="bg-gradient-to-br from-teal-50 to-teal-100/60 p-3.5 rounded-2xl border border-teal-200 shadow-2xs">
-                <div className="text-[11px] font-black text-teal-900 uppercase tracking-wider flex items-center justify-between">
-                  <span>Full Payment</span>
-                  <Check className="w-3.5 h-3.5 text-teal-700" />
-                </div>
-                <div className="text-xl sm:text-2xl font-black text-teal-800 mt-1 font-mono">
-                  ₹{metrics.fullPaymentAmount.toLocaleString('en-IN')}
-                </div>
-                <div className="text-[10px] text-teal-700 mt-0.5 font-medium">
-                  {metrics.fullPaymentCount} Patients (Nil Due)
-                </div>
-              </div>
-
-              {/* Card 4: Advance Payment */}
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100/60 p-3.5 rounded-2xl border border-amber-200 shadow-2xs">
-                <div className="text-[11px] font-black text-amber-900 uppercase tracking-wider flex items-center justify-between">
-                  <span>Advance Payment</span>
-                  <Clock className="w-3.5 h-3.5 text-amber-700" />
-                </div>
-                <div className="text-xl sm:text-2xl font-black text-amber-800 mt-1 font-mono">
-                  ₹{metrics.advancePaymentAmount.toLocaleString('en-IN')}
-                </div>
-                <div className="text-[10px] text-amber-700 mt-0.5 font-medium">
-                  {metrics.advancePaymentCount} Patients with Advance
-                </div>
-              </div>
-
-              {/* Card 5: Due Payment */}
-              <div className="bg-gradient-to-br from-rose-50 to-rose-100/60 p-3.5 rounded-2xl border border-rose-200 shadow-2xs col-span-2 sm:col-span-1">
-                <div className="text-[11px] font-black text-rose-900 uppercase tracking-wider flex items-center justify-between">
-                  <span>Due Payment</span>
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-700" />
-                </div>
-                <div className="text-xl sm:text-2xl font-black text-rose-700 mt-1 font-mono">
-                  ₹{metrics.duePaymentAmount.toLocaleString('en-IN')}
-                </div>
-                <div className="text-[10px] text-rose-700 mt-0.5 font-medium">
-                  {metrics.duePaymentCount} Pending Balance
-                </div>
-              </div>
-            </div>
-
-            {/* Patient Earning Record Table (WITHOUT "In Pocket" column) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-700 px-1">
-                <span className="uppercase tracking-wider">
-                  Patient Earning Records ({filteredEntries.length})
-                </span>
-                <span className="text-[11px] text-slate-400 font-normal">
-                  Auto-updated as filters change
-                </span>
-              </div>
-
-              <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs bg-white">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-slate-100 text-slate-700 uppercase font-black text-[10px] tracking-wider border-b border-slate-200">
-                        <th className="py-3 px-3">Token No.</th>
-                        <th className="py-3 px-3">Date & Time</th>
-                        <th className="py-3 px-3">Client Details / Mobile</th>
-                        <th className="py-3 px-3">Tests Selected</th>
-                        <th className="py-3 px-3 text-right">Total Bill</th>
-                        <th className="py-3 px-3 text-center">Status</th>
-                        <th className="py-3 px-3 text-right">Due Amount</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 font-medium">
-                      {filteredEntries.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="py-12 text-center text-slate-400">
-                            <Receipt className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                            <div className="font-bold text-slate-600 text-sm">No records found for this filter</div>
-                            <div className="text-xs text-slate-400 mt-0.5">
-                              Try selecting another date or payment filter.
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredEntries.map((entry, idx) => {
-                          const netTotal = Math.max(0, (entry.totalAmount || 0) - (entry.discountINR || 0));
-                          const received = (entry.paidAmount || 0) + (entry.balancePaidAmount || 0);
-                          const due = entry.dueAmount ?? Math.max(0, netTotal - received);
-
-                          const paymentStatusType: 'Full Payment' | 'Advance' | 'Due' =
-                            due === 0 || entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid'
-                              ? 'Full Payment'
-                              : due > 0 && received > 0
-                              ? 'Advance'
-                              : 'Due';
-
-                          return (
-                            <tr key={entry.id || idx} className="hover:bg-teal-50/40 transition">
-                              {/* Token Number */}
-                              <td className="py-3 px-3 font-mono font-black text-slate-900">
-                                <span className="bg-[#123B6D] text-white px-2 py-0.5 rounded text-[11px]">
-                                  {entry.tokenNumber || entry.tokenNo || `TK-${100 + idx + 1}`}
-                                </span>
-                              </td>
-
-                              {/* Date & Time */}
-                              <td className="py-3 px-3">
-                                <div className="font-semibold text-slate-800">
-                                  {entry.entryDate || todayStr}
-                                </div>
-                                <div className="text-[10px] text-slate-400">
-                                  {entry.registeredAt || 'Morning Shift'}
-                                </div>
-                              </td>
-
-                              {/* Client Details: Name, Age, Mobile */}
-                              <td className="py-3 px-3">
-                                <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                                  <span>{entry.patientName}</span>
-                                  <span className="text-[11px] text-slate-400 font-normal">
-                                    ({entry.age}Y • {entry.gender})
-                                  </span>
-                                </div>
-                                <div className="text-[11px] text-slate-600 font-mono flex items-center gap-1 mt-0.5">
-                                  <Phone className="w-3 h-3 text-slate-400" />
-                                  <span>+91 {entry.mobile}</span>
-                                </div>
-                              </td>
-
-                              {/* Tests Selected */}
-                              <td className="py-3 px-3">
-                                <div className="flex flex-wrap gap-1 max-w-xs">
-                                  {entry.tests && entry.tests.length > 0 ? (
-                                    entry.tests.map((t, tIdx) => (
-                                      <span
-                                        key={tIdx}
-                                        className="bg-slate-100 border border-slate-200 px-1.5 py-0.2 rounded text-[10px] text-slate-700"
-                                      >
-                                        {t}
-                                      </span>
-                                    ))
-                                  ) : (
-                                    <span className="text-slate-400 italic text-[11px]">General Checkup</span>
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* Total Bill */}
-                              <td className="py-3 px-3 text-right font-mono font-bold text-slate-800">
-                                ₹{netTotal.toLocaleString('en-IN')}
-                              </td>
-
-                              {/* Status */}
-                              <td className="py-3 px-3 text-center">
-                                {paymentStatusType === 'Full Payment' ? (
-                                  <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
-                                    <Check className="w-2.5 h-2.5" /> Full Paid
-                                  </span>
-                                ) : paymentStatusType === 'Advance' ? (
-                                  <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                    Advance Paid
-                                  </span>
-                                ) : (
-                                  <span className="bg-rose-100 text-rose-900 border border-rose-300 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                    Payment Due
-                                  </span>
-                                )}
-                              </td>
-
-                              {/* Due Amount */}
-                              <td className="py-3 px-3 text-right font-mono font-bold">
-                                {due > 0 ? (
-                                  <span className="text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
-                                    ₹{due.toLocaleString('en-IN')}
-                                  </span>
-                                ) : (
-                                  <span className="text-emerald-700 text-[11px]">✓ ₹0</span>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-
-                    {/* Grand Totals Footer */}
-                    {filteredEntries.length > 0 && (
-                      <tfoot className="bg-slate-100 border-t-2 border-slate-300 font-black text-xs text-slate-900">
-                        <tr>
-                          <td colSpan={4} className="py-3 px-3 uppercase tracking-wider">
-                            Total Summary ({filteredEntries.length} Patients)
-                          </td>
-                          <td className="py-3 px-3 text-right font-mono text-[#123B6D] text-sm">
-                            ₹{metrics.totalEarning.toLocaleString('en-IN')}
-                          </td>
-                          <td className="py-3 px-3 text-center text-[11px] text-slate-500 font-semibold">
-                            {metrics.fullPaymentCount} Full • {metrics.advancePaymentCount} Adv
-                          </td>
-                          <td className="py-3 px-3 text-right font-mono text-rose-600 text-sm">
-                            ₹{metrics.duePaymentAmount.toLocaleString('en-IN')}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    )}
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Info Strip */}
-            <div className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-500 gap-2">
-              <div>
-                <span>Official Patient Earning Record • {vendorLabSettings?.labName}</span>
-              </div>
-              <div className="text-[11px]">
-                Powered by Apex Lab Smart OS (indianlalaji.com)
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-500 hover:text-slate-800 text-xs font-bold px-2 py-1 cursor-pointer"
+            >
+              Close
+            </button>
           </div>
         </div>
       </div>

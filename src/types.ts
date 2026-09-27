@@ -265,7 +265,6 @@ export interface VendorLabSettings {
   status?: VendorStatus;
   ownerPassword?: string;
   ownerPin?: string;
-  ownerName?: string;
   // Site Settings & Plan Visibility
   featureImageUrl?: string;
   siteDescription?: string;
@@ -394,8 +393,6 @@ export interface TestItem {
 export interface Patient {
   id: string;
   uhid: string;
-  tokenNumber?: string;
-  tokenNo?: string;
   name: string;
   age: number;
   gender: 'Male' | 'Female' | 'Other';
@@ -403,9 +400,8 @@ export interface Patient {
   city: string;
   referringDoctor: string;
   registeredAt: string;
-  entryDate?: string;
   reportId: string;
-  status: 'Sample Collected' | 'In Processing' | 'Pending Verification' | 'Report Ready' | 'Delivered' | 'Waiting' | 'In Testing' | 'Report Done';
+  status: 'Sample Collected' | 'In Processing' | 'Pending Verification' | 'Report Ready' | 'Delivered';
   tests: string[];
   totalBill: number;
   paidAmount: number;
@@ -414,13 +410,6 @@ export interface Patient {
   labId?: string;
   branchId?: string;
   branchName?: string;
-  sentToReceptionDesk?: boolean;
-  sentToReceptionAt?: string;
-  technicianStatus?: string;
-  returnedByTechnician?: boolean;
-  returnReason?: string;
-  returnedAt?: string;
-  notes?: string;
 }
 
 export interface ReportItem {
@@ -474,8 +463,6 @@ export interface LabReport {
   publishedBy?: string;
   paymentStatus?: string;
   dueAmount?: number;
-  sentToReceptionDesk?: boolean;
-  sentToReceptionAt?: string;
 }
 
 export interface BranchStat {
@@ -568,12 +555,11 @@ export interface ReceptionPatientEntry {
   paymentStatus: 'Full Payment' | 'Paid' | 'Advance' | 'Pending' | 'Partial' | 'Due' | 'Due Payment';
   status: 'Waiting' | 'Sample Collected' | 'In Lab' | 'Report Ready';
   registeredAt?: string;
-  entryDate?: string;
   entryTime?: string;
   testNames?: string[];
   notes?: string;
   sentToTechnician?: boolean;
-  technicianStatus?: 'Not Sent' | 'Sent to Lab' | 'Accepted' | 'Report Generated' | 'Pending' | 'Returned';
+  technicianStatus?: 'Not Sent' | 'Sent to Lab' | 'Accepted' | 'Report Generated' | 'Pending';
   sentToLabAt?: string;
   reportId?: string;
   technicianNotes?: string;
@@ -599,15 +585,6 @@ export interface ReceptionPatientEntry {
   isReportPublished?: boolean;
   publishedAt?: string;
   publishedBy?: string;
-  receptionistId?: string;
-  receptionistName?: string;
-  technicianId?: string;
-  technicianName?: string;
-  sentToReceptionDesk?: boolean;
-  sentToReceptionAt?: string;
-  returnedByTechnician?: boolean;
-  returnReason?: string;
-  returnedAt?: string;
 }
 
 export type DomainRequestType = 'custom_domain' | 'subdomain';

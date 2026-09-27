@@ -384,9 +384,12 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-[#F8FAFC] text-[#172033] flex flex-col font-sans">
-        <LabSoftwareApp
-          onBackToWebsite={handleBackToWebsite}
-          onViewReport={handleViewPatientPortal}
+        <TechnicianDepartmentDashboard
+          onNavigateView={(view) => {
+            setCurrentView(view);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onOpenReportPortal={handleViewPatientPortal}
         />
         <CmsAuthModal
           isOpen={isAuthModalOpen}

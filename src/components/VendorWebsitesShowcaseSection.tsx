@@ -113,12 +113,12 @@ export const VendorWebsitesShowcaseSection: React.FC<VendorWebsitesShowcaseSecti
             <span className="w-1.5 h-1.5 rounded-full bg-teal-600 animate-pulse"></span>
           </div>
 
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-[#123B6D] tracking-tight leading-tight mb-2">
-            Lab Search
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-[#123B6D] tracking-tight leading-tight mb-4">
+            Lab Search — Find Verified Diagnostic Centers
           </h2>
 
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-            Find Verified Diagnostic Centers • Search certified partner pathology laboratories powered by <span className="font-bold text-[#123B6D]">{displayBrand}</span>. Explore test packages, compare rates, or visit individual laboratory websites directly for home collection and instant WhatsApp reports.
+          <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
+            Search certified partner pathology laboratories powered by <span className="font-bold text-[#123B6D]">{displayBrand}</span>. Explore test packages, compare rates, or visit individual laboratory websites directly for home collection and instant WhatsApp reports.
           </p>
         </div>
 

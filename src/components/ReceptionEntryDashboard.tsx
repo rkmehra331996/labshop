@@ -39,8 +39,6 @@ import {
   LogOut,
   Download,
   Calculator,
-  Calendar,
-  RotateCcw,
 } from 'lucide-react';
 import { useCms } from '../context/CmsContext';
 import { DashboardFooter } from './DashboardFooter';
@@ -48,7 +46,7 @@ import { AppView, ReceptionPatientEntry } from '../types';
 import { EditReceptionEntryModal } from './EditReceptionEntryModal';
 import { CollectRemainingPaymentModal } from './CollectRemainingPaymentModal';
 import { DayEndCashClosingModal } from './reception/DayEndCashClosingModal';
-import { generateThermalReceiptPdf, buildReceiptInvoicePdf, getReceiptPdfFilename } from '../utils/pdfGenerator';
+import { generateThermalReceiptPdf } from '../utils/pdfGenerator';
 import { safePrint } from '../utils/printHelper';
 
 interface ReceptionEntryDashboardProps {
@@ -210,15 +208,10 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     editingEntryId,
   ]);
 
-  // Queue search: Token Number & Mobile Number
-  const [searchToken, setSearchToken] = useState('');
-  const [searchMobile, setSearchMobile] = useState('');
-
-  // Independent Filters: Date Filter & Payment Filter
-  const [dateFilter, setDateFilter] = useState<'All Dates' | 'Today' | 'Yesterday' | 'Custom Date'>('All Dates');
-  const [customDate, setCustomDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [paymentFilter, setPaymentFilter] = useState<'All' | 'Advance' | 'Due' | 'Full Payment'>('All');
+  // Queue search & status filter
+  const [queueSearch, setQueueSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Waiting' | 'Sample Collected' | 'In Lab' | 'Report Ready' | 'Publish Pending'>('All');
+  const [paymentFilter, setPaymentFilter] = useState<'All' | 'Full Payment' | 'Advance' | 'Due' | 'Website'>('All');
 
   // Thermal Slip Modal
   const [selectedReceipt, setSelectedReceipt] = useState<ReceptionPatientEntry | null>(null);
@@ -241,11 +234,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     setToastMessage(msg);
     setTimeout(() => setToastMessage(''), 3500);
   };
-
-  // Entries returned by Technician requiring Reception attention
-  const returnedByTechnicianEntries = useMemo(() => {
-    return receptionEntries.filter((r) => r.returnedByTechnician);
-  }, [receptionEntries]);
 
   // Popular Quick-Click Tests
   const quickTestPills = [
@@ -412,19 +400,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   // Load an existing entry directly into the main form for in-place correction
   const handleLoadEntryToForm = (entry: ReceptionPatientEntry) => {
-    const isLocked = Boolean(
-      entry.sentToTechnician ||
-      entry.technicianStatus === 'Sent to Lab' ||
-      entry.technicianStatus === 'Accepted' ||
-      entry.technicianStatus === 'Report Generated' ||
-      entry.status === 'In Lab' ||
-      entry.status === 'Report Ready' ||
-      entry.reportId
-    );
-    if (isLocked) {
-      showToast('🔒 Yeh entry lab bheji ja chuki hai ya report ready hai, isliye edit nahi ki ja sakti.');
-      return;
-    }
     saveCurrentAsSnapshot();
     setEditingEntryId(entry.id);
     setPatientName(entry.patientName);
@@ -553,7 +528,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       paymentStatus: calculatedPaymentStatus,
       status: 'Waiting',
       registeredAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      entryDate: new Date().toISOString().split('T')[0],
       notes: notes.trim() || undefined,
     };
 
@@ -612,7 +586,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
       technicianStatus: 'Sent to Lab',
       sentToLabAt: `Today, ${nowTime}`,
       registeredAt: nowTime,
-      entryDate: new Date().toISOString().split('T')[0],
       notes: notes.trim() || undefined,
     };
 
@@ -692,26 +665,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   // Edit Patient Handlers
   const handleOpenEdit = (entry: ReceptionPatientEntry) => {
-    const isReportReady = Boolean(
-      entry.status === 'Report Ready' ||
-      entry.technicianStatus === 'Report Generated' ||
-      entry.reportId
-    );
-    const isSentToLab = Boolean(
-      entry.sentToTechnician ||
-      entry.technicianStatus === 'Sent to Lab' ||
-      entry.technicianStatus === 'Accepted' ||
-      entry.status === 'In Lab'
-    );
-
-    if (isReportReady) {
-      showToast('🔒 Report ready hone ke baad entry edit nahi ki ja sakti.');
-      return;
-    }
-    if (isSentToLab) {
-      showToast('🔒 "Send to Lab" hone ke baad entry edit nahi ki ja sakti.');
-      return;
-    }
     setEditingEntry(entry);
     setIsEditModalOpen(true);
   };
@@ -731,17 +684,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   // Lab Technician Pipeline Actions
   const handleSendToLab = (entry: ReceptionPatientEntry) => {
-    if (
-      entry.sentToTechnician ||
-      entry.technicianStatus === 'Sent to Lab' ||
-      entry.technicianStatus === 'Accepted' ||
-      entry.technicianStatus === 'Report Generated' ||
-      entry.status === 'In Lab' ||
-      entry.status === 'Report Ready'
-    ) {
-      showToast(`⚠️ Token ${entry.tokenNumber} is already sent to the lab!`);
-      return;
-    }
     sendEntryToTechnician(entry.id);
     showToast(`🧪 Token ${entry.tokenNumber} (${entry.patientName}) sent to Lab Technician!`);
   };
@@ -789,79 +731,32 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     (e) => e.bookingSource === 'Website' || e.notes?.toLowerCase().includes('website')
   ).length;
 
-  // Filtered Queue with Independent Date Filter & Payment Filter & Dual Inline Search (Token / Mobile)
-  const todayDateStr = new Date().toISOString().split('T')[0];
-  const yesterdayDateObj = new Date();
-  yesterdayDateObj.setDate(yesterdayDateObj.getDate() - 1);
-  const yesterdayDateStr = yesterdayDateObj.toISOString().split('T')[0];
-
+  // Filtered Queue
   const filteredQueue = receptionEntries.filter((item) => {
-    // 1. Search by Token Number or Mobile Number (Inline Row)
-    const qToken = searchToken.trim().toLowerCase();
-    if (qToken) {
-      const matchToken =
-        (item.tokenNumber && item.tokenNumber.toLowerCase().includes(qToken)) ||
-        (item.tokenNo && item.tokenNo.toLowerCase().includes(qToken));
-      if (!matchToken) return false;
-    }
-
-    const qMobile = searchMobile.trim().replace(/\D/g, '');
-    if (qMobile) {
-      const itemMobileDigits = (item.mobile || '').replace(/\D/g, '');
-      if (!itemMobileDigits.includes(qMobile)) return false;
-    }
-
-    // 2. Date Filter (Independent)
-    // Options: 'All Dates' | 'Today' | 'Yesterday' | 'Custom Date'
-    if (dateFilter !== 'All Dates') {
-      const entryDate = item.entryDate || (() => {
-        if (item.id === 'rcp-103' || item.id === 'rcp-104') {
-          return yesterdayDateStr;
-        }
-        if (item.id?.startsWith('rcp-')) {
-          const ts = Number(item.id.replace('rcp-', ''));
-          if (!isNaN(ts) && ts > 1600000000000) {
-            return new Date(ts).toISOString().split('T')[0];
-          }
-        }
-        return todayDateStr;
-      })();
-
-      if (dateFilter === 'Today' && entryDate !== todayDateStr) {
-        return false;
-      }
-      if (dateFilter === 'Yesterday' && entryDate !== yesterdayDateStr) {
-        return false;
-      }
-      if (dateFilter === 'Custom Date' && entryDate !== customDate) {
-        return false;
-      }
-    }
-
-    // 3. Payment Filter (Independent)
-    // Options: 'All' | 'Advance' | 'Due' | 'Full Payment'
-    const paymentStatusType: 'Full Payment' | 'Advance' | 'Due' =
-      item.dueAmount === 0 || item.paymentStatus === 'Full Payment' || item.paymentStatus === 'Paid'
-        ? 'Full Payment'
-        : (item.paidAmount > 0 && item.dueAmount > 0) || item.paymentStatus === 'Advance' || item.paymentStatus === 'Partial'
-        ? 'Advance'
-        : 'Due';
-
-    if (paymentFilter !== 'All') {
-      if (paymentFilter === 'Full Payment' && paymentStatusType !== 'Full Payment') return false;
-      if (paymentFilter === 'Advance' && paymentStatusType !== 'Advance') return false;
-      if (paymentFilter === 'Due' && paymentStatusType !== 'Due') return false;
-    }
-
-    // 4. Status Filter (Workflow tabs)
     const isReady = item.status === 'Report Ready' || item.technicianStatus === 'Report Generated' || Boolean(item.reportId);
-    if (statusFilter !== 'All') {
-      if (statusFilter === 'Publish Pending' && (!isReady || item.isReportPublished)) return false;
-      if (statusFilter === 'Report Ready' && !isReady) return false;
-      if (statusFilter !== 'Publish Pending' && statusFilter !== 'Report Ready' && item.status !== statusFilter) return false;
-    }
+    const matchesFilter =
+      statusFilter === 'All'
+        ? true
+        : statusFilter === 'Publish Pending'
+        ? isReady && !item.isReportPublished
+        : statusFilter === 'Report Ready'
+        ? isReady
+        : item.status === statusFilter;
+    const matchesPayment =
+      paymentFilter === 'All' ||
+      (paymentFilter === 'Full Payment' && (item.dueAmount === 0 || item.paymentStatus === 'Full Payment' || item.paymentStatus === 'Paid')) ||
+      (paymentFilter === 'Advance' && ((item.dueAmount > 0 && item.paidAmount > 0) || item.paymentStatus === 'Advance' || item.paymentStatus === 'Partial')) ||
+      (paymentFilter === 'Due' && (item.paidAmount === 0 || item.paymentStatus === 'Pending' || item.paymentStatus === 'Due' || item.paymentStatus === 'Due Payment')) ||
+      (paymentFilter === 'Website' && (item.bookingSource === 'Website' || item.notes?.toLowerCase().includes('website')));
 
-    return true;
+    const q = queueSearch.toLowerCase();
+    const matchesSearch =
+      item.patientName.toLowerCase().includes(q) ||
+      item.tokenNumber.toLowerCase().includes(q) ||
+      item.uhid.toLowerCase().includes(q) ||
+      item.mobile.includes(q) ||
+      item.referringDoctor.toLowerCase().includes(q);
+    return matchesFilter && matchesPayment && matchesSearch;
   });
 
   // Today's Counter Stats
@@ -887,59 +782,21 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     showToast(`🔄 Token ${entry.tokenNumber} updated to: ${nextStatus}`);
   };
 
-  const handleShareInvoice = async (entry: ReceptionPatientEntry) => {
-    try {
-      showToast('📄 Generating receipt PDF...');
-      const { doc, filename, file } = await buildReceiptInvoicePdf(entry, labName);
-
-      const netAmount = (entry.totalAmount || 0) - (entry.discountINR || 0);
-      const shareText =
-        `🧾 *${labName}* - Token & Invoice Receipt\n` +
-        `--------------------------------\n` +
-        `🎟️ Token No: *${entry.tokenNumber}*\n` +
-        `🆔 UHID: ${entry.uhid}\n` +
-        `👤 Patient: *${entry.patientName}* (${entry.age}Y/${entry.gender})\n` +
-        `📱 Mobile: +91 ${entry.mobile}\n` +
-        `🩺 Doctor: ${entry.referringDoctor}\n` +
-        `🧪 Tests: ${entry.tests.join(', ')}\n` +
-        `--------------------------------\n` +
-        `💵 Net Bill: ₹${netAmount}\n` +
-        `✅ Paid: ₹${entry.paidAmount}${entry.paidAmount > 0 ? ` (${entry.paymentMode})` : ''}\n` +
-        `${entry.dueAmount > 0 ? `⚠️ Due Balance: ₹${entry.dueAmount}\n` : '✨ Status: Paid in Full (Nil Due)\n'}` +
-        `📄 Attached PDF: *${filename}*\n\n` +
-        `Thank you for choosing ${labName}!`;
-
-      // 1. Try native Web Share API with actual PDF File object (Supported by Mobile WhatsApp & desktop share)
-      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            files: [file],
-            title: `Receipt ${entry.tokenNumber} - ${labName}`,
-            text: shareText,
-          });
-          showToast(`✅ Receipt PDF (${filename}) shared via WhatsApp!`);
-          return;
-        } catch (shareErr: any) {
-          if (shareErr.name === 'AbortError') {
-            return;
-          }
-        }
-      }
-
-      // 2. Direct Fallback: Automatically download the exact receipt PDF and open WhatsApp chat
-      doc.save(filename);
-      const cleanMobile = entry.mobile.replace(/\D/g, '');
-      const url = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(shareText)}`;
-      window.open(url, '_blank');
-      showToast(`✅ Receipt PDF "${filename}" downloaded & WhatsApp opened!`);
-    } catch (err) {
-      console.error(err);
-      showToast('❌ Failed to generate receipt PDF. Please try again.');
-    }
-  };
-
   const handleWhatsAppReceipt = (entry: ReceptionPatientEntry) => {
-    handleShareInvoice(entry);
+    const text = encodeURIComponent(
+      `*${labName}* - Reception Receipt\n` +
+      `--------------------------------\n` +
+      `Token No: *${entry.tokenNumber}*\n` +
+      `UHID: ${entry.uhid}\n` +
+      `Patient: *${entry.patientName}* (${entry.age}Y/${entry.gender})\n` +
+      `Tests: ${entry.tests.join(', ')}\n` +
+      `Total: ₹${entry.totalAmount} | Paid: ₹${entry.paidAmount} (${entry.paymentMode})\n` +
+      `${entry.dueAmount > 0 ? `Due Balance: ₹${entry.dueAmount}\n` : ''}` +
+      `Status: ${entry.status}\n` +
+      `Online Report: https://apexlab.in/report?id=${entry.uhid}\n\n` +
+      `Thank you for choosing ${labName}!`
+    );
+    window.open(`https://wa.me/91${entry.mobile.replace(/\D/g, '')}?text=${text}`, '_blank');
   };
 
   return (
@@ -983,28 +840,60 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   {labName}
                 </span>
               </div>
-              {/* Dashboard badge */}
+              {/* Konsa dashboard open hai uska naam + Device A / Device B selector */}
               <div className="flex items-center gap-2 flex-wrap mt-0.5">
                 <span className="bg-amber-400 text-slate-950 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1">
                   <span>🖥️</span>
                   <span>Reception Entry & Billing Dashboard</span>
                 </span>
+                {/* Active Device Toggle: Device A & Device B */}
+                <div
+                  id="reception-device-selector"
+                  className="inline-flex items-center bg-teal-950/70 p-0.5 rounded-lg border border-teal-400/40 text-[11px]"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setActiveBranchId('branch-1')}
+                    className={`px-2 py-0.5 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
+                      activeBranchId === 'branch-1'
+                        ? 'bg-amber-400 text-slate-950 shadow-xs'
+                        : 'text-teal-200 hover:text-white'
+                    }`}
+                    title="Device A: Counter #1 (Reception & Billing)"
+                  >
+                    <span>🖥️ Device A</span>
+                    <span className="text-[9px] opacity-80">(Counter 1)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveBranchId('branch-2')}
+                    className={`px-2 py-0.5 rounded font-bold transition flex items-center gap-1 cursor-pointer ${
+                      activeBranchId === 'branch-2'
+                        ? 'bg-amber-400 text-slate-950 shadow-xs'
+                        : 'text-teal-200 hover:text-white'
+                    }`}
+                    title="Device B: Counter #2 (Lab Testing Workstation)"
+                  >
+                    <span>💻 Device B</span>
+                    <span className="text-[9px] opacity-80">(Counter 2)</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Action Buttons: Vendor Home Website + Daily Cash Closing + Log Out */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            {/* Day & Cash Earning Report & Closing Button */}
+            {/* Day-End Cash Closing Tally Sheet Button */}
             <button
               type="button"
               id="reception-btn-cash-closing"
               onClick={() => setIsCashClosingOpen(true)}
               className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border border-emerald-500 whitespace-nowrap"
-              title="Day & Cash (Earning Report, Collections & Closing)"
+              title="Day-End Reception Cash Closing (Daily Tally Sheet)"
             >
               <Calculator className="w-3.5 h-3.5 text-amber-300" />
-              <span>Day & Cash</span>
+              <span>Day-End Cash Closing</span>
             </button>
 
             {/* Vendor Home Website Button */}
@@ -1059,6 +948,89 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
       {/* 2. Main Content Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 w-full space-y-6">
+        {/* Today's Reception Metrics Strip */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {/* Card 1: Today's Patients */}
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+              <span>Today's Tokens</span>
+              <span className="text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                {activeBranchId === 'branch-2' ? 'Device B (Counter 2)' : 'Device A (Counter 1)'}
+              </span>
+            </div>
+            <div className="text-2xl font-black text-[#172033] mt-1">
+              {totalPatientsToday} <span className="text-xs font-medium text-slate-400">Patients</span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-0.5">Live queue active</div>
+          </div>
+
+          {/* Card 2: Total Net Billed */}
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+              <span>Total Billed</span>
+              <span className="text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded text-[10px] font-bold">Net Invoiced</span>
+            </div>
+            <div className="text-2xl font-black text-[#123B6D] mt-1">
+              ₹{totalNetBilled.toLocaleString('en-IN')}
+            </div>
+            <div className="text-[11px] text-slate-500 mt-0.5">After test discounts</div>
+          </div>
+
+          {/* Card 3: Today's Collection */}
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+              <span>Total Collected</span>
+              <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] font-bold">Received</span>
+            </div>
+            <div className="text-2xl font-black text-emerald-700 mt-1">
+              ₹{totalTotalCollection.toLocaleString('en-IN')}
+            </div>
+            <div className="text-[11px] text-slate-500 mt-0.5 flex gap-2">
+              <span>Cash: ₹{totalCashCollected}</span>
+              <span>•</span>
+              <span>UPI: ₹{totalUpiCollected}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsCashClosingOpen(true)}
+              className="mt-2 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg w-full flex items-center justify-center gap-1 cursor-pointer transition"
+            >
+              <Calculator className="w-3 h-3 text-emerald-600" />
+              <span>Daily Tally Sheet</span>
+            </button>
+          </div>
+
+          {/* Card 4: Pending Due Balance */}
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+              <span>Pending Due</span>
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${totalDuePending > 0 ? 'text-rose-700 bg-rose-50' : 'text-emerald-700 bg-emerald-50'}`}>
+                {totalDuePending > 0 ? `${patientsWithDueCount} Pending` : 'All Clear'}
+              </span>
+            </div>
+            <div className={`text-2xl font-black mt-1 ${totalDuePending > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+              ₹{totalDuePending.toLocaleString('en-IN')}
+            </div>
+            <div className="text-[11px] text-slate-500 mt-0.5">
+              {totalDuePending > 0 ? 'To collect on report pickup' : 'No outstanding balances'}
+            </div>
+          </div>
+
+          {/* Card 5: Lab Pipeline */}
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs col-span-2 sm:col-span-1">
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+              <span>Reports Ready</span>
+              <span className="text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded text-[10px] font-bold">{reportsReadyCount} Ready</span>
+            </div>
+            <div className="text-2xl font-black text-[#0F766E] mt-1">
+              {reportsReadyCount} <span className="text-xs font-medium text-slate-400">Ready</span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-0.5">
+              {waitingSamplesCount} samples in phlebotomy
+            </div>
+          </div>
+        </div>
+
         {/* 3. Split Workstation Layout: Left Form + Right Live Queue */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left: New Patient Fast Entry & Billing Form (5 Cols) */}
@@ -1103,82 +1075,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
               </div>
             )}
 
-            {/* Notification: Technician has returned the entry */}
-            {returnedByTechnicianEntries.length > 0 && (
-              <div className="bg-rose-50 border-2 border-rose-300 p-3.5 rounded-xl shadow-xs space-y-2.5 animate-in fade-in">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 text-rose-900">
-                    <span className="p-2 bg-rose-200 text-rose-800 rounded-xl">
-                      <RotateCcw className="w-5 h-5" />
-                    </span>
-                    <div>
-                      <h4 className="font-black text-sm text-slate-900">
-                        Technician has returned the entry.
-                      </h4>
-                      <p className="text-[11px] text-rose-800 font-medium">
-                        {returnedByTechnicianEntries.length} specimen/patient {returnedByTechnicianEntries.length === 1 ? 'entry was' : 'entries were'} returned to Reception with a technician clinical note.
-                      </p>
-                    </div>
-                  </div>
-                  <span className="bg-rose-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs">
-                    Returned by Lab
-                  </span>
-                </div>
-
-                <div className="divide-y divide-rose-200 bg-white rounded-xl border border-rose-200 overflow-hidden">
-                  {returnedByTechnicianEntries.map((retEntry) => (
-                    <div key={retEntry.id} className="p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[11px] font-black bg-rose-100 text-rose-900 px-2 py-0.5 rounded-md border border-rose-200">
-                            {retEntry.tokenNumber || 'TK-101'}
-                          </span>
-                          <strong className="text-slate-900 font-bold">{retEntry.patientName}</strong>
-                          <span className="text-[11px] text-slate-500 font-mono">+91 {retEntry.mobile}</span>
-                        </div>
-                        {retEntry.returnReason && (
-                          <p className="text-xs text-rose-800 mt-1 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
-                            <strong>Technician Reason:</strong> {retEntry.returnReason}
-                          </p>
-                        )}
-                        <div className="text-[10px] text-slate-500 mt-1">
-                          Returned at: {retEntry.returnedAt || 'Today'} • Tests: {Array.isArray(retEntry.tests) ? retEntry.tests.join(', ') : retEntry.tests}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleLoadEntryToForm(retEntry)}
-                          className="px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                          title="Edit patient or tests for re-collection"
-                        >
-                          <Edit2 className="w-3.5 h-3.5 text-amber-300" />
-                          <span>Edit / Re-collect</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateReceptionEntry(retEntry.id, {
-                              returnedByTechnician: false,
-                              technicianStatus: 'Pending',
-                              sentToTechnician: true,
-                            });
-                            showToast(`Sample re-sent to Technician for ${retEntry.patientName}`);
-                          }}
-                          className="px-3 py-1.5 rounded-lg bg-[#123B6D] hover:bg-[#0e2c52] text-white text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
-                          title="Re-send specimen to lab queue"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Re-send to Lab</span>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Recently Registered Patient Banner (Instant 1-Click Correction) */}
             {showRecentlyRegisteredBanner && lastRegisteredEntry && !editingEntryId && (
               <div className="bg-gradient-to-r from-teal-50 via-emerald-50 to-amber-50 border-2 border-teal-300 p-3 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-2xs">
@@ -1203,29 +1099,14 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   </div>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                  {!(
-                    lastRegisteredEntry.sentToTechnician ||
-                    lastRegisteredEntry.technicianStatus === 'Sent to Lab' ||
-                    lastRegisteredEntry.technicianStatus === 'Accepted' ||
-                    lastRegisteredEntry.technicianStatus === 'Report Generated' ||
-                    lastRegisteredEntry.status === 'In Lab' ||
-                    lastRegisteredEntry.status === 'Report Ready' ||
-                    lastRegisteredEntry.reportId
-                  ) ? (
-                    <button
-                      type="button"
-                      onClick={() => handleLoadEntryToForm(lastRegisteredEntry)}
-                      className="bg-[#0F766E] hover:bg-[#0d655e] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                    >
-                      <Edit2 className="w-3.5 h-3.5 text-amber-300" />
-                      <span>Galti Theek Karein (Edit)</span>
-                    </button>
-                  ) : (
-                    <span className="bg-teal-800 text-teal-100 text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1">
-                      <Lock className="w-3 h-3" />
-                      <span>Lab Sent (Locked)</span>
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleLoadEntryToForm(lastRegisteredEntry)}
+                    className="bg-[#0F766E] hover:bg-[#0d655e] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                  >
+                    <Edit2 className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Galti Theek Karein (Edit)</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setShowRecentlyRegisteredBanner(false)}
@@ -1258,146 +1139,135 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
             )}
 
             <form onSubmit={editingEntryId ? handleSaveCorrections : handleRegisterPatient} className="space-y-3.5">
-              {/* 1. Patient Details */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
-                  <span className="text-xs font-black text-[#123B6D] uppercase tracking-wider flex items-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-[#0F766E]" />
-                    <span>1. Patient Details</span>
-                  </span>
+              {/* Patient Name */}
+              <div>
+                <label className="block text-xs font-bold text-[#172033] mb-1">
+                  Patient Full Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={patientName}
+                  onChange={(e) => setPatientName(e.target.value)}
+                  placeholder="e.g. Gurpreet Singh / Anita Sharma"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-[#172033] focus:ring-2 focus:ring-teal-600/30 focus:border-teal-600 outline-none"
+                />
+              </div>
+
+              {/* Age & Gender Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#172033] mb-1">
+                    Age (Years) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="115"
+                    required
+                    value={age}
+                    onChange={(e) => setAge(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-[#172033] focus:ring-2 focus:ring-teal-600/30 focus:border-teal-600 outline-none"
+                  />
                 </div>
 
-                {/* Name | Age | Gender — inline */}
-                <div className="grid grid-cols-12 gap-2 items-end">
-                  {/* Name */}
-                  <div className="col-span-6 sm:col-span-6">
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Patient Name <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={patientName}
-                      onChange={(e) => setPatientName(e.target.value)}
-                      placeholder="e.g. Gurpreet Singh"
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none"
-                    />
-                  </div>
-
-                  {/* Age */}
-                  <div className="col-span-3 sm:col-span-3">
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Age <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="115"
-                      required
-                      value={age}
-                      onChange={(e) => setAge(e.target.value)}
-                      placeholder="Yrs"
-                      className="w-full px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none text-center"
-                    />
-                  </div>
-
-                  {/* Gender */}
-                  <div className="col-span-3 sm:col-span-3">
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Gender <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-                      {(['Male', 'Female', 'Other'] as const).map((g) => (
-                        <button
-                          type="button"
-                          key={g}
-                          onClick={() => setGender(g)}
-                          className={`flex-1 py-1 rounded text-[11px] font-bold transition cursor-pointer text-center ${
-                            gender === g
-                              ? 'bg-white text-teal-800 shadow-2xs font-black'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                          title={g}
-                        >
-                          {g === 'Male' ? 'M' : g === 'Female' ? 'F' : 'O'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Number | Reference — inline */}
-                <div className="grid grid-cols-12 gap-2 items-end">
-                  {/* Number (10-Digit Mobile) */}
-                  <div className="col-span-5 sm:col-span-5">
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Mobile Number <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-2.5 top-1.5 text-xs font-bold text-slate-400">+91</span>
-                      <input
-                        type="tel"
-                        required
-                        value={mobile}
-                        onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                        placeholder="9876543210"
-                        pattern="[0-9]{10}"
-                        className="w-full pl-9 pr-2 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Reference (Doctor / Clinic) */}
-                  <div className="col-span-7 sm:col-span-7">
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Reference (Doctor / Clinic)
-                    </label>
-                    <select
-                      value={referringDoctor}
-                      onChange={(e) => setReferringDoctor(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none truncate"
-                    >
-                      <option value="Self Walk-in (Direct Patient)">Self Walk-in (Direct)</option>
-                      {vendorDoctors.map((doc) => (
-                        <option key={doc.id} value={`${doc.name} (${doc.degrees})`}>
-                          {doc.name} • {doc.specialization}
-                        </option>
-                      ))}
-                      <option value="Dr. S. K. Gupta (MD Med)">Dr. S. K. Gupta (MD Med)</option>
-                      <option value="Dr. Anita Joshi, MD (Obs & Gynae)">Dr. Anita Joshi, MD</option>
-                      <option value="Dr. Hardeep Bawa, MS">Dr. Hardeep Bawa, MS</option>
-                    </select>
+                <div>
+                  <label className="block text-xs font-bold text-[#172033] mb-1">
+                    Gender <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-1 bg-slate-100 p-0.5 rounded-lg text-xs font-bold">
+                    {(['Male', 'Female', 'Other'] as const).map((g) => (
+                      <button
+                        type="button"
+                        key={g}
+                        onClick={() => setGender(g)}
+                        className={`py-1.5 rounded-md text-[11px] transition cursor-pointer ${
+                          gender === g ? 'bg-white text-teal-800 shadow-2xs font-black' : 'text-slate-600'
+                        }`}
+                      >
+                        {g === 'Male' ? 'M' : g === 'Female' ? 'F' : 'O'}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* 2. Test Selection */}
-              <div className="space-y-2.5 pt-1">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
-                  <span className="text-xs font-black text-[#123B6D] uppercase tracking-wider flex items-center gap-1.5">
-                    <FlaskConical className="w-3.5 h-3.5 text-[#0F766E]" />
-                    <span>2. Test Selection</span>
-                  </span>
-                  <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
-                    {selectedTests.length} Selected
-                  </span>
+              {/* 10-Digit Mobile Number */}
+              <div>
+                <label className="block text-xs font-bold text-[#172033] mb-1">
+                  10-Digit Mobile Number <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-xs font-bold text-slate-400">+91</span>
+                  <input
+                    type="tel"
+                    required
+                    value={mobile}
+                    onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="9876543210"
+                    pattern="[0-9]{10}"
+                    className="w-full pl-11 pr-3 py-2 rounded-lg border border-slate-300 text-sm font-semibold text-[#172033] focus:ring-2 focus:ring-teal-600/30 focus:border-teal-600 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Referring Doctor */}
+              <div>
+                <label className="block text-xs font-bold text-[#172033] mb-1">Referring Doctor / Clinic</label>
+                <select
+                  value={referringDoctor}
+                  onChange={(e) => setReferringDoctor(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs font-medium text-[#172033] bg-white focus:ring-2 focus:ring-teal-600/30 focus:border-teal-600 outline-none"
+                >
+                  <option value="Self Walk-in (Direct Patient)">Self Walk-in (Direct Patient)</option>
+                  {vendorDoctors.map((doc) => (
+                    <option key={doc.id} value={`${doc.name} (${doc.degrees})`}>
+                      {doc.name} ({doc.degrees}) • {doc.specialization}
+                    </option>
+                  ))}
+                  <option value="Dr. S. K. Gupta (MD Med)">Dr. S. K. Gupta (MD Med)</option>
+                  <option value="Dr. Anita Joshi, MD (Obs & Gynae)">Dr. Anita Joshi, MD (Obs & Gynae)</option>
+                  <option value="Dr. Hardeep Bawa, MS">Dr. Hardeep Bawa, MS</option>
+                </select>
+              </div>
+
+              {/* Test Selection: Quick Pills + Search */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-[#172033]">
+                    Select Diagnostic Tests <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {selectedTests.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTests([])}
+                        className="text-[10px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                    <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                      {selectedTests.length} Selected
+                    </span>
+                  </div>
                 </div>
 
-                {/* Test Search Box — inline */}
-                <div className="relative">
+                {/* Search Bar for Tests */}
+                <div className="relative mb-2">
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
                   <input
                     type="text"
                     value={testSearch}
                     onChange={(e) => setTestSearch(e.target.value)}
-                    placeholder="Search diagnostic tests (e.g. Sugar, CBC, Lipid, Thyroid, LFT)..."
-                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-800 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none bg-white"
+                    placeholder="Search diagnostic tests (e.g. Sugar, CBC, Lipid, Thyroid, LFT, Urine, Vit D)..."
+                    className="w-full pl-8 pr-8 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-slate-800 focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none placeholder:text-slate-400 bg-white"
                   />
                   {testSearch && (
                     <button
                       type="button"
                       onClick={() => setTestSearch('')}
-                      className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
                       title="Clear search"
                     >
                       <X className="w-3.5 h-3.5" />
@@ -1405,118 +1275,151 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   )}
                 </div>
 
-                {/* Test List */}
-                <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-0.5 flex items-center justify-between">
-                    <span>{testSearch.trim() ? `Matching Tests (${filteredAvailableTests.length}):` : 'Test List:'}</span>
-                    <span className="text-[10px] font-normal text-slate-500">Click to add multiple tests</span>
-                  </div>
+                {/* If searching: Show filtered test results */}
+                {testSearch.trim() ? (
+                  <div className="space-y-1.5 mb-2">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 px-1">
+                      <span>Found {filteredAvailableTests.length} matching test(s):</span>
+                      <span className="text-[10px] text-teal-700">Click to select/unselect</span>
+                    </div>
 
-                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
-                    {filteredAvailableTests.length > 0 ? (
-                      filteredAvailableTests.map((test) => {
+                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                      {filteredAvailableTests.length > 0 ? (
+                        filteredAvailableTests.map((test) => {
+                          const isSelected = selectedTests.includes(test.name);
+                          return (
+                            <button
+                              type="button"
+                              key={test.name}
+                              onClick={() => handleToggleTest(test.name, test.sample)}
+                              className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                                isSelected
+                                  ? 'bg-[#0F766E] text-white shadow-2xs'
+                                  : 'bg-white text-slate-700 border border-slate-200 hover:border-teal-400'
+                              }`}
+                            >
+                              {isSelected && <Check className="w-3 h-3" />}
+                              <span>{test.name}</span>
+                              <span
+                                className={`text-[10px] font-mono ${
+                                  isSelected ? 'text-teal-200' : 'text-slate-400 font-bold'
+                                }`}
+                              >
+                                ₹{test.price}
+                              </span>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <div className="w-full py-2 px-1 text-center space-y-1.5">
+                          <p className="text-xs text-slate-500">
+                            No test found matching "{testSearch}".
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleToggleTest(testSearch.trim());
+                              setTestSearch('');
+                            }}
+                            className="text-xs font-bold text-teal-700 hover:text-teal-800 bg-white border border-teal-300 px-3 py-1 rounded-lg shadow-2xs inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Add "{testSearch.trim()}" as custom test (₹300)</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* When not searching: Quick 1-click popular tests */
+                  <div className="mb-2">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 px-0.5">
+                      Popular / Frequently Booked Tests:
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1.5 bg-slate-50 rounded-xl border border-slate-200">
+                      {quickTestPills.map((test) => {
                         const isSelected = selectedTests.includes(test.name);
                         return (
                           <button
                             type="button"
                             key={test.name}
-                            onClick={() => handleToggleTest(test.name)}
-                            className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                            onClick={() => handleToggleTest(test.name, test.sample)}
+                            className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition cursor-pointer ${
                               isSelected
                                 ? 'bg-[#0F766E] text-white shadow-2xs'
                                 : 'bg-white text-slate-700 border border-slate-200 hover:border-teal-400'
                             }`}
                           >
-                            {isSelected ? <Check className="w-3 h-3 text-teal-200" /> : <Plus className="w-3 h-3 text-slate-400" />}
+                            {isSelected && <Check className="w-3 h-3" />}
                             <span>{test.name}</span>
                             <span
-                              className={`text-[10px] font-mono ${
-                                isSelected ? 'text-teal-200' : 'text-slate-500 font-bold'
+                              className={`text-[10px] ${
+                                isSelected ? 'text-teal-200' : 'text-slate-400 font-bold font-mono'
                               }`}
                             >
                               ₹{test.price}
                             </span>
                           </button>
                         );
-                      })
-                    ) : (
-                      <div className="w-full py-2 px-1 text-center space-y-1.5">
-                        <p className="text-xs text-slate-500">
-                          No test found matching "{testSearch}".
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            handleToggleTest(testSearch.trim());
-                            setTestSearch('');
-                          }}
-                          className="text-xs font-bold text-teal-700 hover:text-teal-800 bg-white border border-teal-300 px-3 py-1 rounded-lg shadow-2xs inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span>Add "{testSearch.trim()}" as custom test (₹300)</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Multiple Added Tests List */}
-                {selectedTests.length > 0 && (
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 px-0.5">
-                      <span>Added Tests ({selectedTests.length}):</span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTests([])}
-                        className="text-[10px] font-medium text-rose-600 hover:underline cursor-pointer"
-                      >
-                        Clear All
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedTests.map((testName) => {
-                        const testObj = allAvailableTests.find((t) => t.name === testName);
-                        const price = testObj ? testObj.price : 300;
-                        return (
-                          <span
-                            key={testName}
-                            className="bg-teal-50 border border-teal-200 text-teal-900 text-[11px] pl-2.5 pr-1.5 py-0.5 rounded-lg flex items-center gap-1.5 font-medium shadow-2xs"
-                          >
-                            <span>{testName}</span>
-                            <span className="font-mono text-[10px] text-teal-700 font-bold">₹{price}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleTest(testName)}
-                              className="text-teal-500 hover:text-rose-600 p-0.5 rounded cursor-pointer ml-0.5"
-                              title="Remove test"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        );
                       })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected Tests Tag Cloud */}
+                {selectedTests.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      Booked Tests ({selectedTests.length}):
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedTests.map((t) => (
+                        <span
+                          key={t}
+                          className="bg-teal-50 border border-teal-200 text-teal-900 text-[11px] px-2 py-0.5 rounded-md flex items-center gap-1 font-medium"
+                        >
+                          <span>{t}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleTest(t)}
+                            className="text-teal-600 hover:text-rose-600 cursor-pointer"
+                            title="Remove test"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* 3. Billing & Payment */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
-                  <span className="text-xs font-black text-[#123B6D] uppercase tracking-wider flex items-center gap-1.5">
-                    <IndianRupee className="w-3.5 h-3.5 text-[#0F766E]" />
-                    <span>3. Billing & Payment</span>
-                  </span>
-                </div>
+              {/* Sample Tube Type */}
+              <div>
+                <label className="block text-xs font-bold text-[#172033] mb-1">Sample Collection Tube</label>
+                <select
+                  value={sampleType}
+                  onChange={(e) => setSampleType(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-medium text-[#172033] bg-white outline-none"
+                >
+                  <option value="EDTA Whole Blood (Lavender Tube)">EDTA Whole Blood (Lavender Tube)</option>
+                  <option value="Serum Clot Activator (Yellow / Red Tube)">Serum Clot Activator (Yellow / Red Tube)</option>
+                  <option value="Fluoride Plasma (Gray Tube - Glucose)">Fluoride Plasma (Gray Tube - Glucose)</option>
+                  <option value="Sodium Citrate (Blue Tube - PT/INR)">Sodium Citrate (Blue Tube - PT/INR)</option>
+                  <option value="Sterile Urine Container">Sterile Urine Container</option>
+                  <option value="EDTA + Serum + Urine Combo">EDTA + Serum + Urine Combo</option>
+                </select>
+              </div>
 
-                {/* Gross Test Amount: ₹____ */}
-                <div className="flex justify-between items-center text-xs bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-2xs">
-                  <span className="font-semibold text-slate-700">Gross Test Amount:</span>
-                  <span className="font-black text-sm text-slate-900 font-mono">₹{grossAmount}</span>
+              {/* Billing Calculation Box */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5">
+                <div className="flex justify-between text-xs text-slate-600">
+                  <span>Gross Test Amount:</span>
+                  <span className="font-bold text-slate-900">₹{grossAmount}</span>
                 </div>
 
                 {/* Optional Discount with Checkbox */}
-                <div className="pt-0.5">
+                <div className="pt-1 border-t border-slate-200">
                   <div className="flex items-center justify-between">
                     <label className="flex items-center gap-2 cursor-pointer select-none">
                       <input
@@ -1531,7 +1434,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                         }}
                         className="w-4 h-4 text-teal-700 rounded border-slate-300 focus:ring-teal-500 cursor-pointer"
                       />
-                      <span className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                      <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                         <span>Discount / Concession</span>
                         <span className="text-[10px] font-normal text-slate-400">(Optional)</span>
                       </span>
@@ -1573,15 +1476,14 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   )}
                 </div>
 
-                {/* Net Payable */}
-                <div className="flex justify-between items-center text-xs font-bold text-[#123B6D] px-1 pt-1 border-t border-slate-200">
+                <div className="flex justify-between text-sm font-black text-[#123B6D] pt-1 border-t border-slate-200">
                   <span>Net Payable:</span>
-                  <span className="text-sm font-black font-mono">₹{netPayable}</span>
+                  <span>₹{netPayable}</span>
                 </div>
 
-                {/* Payment Options: Full | Advance | Due Payment — inline */}
-                <div className="pt-1 border-t border-slate-200 space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
+                {/* Payment Options: Full Payment / Advance % / Due Payment */}
+                <div className="pt-1 border-t border-slate-200">
+                  <div className="text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider flex items-center justify-between">
                     <span>Payment Options:</span>
                     <span className="text-[10px] font-semibold text-teal-700">
                       {paymentChoice === 'Full Payment'
@@ -1591,62 +1493,58 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                         : '0% Paid (Due)'}
                     </span>
                   </div>
-
-                  {/* Inline Segmented Buttons: Full | Advance | Due Payment */}
-                  <div className="inline-flex w-full items-center p-1 bg-white rounded-lg border border-slate-200 shadow-2xs gap-1">
+                  <div className="grid grid-cols-3 gap-1.5 text-[11px] font-bold">
                     <button
                       type="button"
                       onClick={() => {
                         setPaymentChoice('Full Payment');
                         setCustomPaidAmount('');
                       }}
-                      className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+                      className={`py-1.5 px-1.5 rounded-lg border transition cursor-pointer flex items-center justify-center gap-1 ${
                         paymentChoice === 'Full Payment'
-                          ? 'bg-emerald-700 text-white shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                          ? 'bg-emerald-700 text-white border-emerald-800 shadow-2xs'
+                          : 'bg-white text-emerald-800 border-emerald-200 hover:bg-emerald-50'
                       }`}
                     >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Full</span>
+                      <Check className="w-3 h-3" />
+                      <span>Full Payment</span>
                     </button>
-
                     <button
                       type="button"
                       onClick={() => {
                         setPaymentChoice('Advance');
                         setCustomPaidAmount('');
                       }}
-                      className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+                      className={`py-1.5 px-1.5 rounded-lg border transition cursor-pointer flex items-center justify-center gap-1 ${
                         paymentChoice === 'Advance'
-                          ? 'bg-amber-600 text-white shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                          ? 'bg-amber-600 text-white border-amber-700 shadow-2xs'
+                          : 'bg-white text-amber-800 border-amber-200 hover:bg-amber-50'
                       }`}
                     >
-                      <span>Advance</span>
+                      <span>⚠️ Advance %</span>
                     </button>
-
                     <button
                       type="button"
                       onClick={() => {
                         setPaymentChoice('Due');
                         setCustomPaidAmount('0');
                       }}
-                      className={`flex-1 py-1.5 px-2 rounded-md text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+                      className={`py-1.5 px-1.5 rounded-lg border transition cursor-pointer flex items-center justify-center gap-1 ${
                         paymentChoice === 'Due'
-                          ? 'bg-rose-700 text-white shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                          ? 'bg-rose-700 text-white border-rose-800 shadow-2xs'
+                          : 'bg-white text-rose-800 border-rose-200 hover:bg-rose-50'
                       }`}
                     >
-                      <span>Due Payment</span>
+                      <span>❌ Due Payment</span>
                     </button>
                   </div>
 
-                  {/* Advance % selector if Advance is selected */}
+                  {/* Advance % selector */}
                   {paymentChoice === 'Advance' && (
-                    <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg space-y-1.5">
+                    <div className="mt-2 p-2 bg-amber-50/80 border border-amber-200 rounded-lg space-y-1.5">
                       <div className="flex items-center justify-between text-[11px] font-bold text-amber-900">
                         <span>Advance Percentage:</span>
-                        <span className="text-amber-800 font-bold">
+                        <span className="text-amber-800 font-extrabold">
                           {advancePercent}% = ₹{Math.round((netPayable * advancePercent) / 100)}
                         </span>
                       </div>
@@ -1662,7 +1560,7 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                             className={`flex-1 py-1 text-xs font-bold rounded-md border transition cursor-pointer ${
                               advancePercent === pct && customPaidAmount === ''
                                 ? 'bg-amber-600 text-white border-amber-700 shadow-2xs'
-                                : 'bg-white text-amber-900 border-amber-200 hover:bg-amber-100'
+                                : 'bg-white text-amber-800 border-amber-200 hover:bg-amber-100'
                             }`}
                           >
                             {pct}% (₹{Math.round((netPayable * pct) / 100)})
@@ -1673,8 +1571,8 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   )}
                 </div>
 
-                {/* Amount Paid & Due Details */}
-                <div className="grid grid-cols-2 gap-2 pt-0.5">
+                {/* Amount Paid & Due */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-0.5">Amount Paid (₹)</label>
                     <input
@@ -1687,17 +1585,17 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                         setCustomPaidAmount(e.target.value);
                       }}
                       placeholder={`₹${paidAmount}`}
-                      className="w-full px-2.5 py-1 text-xs font-bold text-emerald-700 rounded-lg border border-slate-300 bg-white outline-none"
+                      className="w-full px-2.5 py-1 text-xs font-bold text-emerald-700 rounded border border-slate-300 bg-white outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-0.5">Balance Due</label>
                     <div
-                      className={`text-xs font-black py-1 px-2 rounded-lg ${
+                      className={`text-xs font-black py-1 px-2 rounded ${
                         dueAmount > 0
                           ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-emerald-50 text-emerald-700'
                       }`}
                     >
                       ₹{dueAmount}
@@ -1705,242 +1603,194 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   </div>
                 </div>
 
-                {/* Payment Method: UPI | Cash — inline */}
-                <div className="pt-2 border-t border-slate-200 flex items-center justify-between gap-2">
-                  <label className="text-xs font-bold text-slate-700 shrink-0">Payment Method:</label>
-                  <div className="inline-flex items-center p-0.5 bg-white rounded-lg border border-slate-200 shadow-2xs gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMode('UPI')}
-                      className={`py-1 px-3.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                        paymentMode === 'UPI'
-                          ? 'bg-[#123B6D] text-white shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>📱 UPI</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMode('Cash')}
-                      className={`py-1 px-3.5 rounded-md text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                        paymentMode === 'Cash'
-                          ? 'bg-[#123B6D] text-white shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>💵 Cash</span>
-                    </button>
+                {/* Payment Mode */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Payment Method</label>
+                  <div className="grid grid-cols-3 gap-1.5 text-xs font-bold">
+                    {(['UPI', 'Cash', 'Card'] as const).map((mode) => (
+                      <button
+                        type="button"
+                        key={mode}
+                        onClick={() => setPaymentMode(mode)}
+                        className={`py-1.5 px-2 rounded-lg transition border cursor-pointer ${
+                          paymentMode === mode
+                            ? 'bg-[#123B6D] text-white border-[#123B6D]'
+                            : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        {mode === 'UPI' ? '📱 UPI / QR' : mode === 'Cash' ? '💵 Cash' : '💳 Card'}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* 4. Submit & Token Generation */}
-              <div className="pt-2">
+              {/* Action Buttons */}
+              <div className="pt-2 space-y-2">
                 <button
                   type="submit"
-                  className="w-full bg-[#123B6D] hover:bg-[#0e2c52] text-white py-3 rounded-xl font-black text-sm transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                  className="w-full bg-[#0F766E] hover:bg-[#0d655e] text-white py-2.5 rounded-xl font-black text-xs sm:text-sm transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Submit Entry</span>
-                  <ArrowRight className="w-4 h-4 text-amber-300" />
+                  <Printer className="w-4 h-4 text-amber-300" />
+                  <span>Generate Token & Print Thermal Slip</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleRegisterAndSendToLab}
+                  className="w-full bg-purple-700 hover:bg-purple-800 text-white py-2.5 rounded-xl font-bold text-xs transition shadow-2xs flex items-center justify-center gap-2 cursor-pointer"
+                  title="Register patient and immediately dispatch specimen to Lab Technician workstation"
+                >
+                  <FlaskConical className="w-4 h-4 text-amber-300" />
+                  <span>Register & Send to Lab Tech</span>
                 </button>
               </div>
             </form>
           </div>
 
           {/* Right: Today's Live Queue & Token Calling Board (7 Cols) */}
-          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3.5 flex flex-col">
-            {/* Board Header: Left → Reception List Info | Right → Search by Token No. & Mobile No. */}
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-              {/* Left Side: Reception List & Patients Count */}
-              <div className="shrink-0">
+          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            {/* Board Header & Filter */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div>
                 <h2 className="text-base font-black text-[#172033] flex items-center gap-2">
-                  <span>📋 Reception List</span>
+                  <span>📋 Today's Live Reception Queue</span>
                   <span className="bg-emerald-100 text-emerald-900 text-xs font-bold px-2 py-0.5 rounded-full">
                     {filteredQueue.length} Patients
                   </span>
                 </h2>
-                <p className="text-[11px] text-slate-500">Live patient queue with independent search & filters</p>
+                <p className="text-[11px] text-slate-500">Realtime tracking from sample collection to report dispatch</p>
               </div>
 
-              {/* Right Side: Search by Token Number & Mobile Number */}
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full xl:w-auto">
-                {/* Search by Token Number */}
-                <div className="relative w-full sm:w-44">
-                  <span className="absolute left-2.5 top-2 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                    TK
-                  </span>
-                  <input
-                    type="text"
-                    value={searchToken}
-                    onChange={(e) => setSearchToken(e.target.value)}
-                    placeholder="Search Token No..."
-                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none placeholder:text-slate-400 font-mono shadow-2xs"
-                  />
-                  {searchToken && (
+              {/* Search Bar */}
+              <div className="relative w-full sm:w-56">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={queueSearch}
+                  onChange={(e) => setQueueSearch(e.target.value)}
+                  placeholder="Search token, name, phone..."
+                  className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 text-xs text-[#172033] focus:border-teal-600 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Queue Filter Controls */}
+            <div className="space-y-2">
+              {/* Status Filter Tabs */}
+              <div className="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl text-xs font-bold">
+                {(['All', 'Waiting', 'Sample Collected', 'In Lab', 'Report Ready', 'Publish Pending'] as const).map((st) => {
+                  const count =
+                    st === 'All'
+                      ? receptionEntries.length
+                      : st === 'Report Ready'
+                      ? receptionEntries.filter((e) => e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || Boolean(e.reportId)).length
+                      : st === 'Publish Pending'
+                      ? receptionEntries.filter((e) => (e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || Boolean(e.reportId)) && !e.isReportPublished).length
+                      : receptionEntries.filter((e) => e.status === st).length;
+                  return (
                     <button
-                      type="button"
-                      onClick={() => setSearchToken('')}
-                      className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                      title="Clear token search"
+                      key={st}
+                      onClick={() => setStatusFilter(st)}
+                      className={`py-1 px-2.5 rounded-lg transition text-[11px] flex items-center gap-1.5 cursor-pointer ${
+                        statusFilter === st
+                          ? 'bg-white text-teal-800 font-black shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <span>{st === 'Publish Pending' ? '🔔 Publish Pending' : st}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${st === 'Publish Pending' && count > 0 ? 'bg-amber-200 text-amber-950 font-black' : 'opacity-75'}`}>
+                        {count}
+                      </span>
                     </button>
-                  )}
-                </div>
+                  );
+                })}
+              </div>
 
-                {/* Search by Mobile Number */}
-                <div className="relative w-full sm:w-48">
-                  <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
-                  <input
-                    type="tel"
-                    value={searchMobile}
-                    onChange={(e) => setSearchMobile(e.target.value)}
-                    placeholder="Search Mobile No..."
-                    className="w-full pl-8 pr-7 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none placeholder:text-slate-400 font-mono shadow-2xs"
-                  />
-                  {searchMobile && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchMobile('')}
-                      className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                      title="Clear mobile search"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
+              {/* Payment Status Filter Pills */}
+              <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">
+                  Payment:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPaymentFilter('All')}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition cursor-pointer ${
+                    paymentFilter === 'All'
+                      ? 'bg-[#123B6D] text-white shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  All ({receptionEntries.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentFilter('Full Payment')}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                    paymentFilter === 'Full Payment'
+                      ? 'bg-emerald-700 text-white shadow-2xs'
+                      : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                  }`}
+                >
+                  <Check className="w-3 h-3" />
+                  <span>Full Payment ({fullPaymentCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentFilter('Advance')}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                    paymentFilter === 'Advance'
+                      ? 'bg-amber-600 text-white shadow-2xs'
+                      : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <span>⚠️ Advance ({advancePaymentCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentFilter('Due')}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                    paymentFilter === 'Due'
+                      ? 'bg-rose-700 text-white shadow-2xs'
+                      : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'
+                  }`}
+                >
+                  <span>❌ Due Payment ({pendingPaymentCount})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentFilter('Website')}
+                  className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                    paymentFilter === 'Website'
+                      ? 'bg-sky-700 text-white shadow-2xs'
+                      : 'bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100'
+                  }`}
+                >
+                  <Globe className="w-3 h-3 text-sky-600" />
+                  <span>🌐 Website Bookings ({websiteBookingCount})</span>
+                </button>
               </div>
             </div>
 
-            {/* Independent Filters: One inline row: Date Filter [All Dates ▼] | Payment Filter [All ▼] */}
-            <div className="space-y-1.5 pt-0.5">
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
-                <span>Independent Filters</span>
-                {(dateFilter !== 'All Dates' || paymentFilter !== 'All' || searchToken || searchMobile) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDateFilter('All Dates');
-                      setPaymentFilter('All');
-                      setSearchToken('');
-                      setSearchMobile('');
-                    }}
-                    className="text-[10px] text-teal-700 hover:text-teal-900 font-bold hover:underline cursor-pointer"
-                  >
-                    Reset Filters
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                {/* Date Filter */}
-                <div className="flex items-center gap-1.5 flex-1 min-w-[200px]">
-                  <label className="text-xs font-bold text-slate-700 shrink-0 flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5 text-teal-700" />
-                    <span>Date Filter</span>
-                  </label>
-                  <select
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value as any)}
-                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none cursor-pointer"
-                  >
-                    <option value="All Dates">All Dates</option>
-                    <option value="Today">Today</option>
-                    <option value="Yesterday">Yesterday</option>
-                    <option value="Custom Date">Custom Date</option>
-                  </select>
-                </div>
-
-                {/* If Custom Date selected: inline date input */}
-                {dateFilter === 'Custom Date' && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <input
-                      type="date"
-                      value={customDate}
-                      onChange={(e) => setCustomDate(e.target.value)}
-                      className="px-2 py-1 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 outline-none cursor-pointer"
-                    />
-                  </div>
-                )}
-
-                <span className="hidden sm:inline text-slate-300 font-bold">|</span>
-
-                {/* Payment Filter */}
-                <div className="flex items-center gap-1.5 flex-1 min-w-[180px]">
-                  <label className="text-xs font-bold text-slate-700 shrink-0 flex items-center gap-1">
-                    <IndianRupee className="w-3.5 h-3.5 text-teal-700" />
-                    <span>Payment Filter</span>
-                  </label>
-                  <select
-                    value={paymentFilter}
-                    onChange={(e) => setPaymentFilter(e.target.value as any)}
-                    className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white focus:ring-1 focus:ring-teal-600 focus:border-teal-600 outline-none cursor-pointer"
-                  >
-                    <option value="All">All</option>
-                    <option value="Advance">Advance</option>
-                    <option value="Due">Due</option>
-                    <option value="Full Payment">Full Payment</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Workflow Status Filter Tabs */}
-            <div className="flex flex-wrap gap-1.5 p-1 bg-slate-100 rounded-xl text-xs font-bold">
-              {(['All', 'Waiting', 'Sample Collected', 'In Lab', 'Report Ready', 'Publish Pending'] as const).map((st) => {
-                const count =
-                  st === 'All'
-                    ? receptionEntries.length
-                    : st === 'Report Ready'
-                    ? receptionEntries.filter((e) => e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || Boolean(e.reportId)).length
-                    : st === 'Publish Pending'
-                    ? receptionEntries.filter((e) => (e.status === 'Report Ready' || e.technicianStatus === 'Report Generated' || Boolean(e.reportId)) && !e.isReportPublished).length
-                    : receptionEntries.filter((e) => e.status === st).length;
-                return (
-                  <button
-                    key={st}
-                    onClick={() => setStatusFilter(st)}
-                    className={`py-1 px-2.5 rounded-lg transition text-[11px] flex items-center gap-1.5 cursor-pointer ${
-                      statusFilter === st
-                        ? 'bg-white text-teal-800 font-black shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <span>{st === 'Publish Pending' ? '🔔 Publish Pending' : st}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${st === 'Publish Pending' && count > 0 ? 'bg-amber-200 text-amber-950 font-black' : 'opacity-75'}`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Patients List Cards — Expanded vertical capacity for 5+ simultaneous entries */}
-            <div className="space-y-2 overflow-y-auto pr-1 flex-1 min-h-[660px] max-h-[calc(100vh-140px)] xl:min-h-[760px] xl:max-h-[920px]">
+            {/* Patients List Cards */}
+            <div className="space-y-2.5 max-h-[620px] overflow-y-auto pr-1">
               {filteredQueue.length === 0 ? (
                 <div className="text-center py-12 text-slate-400 text-sm">
                   No patient entries match the selected search or status filter.
                 </div>
               ) : (
                 filteredQueue.map((entry) => {
-                  const isAlreadySent = Boolean(
-                    entry.sentToTechnician ||
-                    entry.technicianStatus === 'Sent to Lab' ||
-                    entry.technicianStatus === 'Accepted' ||
-                    entry.technicianStatus === 'Report Generated' ||
-                    entry.status === 'In Lab' ||
-                    entry.status === 'Report Ready'
-                  );
+                  const statusColors = {
+                    Waiting: 'bg-amber-100 text-amber-900 border-amber-300',
+                    'Sample Collected': 'bg-blue-100 text-blue-900 border-blue-300',
+                    'In Lab': 'bg-purple-100 text-purple-900 border-purple-300',
+                    'Report Ready': 'bg-emerald-100 text-emerald-900 border-emerald-300',
+                  }[entry.status];
 
-                  const isReportReady = Boolean(
+                  const isReportReady =
                     entry.status === 'Report Ready' ||
                     entry.technicianStatus === 'Report Generated' ||
-                    entry.reportId
-                  );
-
-                  const isLockedForEdit = isAlreadySent || isReportReady;
+                    Boolean(entry.reportId);
 
                   const paymentStatusType: 'Full Payment' | 'Advance' | 'Due' =
                     entry.dueAmount === 0 || entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid'
@@ -1949,181 +1799,419 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                       ? 'Advance'
                       : 'Due';
 
-                  const netTotal = Math.max(0, entry.totalAmount - (entry.discountINR || 0));
-                  const hasMadePayment =
-                    (paymentStatusType === 'Full Payment' || paymentStatusType === 'Advance') &&
-                    (entry.paidAmount || 0) > 0;
-
                   return (
                     <div
                       key={entry.id}
-                      className="border border-slate-200 rounded-xl p-3 hover:border-teal-300 hover:shadow-xs transition bg-white space-y-2"
+                      className="border border-slate-200 rounded-xl p-3.5 hover:border-teal-300 hover:shadow-xs transition bg-white space-y-2"
                     >
-                      {/* Header: Left → Token No. + Phone No. | Right → Sent to Lab button / badge */}
-                      <div className="flex items-center justify-between gap-2.5 pb-2 border-b border-slate-100">
-                        {/* Left: Token No. + Phone No. (+ Patient Name & Details) */}
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="bg-[#123B6D] text-white text-xs font-black px-2 py-0.5 rounded-md shrink-0 font-mono tracking-wide shadow-2xs">
-                            {entry.tokenNumber || entry.tokenNo}
+                      {/* Top Row: Token, Name, Payment Status, Stepper */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="bg-[#123B6D] text-white text-xs font-black px-2.5 py-1 rounded-lg shrink-0">
+                            {entry.tokenNumber}
                           </span>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
-                                {entry.patientName}
-                              </span>
-                              <span className="text-[11px] text-slate-500 font-normal">
+                          <div>
+                            <div className="font-extrabold text-sm text-[#172033] flex items-center gap-2">
+                              <span>{entry.patientName}</span>
+                              <span className="text-xs text-slate-400 font-normal">
                                 ({entry.age}Y • {entry.gender})
                               </span>
                             </div>
-                            <div className="text-[11px] font-semibold text-slate-600 flex items-center gap-1 mt-0.5 font-mono">
-                              <Phone className="w-3 h-3 text-slate-400 shrink-0" />
-                              <span>+91 {entry.mobile}</span>
-                              {entry.referringDoctor && (
-                                <span className="text-slate-400 font-normal font-sans text-[10px] truncate">
-                                  • Ref: {entry.referringDoctor.split(' ')[1] || entry.referringDoctor}
-                                </span>
-                              )}
+                            <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                              <span>UHID: {entry.uhid}</span>
+                              <span>•</span>
+                              <span>Mob: +91 {entry.mobile}</span>
+                              <span>•</span>
+                              <span>{entry.registeredAt}</span>
                             </div>
                           </div>
                         </div>
 
-                        {/* Right: Sent to Lab button (only before sending) OR Sent to Lab badge (after sending) */}
-                        <div className="shrink-0">
-                          {!isAlreadySent ? (
+                        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                          {/* Online Website Booking Pill */}
+                          {(entry.bookingSource === 'Website' || entry.notes?.toLowerCase().includes('website')) && (
+                            <span className="bg-sky-50 text-sky-900 border border-sky-300 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <Globe className="w-3 h-3 text-sky-600" />
+                              <span>Website</span>
+                            </span>
+                          )}
+
+                          {/* Home Collection Badge */}
+                          {entry.visitType === 'Home Collection' && (
+                            <span className="bg-teal-50 text-teal-900 border border-teal-300 text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                              <Home className="w-3 h-3 text-teal-600" />
+                              <span>Home Pickup</span>
+                            </span>
+                          )}
+
+                          {/* Payment Status Pill */}
+                          {entry.paymentVerificationStatus === 'Pending Verification' ? (
+                            <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-amber-600" />
+                              <span>Pending Verification</span>
+                            </span>
+                          ) : paymentStatusType === 'Full Payment' ? (
+                            <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              <span>{entry.paymentMode === 'UPI' && (entry.bookingSource === 'Website' || entry.notes?.includes('UPI')) ? 'Online UPI Paid' : 'Full Paid'}</span>
+                            </span>
+                          ) : paymentStatusType === 'Advance' ? (
+                            <span className="bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span>⚠️ Advance Paid</span>
+                            </span>
+                          ) : (
+                            <span className="bg-rose-50 text-rose-800 border border-rose-200 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span>{(entry.bookingSource === 'Website' || entry.notes?.toLowerCase().includes('website')) ? '⚠️ Pay on Spot' : '❌ Payment Due'}</span>
+                            </span>
+                          )}
+
+                          {/* Lock badge if report ready */}
+                          {isReportReady && (
+                            <span
+                              className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black px-1.5 py-0.5 rounded flex items-center gap-0.5"
+                              title="Report is ready: Patient info and tests are locked. Remaining payment management only."
+                            >
+                              <Lock className="w-2.5 h-2.5 text-amber-700" />
+                              <span>Locked</span>
+                            </span>
+                          )}
+
+                          {/* Status Stepper Button */}
+                          <button
+                            onClick={() => handleAdvanceStatus(entry)}
+                            title="Click to advance status"
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer flex items-center gap-1 shrink-0 ${statusColors}`}
+                          >
+                            <Clock className="w-3 h-3" />
+                            <span>{entry.status}</span>
+                            <span className="text-[9px] opacity-60">➔</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Middle: Selected Tests & Doctor */}
+                      <div className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap gap-1 items-center">
+                          <span className="font-bold text-slate-700">Tests:</span>
+                          {entry.tests.map((t, idx) => (
+                            <span key={idx} className="bg-white border border-slate-200 px-1.5 py-0.5 rounded text-[11px]">
+                              {t}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          Ref: <strong>{entry.referringDoctor.split(' ')[1] || entry.referringDoctor}</strong>
+                        </div>
+                      </div>
+
+                      {/* Home Collection Address & Preferred Slot */}
+                      {entry.address && (
+                        <div className="text-[11px] text-slate-700 bg-teal-50/70 px-2.5 py-1.5 rounded-lg border border-teal-200 flex flex-wrap items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <MapPin className="w-3.5 h-3.5 text-teal-700 shrink-0" />
+                            <span>Address: <strong>{entry.address}</strong></span>
+                          </span>
+                          {entry.preferredTimeSlot && (
+                            <span className="text-[10px] bg-white px-2 py-0.5 rounded border border-teal-200 text-teal-900 font-bold shrink-0">
+                              Slot: {entry.preferredTimeSlot}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Online UPI Verification Bar if UTR is provided */}
+                      {entry.upiTransactionRef && (
+                        <div className="text-[11px] bg-sky-50 px-2.5 py-1.5 rounded-lg border border-sky-200 flex flex-wrap items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 text-sky-950">
+                            <QrCode className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                            <span>Online UPI Ref / UTR: <strong className="font-mono">{entry.upiTransactionRef}</strong></span>
+                            {entry.paymentVerificationStatus === 'Pending Verification' && (
+                              <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.5 rounded">
+                                Verification Pending
+                              </span>
+                            )}
+                          </span>
+
+                          {entry.paymentVerificationStatus === 'Pending Verification' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateReceptionEntry(entry.id, {
+                                  paymentVerificationStatus: 'Verified',
+                                  paymentStatus: 'Full Payment',
+                                  paidAmount: entry.totalAmount,
+                                  dueAmount: 0,
+                                });
+                                showToast(`✅ Payment verified for token ${entry.tokenNumber}! Status: Full Paid`);
+                              }}
+                              className="px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold text-[10px] cursor-pointer transition flex items-center gap-1 shadow-2xs"
+                            >
+                              <Check className="w-3 h-3 text-amber-300" />
+                              <span>Verify & Confirm Payment</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Lab Technician Pipeline Status Bar */}
+                      <div className="pt-0.5">
+                        {(!entry.sentToTechnician || entry.technicianStatus === 'Not Sent') ? (
+                          <div className="flex flex-wrap items-center justify-between gap-2 bg-purple-50/60 border border-purple-100 px-2.5 py-1.5 rounded-lg text-xs">
+                            <span className="text-purple-900 font-medium text-[11px] flex items-center gap-1.5">
+                              <FlaskConical className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                              <span>Lab Status: <strong>Not Sent Yet</strong> (Waiting at desk)</span>
+                            </span>
                             <button
                               type="button"
                               onClick={() => handleSendToLab(entry)}
-                              className="px-2.5 py-1 bg-[#0F766E] hover:bg-[#0d655e] text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs active:scale-98"
-                              title="Send specimen to Lab Technician workstation"
+                              className="px-2.5 py-1 bg-purple-700 hover:bg-purple-800 text-white rounded-md text-[11px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                              title="Send sample entry to Lab Technician workstation"
                             >
                               <FlaskConical className="w-3 h-3 text-amber-300" />
-                              <span>Sent to Lab</span>
+                              <span>Send to Lab Tech</span>
                             </button>
-                          ) : (
-                            <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-2xs">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              <span>Sent to Lab</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Body: Compact Test Badges & Patient Meta */}
-                      <div className="flex flex-wrap items-center gap-1.5 py-0.5">
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider shrink-0 mr-0.5">
-                          Tests ({entry.tests?.length || 0}):
-                        </span>
-                        {entry.tests && entry.tests.length > 0 ? (
-                          entry.tests.map((testName, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-50 border border-slate-200 text-xs font-medium text-slate-800"
-                            >
-                              <span className="w-3.5 h-3.5 rounded-full bg-teal-100 text-teal-800 text-[9px] font-black inline-flex items-center justify-center shrink-0">
-                                {idx + 1}
+                          </div>
+                        ) : entry.technicianStatus === 'Sent to Lab' ? (
+                          <div className="flex flex-wrap items-center justify-between gap-2 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-lg text-xs">
+                            <span className="text-amber-900 font-medium text-[11px] flex items-center gap-1.5">
+                              <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0 animate-pulse" />
+                              <span>
+                                Sent to Lab {entry.sentToLabAt ? `(${entry.sentToLabAt})` : ''} • <strong>Specimen Dispatched to Technician</strong>
                               </span>
-                              <span className="truncate max-w-[200px]">{testName}</span>
                             </span>
-                          ))
+                            <span className="text-[10px] bg-amber-200/80 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-md">
+                              Awaiting Technician
+                            </span>
+                          </div>
+                        ) : entry.technicianStatus === 'Accepted' ? (
+                          <div className="flex flex-wrap items-center justify-between gap-2 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg text-xs">
+                            <span className="text-blue-900 font-medium text-[11px] flex items-center gap-1.5">
+                              <FlaskConical className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                              <span>Sample Accepted by Technician • <strong>Testing in Progress</strong></span>
+                            </span>
+                            <span className="text-[10px] bg-blue-100 text-blue-800 border border-blue-300 font-bold px-2 py-0.5 rounded-md">
+                              In Lab Analysis
+                            </span>
+                          </div>
                         ) : (
-                          <span className="text-xs text-slate-400 italic">No tests selected</span>
+                          <div className="bg-emerald-50/80 border border-emerald-200 p-2.5 rounded-lg text-xs space-y-2">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0">
+                                  ✓
+                                </span>
+                                <div>
+                                  <div className="text-emerald-950 font-extrabold text-xs flex items-center gap-1.5">
+                                    <span>Report Ready from Technician</span>
+                                    {entry.reportId && (
+                                      <span className="font-mono bg-emerald-100/90 text-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                        {entry.reportId}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] text-slate-600 flex items-center gap-1.5 mt-0.5">
+                                    <span>Payment Check:</span>
+                                    {entry.dueAmount === 0 ? (
+                                      <span className="text-emerald-700 font-bold bg-emerald-100/80 px-1.5 py-0.2 rounded text-[10px] flex items-center gap-0.5">
+                                        <Check className="w-3 h-3" /> Fully Cleared (₹0 Due)
+                                      </span>
+                                    ) : (
+                                      <span className="text-rose-700 font-extrabold bg-rose-100/80 px-1.5 py-0.2 rounded text-[10px] flex items-center gap-0.5">
+                                        <Lock className="w-3 h-3" /> Due Pending: ₹{entry.dueAmount}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Publish Status & Actions */}
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {entry.isReportPublished ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span
+                                      className={`text-[10px] font-bold px-2 py-1 rounded-md border flex items-center gap-1 ${
+                                        entry.dueAmount > 0
+                                          ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                          : 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                      }`}
+                                      title={entry.publishedAt ? `Published ${entry.publishedAt} by ${entry.publishedBy || 'Reception'}` : 'Published'}
+                                    >
+                                      <Globe className="w-3 h-3 text-emerald-700" />
+                                      <span>
+                                        {entry.dueAmount > 0 ? 'Published (Locked / Dues Pending)' : 'Published to Portal (Unlocked)'}
+                                      </span>
+                                    </span>
+                                    {entry.reportId && (
+                                      <button
+                                        type="button"
+                                        onClick={() => onOpenReportPortal?.(entry.reportId, entry.mobile)}
+                                        className="px-2 py-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-md text-[11px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                                        title="View customer report view on website"
+                                      >
+                                        <Eye className="w-3 h-3 text-teal-700" />
+                                        <span>Portal View</span>
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        unpublishReport(entry.id);
+                                        showToast(`Report ${entry.reportId || entry.tokenNumber} unpublished from portal`);
+                                      }}
+                                      className="px-2 py-1 text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded text-[10px] font-medium transition cursor-pointer"
+                                      title="Unpublish report from patient portal"
+                                    >
+                                      Unpublish
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-md">
+                                      Awaiting Publish
+                                    </span>
+                                    {entry.dueAmount > 0 ? (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setCollectingPaymentEntry(entry);
+                                            setIsCollectPaymentOpen(true);
+                                          }}
+                                          className="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded-md text-[11px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                                          title={`Collect pending ₹${entry.dueAmount} and publish complete unblurred report`}
+                                        >
+                                          <IndianRupee className="w-3 h-3 text-amber-300" />
+                                          <span>Collect ₹{entry.dueAmount} & Publish</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            publishReport(entry.id, currentUser?.name || 'Reception Staff');
+                                            showToast(`Report ${entry.reportId || entry.tokenNumber} published in Locked Mode (Customer must clear ₹${entry.dueAmount} due)`);
+                                          }}
+                                          className="px-2 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded-md text-[10px] font-bold shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                                          title="Publish now in locked mode with pending payment message"
+                                        >
+                                          <Lock className="w-3 h-3 text-amber-300" />
+                                          <span>Publish Locked</span>
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          publishReport(entry.id, currentUser?.name || 'Reception Staff');
+                                          showToast(`✓ Report ${entry.reportId || entry.tokenNumber} published! Patient can view and download.`);
+                                        }}
+                                        className="px-3 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-md text-[11px] font-black shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
+                                        title="Payment is clear. Publish report so patient can view and download complete report"
+                                      >
+                                        <Globe className="w-3.5 h-3.5 text-amber-300" />
+                                        <span>Check Payment & Publish Report</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         )}
-                        <span className="text-[10px] text-slate-400 font-normal ml-auto shrink-0">
-                          UHID: <strong className="font-mono text-slate-700">{entry.uhid}</strong> • {entry.registeredAt}
-                        </span>
                       </div>
 
-                      {/* Footer: Left → Total Amount + Payment Status + Method (UPI/Cash) | Right → Edit, Delete & Print Slip buttons (WhatsApp removed) */}
-                      <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 gap-2 text-xs">
-                        {/* Left: Total Amount + Payment Status + Method (UPI/Cash) */}
+                      {/* Bottom: Payment Summary & Action Buttons */}
+                      <div className="flex flex-wrap items-center justify-between pt-1 text-xs gap-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          {/* Total Amount */}
-                          <span className="font-black text-[#123B6D] text-xs sm:text-sm font-mono">
-                            Total: ₹{netTotal}
+                          <span className="font-bold text-[#123B6D]">
+                            Total: ₹{entry.totalAmount - (entry.discountINR || 0)}
                           </span>
-
-                          <span className="text-slate-300">|</span>
-
-                          {/* Payment Status */}
-                          {paymentStatusType === 'Full Payment' ? (
-                            <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <Check className="w-3 h-3 text-emerald-600" />
-                              <span>Full Payment</span>
-                            </span>
-                          ) : paymentStatusType === 'Advance' ? (
-                            <span className="bg-amber-50 text-amber-900 border border-amber-200 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <span>Advance (Due: ₹{entry.dueAmount})</span>
+                          <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded text-[11px]">
+                            Paid: ₹{entry.paidAmount} ({entry.paymentMode})
+                          </span>
+                          {entry.dueAmount > 0 ? (
+                            <span className="text-rose-700 font-black bg-rose-50 border border-rose-200 px-2 py-0.5 rounded text-[11px] flex items-center gap-1">
+                              <span>Due:</span>
+                              <span>₹{entry.dueAmount}</span>
                             </span>
                           ) : (
-                            <span className="bg-rose-50 text-rose-800 border border-rose-200 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                              <span>Due (₹{entry.dueAmount})</span>
+                            <span className="text-emerald-700 font-bold bg-emerald-50 text-[10px] px-1.5 py-0.5 rounded">
+                              ✓ Nil Due
                             </span>
                           )}
-
-                          {/* Method (UPI/Cash) — Only shown if payment was made (full or advance) */}
-                          {hasMadePayment && (
-                            <>
-                              <span className="text-slate-300">|</span>
-                              <span className="text-slate-600 font-semibold text-[10px] sm:text-[11px] bg-slate-100 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                <span>Method:</span>
-                                <strong className="text-slate-900">
-                                  {entry.paymentMode === 'UPI' ? '📱 UPI' : entry.paymentMode === 'Cash' ? '💵 Cash' : entry.paymentMode}
-                                </strong>
-                              </span>
-                            </>
+                          {entry.balancePaidAmount && entry.balancePaidAmount > 0 && (
+                            <span className="text-teal-800 bg-teal-50 border border-teal-200 text-[10px] font-bold px-1.5 py-0.5 rounded" title="Includes later balance collection">
+                              (Bal Cleared: ₹{entry.balancePaidAmount})
+                            </span>
                           )}
                         </div>
 
-                        {/* Right: Edit, Delete & Print Slip buttons (WhatsApp removed as requested) */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {/* Edit button (Locked & disabled if Sent to Lab or Report is Ready) */}
-                          {!isLockedForEdit ? (
+                        <div className="flex items-center gap-1.5">
+                          {/* Quick Collect Due Button */}
+                          {entry.dueAmount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCollectPayment(entry)}
+                              className="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[11px] font-black shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                              title="Collect remaining balance payment"
+                            >
+                              <IndianRupee className="w-3.5 h-3.5 text-amber-300" />
+                              <span>Collect Due ₹{entry.dueAmount}</span>
+                            </button>
+                          )}
+
+                          {/* Edit Entry / Manage Payment Button */}
+                          {isReportReady ? (
                             <button
                               type="button"
                               onClick={() => handleOpenEdit(entry)}
-                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
-                              title="Edit Patient Details & Billing"
+                              title="Report is ready: Patient demographics & tests are locked. Manage remaining balance payment only."
+                              className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
                             >
-                              <Edit2 className="w-3.5 h-3.5 text-blue-700" />
-                              <span>Edit</span>
+                              <Lock className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Manage Payment</span>
                             </button>
                           ) : (
-                            <span
-                              title={
-                                isReportReady
-                                  ? '🔒 Report Ready: Entry locked, editing not allowed'
-                                  : '🔒 Sent to Lab: Entry locked, editing not allowed'
-                              }
-                              className="px-2.5 py-1 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-not-allowed select-none"
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(entry)}
+                              title="Edit Patient Details & Billing"
+                              className="px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
                             >
-                              <Lock className="w-3 h-3 text-slate-400" />
-                              <span>{isReportReady ? 'Report Ready' : 'In Lab'}</span>
-                            </span>
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Edit</span>
+                            </button>
                           )}
 
-                          {/* Delete button */}
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTarget(entry)}
-                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
-                            title="Delete Patient Entry"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Delete</span>
-                          </button>
-
-                          {/* Thermal Slip / Receipt Print */}
+                          {/* Thermal Print Receipt Slip */}
                           <button
                             type="button"
                             onClick={() => {
                               setSelectedReceipt(entry);
                               setIsReceiptModalOpen(true);
                             }}
-                            title="Print / View Receipt & Slip"
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                            title="Print Thermal Slip / Receipt"
+                            className="p-1.5 bg-slate-100 hover:bg-teal-100 hover:text-teal-800 rounded-lg text-slate-600 transition cursor-pointer"
                           >
                             <Printer className="w-3.5 h-3.5" />
-                            <span>Print</span>
+                          </button>
+
+                          {/* WhatsApp Token Slip */}
+                          <button
+                            type="button"
+                            onClick={() => handleWhatsAppReceipt(entry)}
+                            title="Send Receipt on WhatsApp"
+                            className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition cursor-pointer"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Delete Entry */}
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(entry)}
+                            title="Delete Patient Entry from live queue"
+                            className="p-1.5 bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-700 rounded-lg transition cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -2136,169 +2224,152 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
         </div>
       </main>
 
-      {/* 4. Minimalist Invoice & Generated Token Modal */}
+      {/* 4. Thermal Receipt / Token Slip Modal (80mm POS Slip) */}
       {isReceiptModalOpen && selectedReceipt && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border border-slate-200/90 relative animate-in zoom-in-95 duration-200">
-            {/* Close Button */}
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-slate-200 relative animate-in fade-in zoom-in-95">
             <button
               onClick={() => setIsReceiptModalOpen(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-full hover:bg-slate-100 transition cursor-pointer"
-              title="Close modal"
+              className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            {/* Minimalist Header */}
-            <div className="text-center mb-4">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold mb-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Entry Submitted</span>
+            {/* Thermal Slip Content */}
+            <div id="thermal-print-area" className="border border-dashed border-slate-300 p-4 rounded-xl bg-slate-50/50 font-mono text-xs text-slate-900 space-y-3">
+              {/* Header */}
+              <div className="text-center space-y-1 border-b border-dashed border-slate-300 pb-2">
+                <div className="font-black text-sm uppercase tracking-tight">{labName}</div>
+                <div className="text-[10px] text-slate-500">NABL Accredited • {labNabl}</div>
+                <div className="text-[10px] text-slate-500">{labAddress}</div>
+                <div className="text-[10px] text-slate-600">Ph: {labPhone}</div>
               </div>
-              <h3 className="text-lg font-black text-slate-900 tracking-tight">
-                Token & Invoice
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {labName} • {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-              </p>
-            </div>
 
-            {/* Generated Token Number Display (Minimalist & Prominent) */}
-            <div className="bg-gradient-to-br from-slate-50 to-blue-50/50 border-2 border-[#123B6D]/20 rounded-2xl p-4 text-center mb-4 relative overflow-hidden">
-              <div className="text-[11px] font-black uppercase tracking-widest text-[#123B6D]/80">
-                Generated Token Number
+              {/* Token & UHID */}
+              <div className="text-center py-1 bg-teal-50 border border-teal-200 rounded-lg">
+                <div className="text-[10px] uppercase font-bold text-teal-800">Queue Token Number</div>
+                <div className="text-2xl font-black text-teal-950">{selectedReceipt.tokenNumber}</div>
+                <div className="text-[10px] text-teal-700">UHID: {selectedReceipt.uhid}</div>
               </div>
-              <div className="text-4xl sm:text-5xl font-black text-[#123B6D] tracking-tight font-mono my-1">
-                {selectedReceipt.tokenNumber}
-              </div>
-              <div className="flex items-center justify-center gap-2 text-xs text-slate-600 font-medium">
-                <span>UHID: <strong className="font-mono text-slate-800">{selectedReceipt.uhid}</strong></span>
-                <span>•</span>
-                <span>Time: <strong>{selectedReceipt.registeredAt}</strong></span>
-              </div>
-            </div>
 
-            {/* Clean Minimalist Bill / Invoice Section */}
-            <div className="border border-slate-200 rounded-2xl p-4 bg-white space-y-3 text-xs text-slate-700 shadow-2xs mb-5">
               {/* Patient Details */}
-              <div className="grid grid-cols-2 gap-2 pb-2.5 border-b border-slate-100">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Patient</span>
-                  <span className="font-bold text-slate-900 text-sm block truncate">{selectedReceipt.patientName}</span>
-                  <span className="text-slate-500 text-[11px]">{selectedReceipt.age} Yrs / {selectedReceipt.gender}</span>
+              <div className="space-y-1 text-[11px] border-b border-dashed border-slate-300 pb-2">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Date/Time:</span>
+                  <span>{new Date().toLocaleDateString('en-IN')} {selectedReceipt.registeredAt}</span>
                 </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Mobile & Ref Doctor</span>
-                  <span className="font-mono font-semibold text-slate-900 block">+91 {selectedReceipt.mobile}</span>
-                  <span className="text-slate-500 text-[11px] truncate block">Dr: {selectedReceipt.referringDoctor}</span>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Patient:</span>
+                  <span className="font-bold">{selectedReceipt.patientName}</span>
                 </div>
-              </div>
-
-              {/* Prescribed Tests */}
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                  Prescribed Diagnostic Tests ({selectedReceipt.tests.length})
-                </span>
-                <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
-                  {selectedReceipt.tests.map((testName, i) => (
-                    <div key={i} className="flex justify-between items-center py-0.5 text-xs">
-                      <span className="text-slate-800 truncate pr-2">{i + 1}. {testName}</span>
-                    </div>
-                  ))}
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Age / Sex:</span>
+                  <span>{selectedReceipt.age} Yrs / {selectedReceipt.gender}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Mobile:</span>
+                  <span>+91 {selectedReceipt.mobile}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Ref Doctor:</span>
+                  <span className="font-bold">{selectedReceipt.referringDoctor}</span>
                 </div>
               </div>
 
-              {/* Bill Financial Breakdown */}
-              <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                <div className="flex justify-between text-xs text-slate-600">
-                  <span>Gross Test Amount:</span>
-                  <span className="font-mono font-semibold text-slate-900">₹{selectedReceipt.totalAmount}</span>
+              {/* Tests Breakdown */}
+              <div className="space-y-1 text-[11px] border-b border-dashed border-slate-300 pb-2">
+                <div className="font-bold text-slate-700">Tests Prescribed:</div>
+                {selectedReceipt.tests.map((t, idx) => (
+                  <div key={idx} className="flex justify-between text-slate-800">
+                    <span>{idx + 1}. {t}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Financial Breakdown */}
+              <div className="space-y-1 text-[11px] border-b border-dashed border-slate-300 pb-2">
+                <div className="flex justify-between">
+                  <span>Gross Amount:</span>
+                  <span>₹{selectedReceipt.totalAmount}</span>
                 </div>
                 {selectedReceipt.discountINR > 0 && (
-                  <div className="flex justify-between text-xs text-emerald-700 font-medium">
-                    <span>Discount / Concession:</span>
-                    <span className="font-mono">-₹{selectedReceipt.discountINR}</span>
+                  <div className="flex justify-between text-emerald-700">
+                    <span>Discount:</span>
+                    <span>-₹{selectedReceipt.discountINR}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-xs font-bold text-slate-900 pt-1 border-t border-slate-100">
+                <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-200">
                   <span>Net Payable:</span>
-                  <span className="font-mono text-sm font-black text-[#123B6D]">
-                    ₹{selectedReceipt.totalAmount - selectedReceipt.discountINR}
-                  </span>
+                  <span>₹{selectedReceipt.totalAmount - selectedReceipt.discountINR}</span>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-emerald-700 font-semibold">
-                    Amount Paid{selectedReceipt.paidAmount > 0 ? ` (${selectedReceipt.paymentMode})` : ''}:
-                  </span>
-                  <span className="font-mono font-bold text-emerald-700">₹{selectedReceipt.paidAmount}</span>
+                <div className="flex justify-between text-emerald-700 font-bold">
+                  <span>Total Received:</span>
+                  <span>₹{selectedReceipt.paidAmount} ({selectedReceipt.paymentMode})</span>
                 </div>
+                {selectedReceipt.balancePaidAmount && selectedReceipt.balancePaidAmount > 0 && (
+                  <div className="flex justify-between text-slate-500 font-normal text-[10px]">
+                    <span>• Incl. Balance Cleared:</span>
+                    <span>₹{selectedReceipt.balancePaidAmount} ({selectedReceipt.balancePaymentMode || 'Cash'})</span>
+                  </div>
+                )}
                 {selectedReceipt.dueAmount > 0 ? (
-                  <div className="flex justify-between items-center text-xs pt-1 border-t border-rose-100 text-rose-700 font-bold">
-                    <span>Balance Due:</span>
-                    <span className="font-mono text-sm">₹{selectedReceipt.dueAmount}</span>
+                  <div className="flex justify-between text-rose-700 font-bold text-xs pt-1 border-t border-rose-200">
+                    <span>Outstanding Due Balance:</span>
+                    <span>₹{selectedReceipt.dueAmount}</span>
                   </div>
                 ) : (
-                  <div className="flex justify-between items-center text-[11px] pt-1 border-t border-emerald-100 text-emerald-700 font-bold">
+                  <div className="flex justify-between text-emerald-700 font-bold text-[10px] pt-0.5">
                     <span>Payment Status:</span>
-                    <span>✓ Full Payment Cleared</span>
+                    <span>Full Payment Cleared ✓ (Nil Due)</span>
                   </div>
                 )}
+              </div>
+
+              {/* Barcode & Online Verification */}
+              <div className="text-center space-y-1 pt-1">
+                <div className="font-mono text-sm tracking-widest font-black">||||| |||| ||||| |||||||</div>
+                <div className="text-[10px] text-slate-500">Download report password-free at:</div>
+                <div className="text-[10px] font-bold text-teal-700">apexlab.in/report</div>
               </div>
             </div>
 
-            {/* Action Buttons: Share and Download clearly highlighted (Minimalist Design) */}
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2.5">
-                {/* Share Button (WhatsApp / PDF) */}
-                <button
-                  type="button"
-                  onClick={() => handleShareInvoice(selectedReceipt)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
-                  title="Share receipt PDF via WhatsApp"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Share (WhatsApp)</span>
-                </button>
+            {/* Modal Actions */}
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  const success = safePrint(() => {
+                    generateThermalReceiptPdf(selectedReceipt);
+                  });
+                  if (!success) {
+                    generateThermalReceiptPdf(selectedReceipt);
+                  }
+                }}
+                className="bg-[#0F766E] hover:bg-[#0d655e] text-white py-2.5 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-xs cursor-pointer active:scale-95"
+                title="Print 80mm thermal slip"
+              >
+                <Printer className="w-3.5 h-3.5 text-amber-300" />
+                <span>Print Slip</span>
+              </button>
 
-                {/* Download Button */}
-                <button
-                  type="button"
-                  onClick={() => generateThermalReceiptPdf(selectedReceipt, labName)}
-                  className="bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
-                  title="Download receipt PDF"
-                >
-                  <Download className="w-4 h-4 text-cyan-300" />
-                  <span>Download PDF</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => generateThermalReceiptPdf(selectedReceipt)}
+                className="bg-teal-700 hover:bg-teal-800 text-white py-2.5 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-xs cursor-pointer active:scale-95"
+                title="Download 80mm thermal receipt PDF file"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Download PDF</span>
+              </button>
 
-              <div className="grid grid-cols-2 gap-2.5 pt-0.5">
-                {/* Print Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const success = safePrint(() => {
-                      generateThermalReceiptPdf(selectedReceipt, labName);
-                    });
-                    if (!success) {
-                      generateThermalReceiptPdf(selectedReceipt, labName);
-                    }
-                  }}
-                  className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 py-2 px-3 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Printer className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Print Slip</span>
-                </button>
-
-                {/* Close Button */}
-                <button
-                  type="button"
-                  onClick={() => setIsReceiptModalOpen(false)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-3 rounded-xl font-semibold text-xs transition flex items-center justify-center cursor-pointer"
-                >
-                  <span>Done</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleWhatsAppReceipt(selectedReceipt)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-bold text-[11px] transition flex items-center justify-center gap-1 shadow-xs cursor-pointer active:scale-95"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>WhatsApp</span>
+              </button>
             </div>
           </div>
         </div>
@@ -2351,7 +2422,6 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
           onSave={handleSaveEdit}
           onSaveAndSendToLab={handleSaveAndSendToLab}
           vendorDoctors={vendorDoctors}
-          availableTests={allAvailableTests}
         />
       )}
 
