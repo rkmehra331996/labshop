@@ -75,6 +75,17 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
     entry.technicianStatus === 'Report Generated' ||
     Boolean(entry.reportId);
 
+  // Determine if entry has been sent to lab
+  const isSentToLab = Boolean(
+    entry.sentToTechnician ||
+    entry.technicianStatus === 'Sent to Lab' ||
+    entry.technicianStatus === 'Accepted' ||
+    entry.status === 'In Lab'
+  );
+
+  // Entry is strictly locked and cannot be edited if sent to lab or report is ready
+  const isLockedForEdit = isReportReady || isSentToLab;
+
   const [patientName, setPatientName] = useState(entry.patientName);
   const [age, setAge] = useState(String(entry.age));
   const [gender, setGender] = useState<'Male' | 'Female' | 'Other'>(entry.gender);
@@ -207,7 +218,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
 
   // Add test to list and increment total amount
   const handleAddTest = (test: TestOption) => {
-    if (isReportReady) return;
+    if (isLockedForEdit) return;
     if (selectedTests.some((t) => t.toLowerCase().trim() === test.name.toLowerCase().trim())) {
       return;
     }
@@ -220,7 +231,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
 
   // Remove test from list and deduct from total amount
   const handleRemoveTest = (testName: string) => {
-    if (isReportReady) return;
+    if (isLockedForEdit) return;
     const price = getTestPrice(testName);
     setSelectedTests((prev) => prev.filter((t) => t !== testName));
     setTotalAmount((prev) => Math.max(0, prev - price));
@@ -229,7 +240,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   // Add custom unlisted test
   const handleAddCustomTest = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (isReportReady) return;
+    if (isLockedForEdit) return;
     const name = customTestName.trim();
     if (!name) return;
     if (selectedTests.some((t) => t.toLowerCase().trim() === name.toLowerCase().trim())) {
@@ -245,7 +256,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   };
 
   const handleToggleTest = (testName: string, testPrice: number, suggestedSample?: string) => {
-    if (isReportReady) return;
+    if (isLockedForEdit) return;
     if (selectedTests.includes(testName)) {
       handleRemoveTest(testName);
     } else {
@@ -254,6 +265,15 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
   };
 
   const handleSaveInternal = (sendToLab: boolean = false) => {
+    if (isLockedForEdit) {
+      alert(
+        isReportReady
+          ? 'Report ready hone ke baad entry edit nahi ki ja sakti.'
+          : '"Send to Lab" hone ke baad entry edit nahi ki ja sakti.'
+      );
+      return;
+    }
+
     if (!patientName.trim()) {
       alert('Patient name is required');
       return;
@@ -325,9 +345,13 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black tracking-tight">
-                  {isReportReady ? 'Payment Management (Report Ready)' : 'Edit Patient Entry & Billing'}
+                  {isReportReady
+                    ? 'Patient Entry (Report Ready - Locked)'
+                    : isSentToLab
+                    ? 'Patient Entry (Sent to Lab - Locked)'
+                    : 'Edit Patient Entry & Billing'}
                 </h2>
-                {isReportReady && (
+                {isLockedForEdit && (
                   <span className="bg-amber-400 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded-md flex items-center gap-1">
                     <Lock className="w-3 h-3" />
                     <span>LOCKED</span>
@@ -347,19 +371,25 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
           </button>
         </div>
 
-        {/* Lock Banner if Report is Ready */}
-        {isReportReady && (
+        {/* Lock Banner if Report is Ready or Sent to Lab */}
+        {isLockedForEdit && (
           <div className="bg-amber-50 border-b border-amber-200 p-3 sm:px-6 flex items-start gap-2.5 text-amber-950 text-xs">
             <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div className="flex-1">
               <div className="font-black text-amber-900 flex items-center gap-1.5">
-                <span>Diagnostic Report Issued ({entry.reportId || 'Report Ready'})</span>
+                <span>
+                  {isReportReady
+                    ? `Diagnostic Report Issued (${entry.reportId || 'Report Ready'})`
+                    : 'Dispatched to Laboratory (Sent to Lab)'}
+                </span>
                 <span className="bg-amber-200 text-amber-900 text-[10px] font-black px-1.5 py-0.2 rounded">
                   Entry Locked
                 </span>
               </div>
               <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
-                Because the laboratory report has already been clinically verified and issued, patient demographics and test selections cannot be altered. Only remaining balance payment and payment status management can be updated.
+                {isReportReady
+                  ? 'Kyuki laboratory report ban chuki hai / report ready hai, isliye yeh entry edit nahi ki ja sakti.'
+                  : 'Kyuki yeh entry lab technician ko dispatch ki ja chuki hai ("Send to Lab"), isliye ab ise edit nahi kiya ja sakta.'}
               </p>
             </div>
           </div>
@@ -374,7 +404,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                 <span>
                   Patient Full Name <span className="text-rose-500">*</span>
                 </span>
-                {isReportReady && (
+                {isLockedForEdit && (
                   <span className="text-[10px] text-amber-700 font-bold flex items-center gap-0.5">
                     <Lock className="w-2.5 h-2.5" /> Locked
                   </span>
@@ -382,11 +412,11 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
               </label>
               <input
                 type="text"
-                disabled={isReportReady}
+                disabled={isLockedForEdit}
                 value={patientName}
                 onChange={(e) => setPatientName(e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg text-sm font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden ${
-                  isReportReady
+                  isLockedForEdit
                     ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
                     : 'bg-white text-slate-900 border-slate-300'
                 }`}
@@ -399,7 +429,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                 <span>
                   Age & Gender <span className="text-rose-500">*</span>
                 </span>
-                {isReportReady && (
+                {isLockedForEdit && (
                   <span className="text-[10px] text-amber-700 font-bold flex items-center gap-0.5">
                     <Lock className="w-2.5 h-2.5" /> Locked
                   </span>
@@ -408,21 +438,21 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
               <div className="flex gap-2">
                 <input
                   type="number"
-                  disabled={isReportReady}
+                  disabled={isLockedForEdit}
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
                   className={`w-16 px-2.5 py-2 border rounded-lg text-sm font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden text-center ${
-                    isReportReady
+                    isLockedForEdit
                       ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
                       : 'bg-white text-slate-900 border-slate-300'
                   }`}
                 />
                 <select
-                  disabled={isReportReady}
+                  disabled={isLockedForEdit}
                   value={gender}
                   onChange={(e) => setGender(e.target.value as any)}
                   className={`flex-1 px-2.5 py-2 border rounded-lg text-sm font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden ${
-                    isReportReady
+                    isLockedForEdit
                       ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
                       : 'bg-white text-slate-900 border-slate-300'
                   }`}
@@ -439,7 +469,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
                 <span>10-Digit Mobile Number (WhatsApp)</span>
-                {isReportReady && (
+                {isLockedForEdit && (
                   <span className="text-[10px] text-amber-700 font-bold flex items-center gap-0.5">
                     <Lock className="w-2.5 h-2.5" /> Locked
                   </span>
@@ -449,12 +479,12 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                 <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-bold">+91</span>
                 <input
                   type="tel"
-                  disabled={isReportReady}
+                  disabled={isLockedForEdit}
                   maxLength={10}
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
                   className={`w-full pl-11 pr-3 py-2 border rounded-lg text-sm font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden ${
-                    isReportReady
+                    isLockedForEdit
                       ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
                       : 'bg-white text-slate-900 border-slate-300'
                   }`}
@@ -466,18 +496,18 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
                 <span>Referring Doctor</span>
-                {isReportReady && (
+                {isLockedForEdit && (
                   <span className="text-[10px] text-amber-700 font-bold flex items-center gap-0.5">
                     <Lock className="w-2.5 h-2.5" /> Locked
                   </span>
                 )}
               </label>
               <select
-                disabled={isReportReady}
+                disabled={isLockedForEdit}
                 value={referringDoctor}
                 onChange={(e) => setReferringDoctor(e.target.value)}
                 className={`w-full px-3 py-2 border rounded-lg text-sm font-medium focus:ring-2 focus:ring-teal-500 focus:outline-hidden ${
-                  isReportReady
+                  isLockedForEdit
                     ? 'bg-slate-100 text-slate-600 border-slate-200 cursor-not-allowed'
                     : 'bg-white text-slate-900 border-slate-300'
                 }`}
@@ -506,18 +536,20 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                 <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
                   <FlaskConical className="w-3.5 h-3.5 text-teal-700" />
                   <span>Prescribed Diagnostic Tests ({selectedTests.length})</span>
-                  {isReportReady && (
+                  {isLockedForEdit && (
                     <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                      <Lock className="w-2.5 h-2.5" /> Locked by Report
+                      <Lock className="w-2.5 h-2.5" /> Locked
                     </span>
                   )}
                 </label>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Add or remove diagnostic tests below. Total bill updates automatically.
+                  {isLockedForEdit
+                    ? 'Entry locked: Tests cannot be modified after dispatch to lab or report completion.'
+                    : 'Add or remove diagnostic tests below. Total bill updates automatically.'}
                 </p>
               </div>
 
-              {!isReportReady && (
+              {!isLockedForEdit && (
                 <button
                   type="button"
                   onClick={() => setShowCustomInput(!showCustomInput)}
@@ -552,7 +584,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
                         <span className="text-[10px] font-extrabold text-[#123B6D] bg-white px-1.5 py-0.2 rounded border border-blue-200">
                           ₹{price}
                         </span>
-                        {!isReportReady && (
+                        {!isLockedForEdit && (
                           <button
                             type="button"
                             onClick={() => handleRemoveTest(tName)}
@@ -570,7 +602,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
             </div>
 
             {/* Custom Test Input if opened */}
-            {showCustomInput && !isReportReady && (
+            {showCustomInput && !isLockedForEdit && (
               <div className="p-3 bg-teal-50/70 border border-teal-200 rounded-lg space-y-2">
                 <span className="text-[11px] font-bold text-teal-900 block">
                   Add Custom / Other Diagnostic Test:
@@ -616,7 +648,7 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
             )}
 
             {/* Search Test Catalog to Add */}
-            {!isReportReady && (
+            {!isLockedForEdit && (
               <div className="space-y-2 pt-1 border-t border-slate-200/70">
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
@@ -910,17 +942,28 @@ export const EditReceptionEntryModal: React.FC<EditReceptionEntryModalProps> = (
             onClick={onClose}
             className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
           >
-            Cancel
+            {isLockedForEdit ? 'Close' : 'Cancel'}
           </button>
 
-          <button
-            type="button"
-            onClick={() => handleSaveInternal(false)}
-            className="px-5 py-2 bg-[#123B6D] hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>{isReportReady ? 'Save Payment Settlement' : 'Save Changes'}</span>
-          </button>
+          {isLockedForEdit ? (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-3.5 py-2 rounded-xl">
+              <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+              <span>
+                {isReportReady
+                  ? 'Locked: Report ready hone ke baad edit nahi ho sakta'
+                  : 'Locked: Lab bhejne ke baad edit nahi ho sakta'}
+              </span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleSaveInternal(false)}
+              className="px-5 py-2 bg-[#123B6D] hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Save Changes</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -265,6 +265,7 @@ export interface VendorLabSettings {
   status?: VendorStatus;
   ownerPassword?: string;
   ownerPin?: string;
+  ownerName?: string;
   // Site Settings & Plan Visibility
   featureImageUrl?: string;
   siteDescription?: string;
@@ -586,6 +587,10 @@ export interface ReceptionPatientEntry {
   isReportPublished?: boolean;
   publishedAt?: string;
   publishedBy?: string;
+  receptionistId?: string;
+  receptionistName?: string;
+  technicianId?: string;
+  technicianName?: string;
 }
 
 export type DomainRequestType = 'custom_domain' | 'subdomain';

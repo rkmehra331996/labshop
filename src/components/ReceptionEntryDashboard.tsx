@@ -406,6 +406,19 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   // Load an existing entry directly into the main form for in-place correction
   const handleLoadEntryToForm = (entry: ReceptionPatientEntry) => {
+    const isLocked = Boolean(
+      entry.sentToTechnician ||
+      entry.technicianStatus === 'Sent to Lab' ||
+      entry.technicianStatus === 'Accepted' ||
+      entry.technicianStatus === 'Report Generated' ||
+      entry.status === 'In Lab' ||
+      entry.status === 'Report Ready' ||
+      entry.reportId
+    );
+    if (isLocked) {
+      showToast('🔒 Yeh entry lab bheji ja chuki hai ya report ready hai, isliye edit nahi ki ja sakti.');
+      return;
+    }
     saveCurrentAsSnapshot();
     setEditingEntryId(entry.id);
     setPatientName(entry.patientName);
@@ -673,6 +686,26 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
   // Edit Patient Handlers
   const handleOpenEdit = (entry: ReceptionPatientEntry) => {
+    const isReportReady = Boolean(
+      entry.status === 'Report Ready' ||
+      entry.technicianStatus === 'Report Generated' ||
+      entry.reportId
+    );
+    const isSentToLab = Boolean(
+      entry.sentToTechnician ||
+      entry.technicianStatus === 'Sent to Lab' ||
+      entry.technicianStatus === 'Accepted' ||
+      entry.status === 'In Lab'
+    );
+
+    if (isReportReady) {
+      showToast('🔒 Report ready hone ke baad entry edit nahi ki ja sakti.');
+      return;
+    }
+    if (isSentToLab) {
+      showToast('🔒 "Send to Lab" hone ke baad entry edit nahi ki ja sakti.');
+      return;
+    }
     setEditingEntry(entry);
     setIsEditModalOpen(true);
   };
@@ -1088,14 +1121,29 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   </div>
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                  <button
-                    type="button"
-                    onClick={() => handleLoadEntryToForm(lastRegisteredEntry)}
-                    className="bg-[#0F766E] hover:bg-[#0d655e] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
-                  >
-                    <Edit2 className="w-3.5 h-3.5 text-amber-300" />
-                    <span>Galti Theek Karein (Edit)</span>
-                  </button>
+                  {!(
+                    lastRegisteredEntry.sentToTechnician ||
+                    lastRegisteredEntry.technicianStatus === 'Sent to Lab' ||
+                    lastRegisteredEntry.technicianStatus === 'Accepted' ||
+                    lastRegisteredEntry.technicianStatus === 'Report Generated' ||
+                    lastRegisteredEntry.status === 'In Lab' ||
+                    lastRegisteredEntry.status === 'Report Ready' ||
+                    lastRegisteredEntry.reportId
+                  ) ? (
+                    <button
+                      type="button"
+                      onClick={() => handleLoadEntryToForm(lastRegisteredEntry)}
+                      className="bg-[#0F766E] hover:bg-[#0d655e] text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xs transition flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    >
+                      <Edit2 className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Galti Theek Karein (Edit)</span>
+                    </button>
+                  ) : (
+                    <span className="bg-teal-800 text-teal-100 text-xs font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+                      <Lock className="w-3 h-3" />
+                      <span>Lab Sent (Locked)</span>
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => setShowRecentlyRegisteredBanner(false)}
@@ -1804,6 +1852,14 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                     entry.status === 'Report Ready'
                   );
 
+                  const isReportReady = Boolean(
+                    entry.status === 'Report Ready' ||
+                    entry.technicianStatus === 'Report Generated' ||
+                    entry.reportId
+                  );
+
+                  const isLockedForEdit = isAlreadySent || isReportReady;
+
                   const paymentStatusType: 'Full Payment' | 'Advance' | 'Due' =
                     entry.dueAmount === 0 || entry.paymentStatus === 'Full Payment' || entry.paymentStatus === 'Paid'
                       ? 'Full Payment'
@@ -1938,16 +1994,30 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
                         {/* Right: Edit, Delete & Print Slip buttons (WhatsApp removed as requested) */}
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {/* Edit button */}
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEdit(entry)}
-                            className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
-                            title="Edit Patient Details & Billing"
-                          >
-                            <Edit2 className="w-3.5 h-3.5 text-blue-700" />
-                            <span>Edit</span>
-                          </button>
+                          {/* Edit button (Locked & disabled if Sent to Lab or Report is Ready) */}
+                          {!isLockedForEdit ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(entry)}
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-2xs"
+                              title="Edit Patient Details & Billing"
+                            >
+                              <Edit2 className="w-3.5 h-3.5 text-blue-700" />
+                              <span>Edit</span>
+                            </button>
+                          ) : (
+                            <span
+                              title={
+                                isReportReady
+                                  ? '🔒 Report Ready: Entry locked, editing not allowed'
+                                  : '🔒 Sent to Lab: Entry locked, editing not allowed'
+                              }
+                              className="px-2.5 py-1 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1 cursor-not-allowed select-none"
+                            >
+                              <Lock className="w-3 h-3 text-slate-400" />
+                              <span>{isReportReady ? 'Report Ready' : 'In Lab'}</span>
+                            </span>
+                          )}
 
                           {/* Delete button */}
                           <button
