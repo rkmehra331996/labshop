@@ -954,16 +954,16 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
 
           {/* Action Buttons: Vendor Home Website + Daily Cash Closing + Log Out */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-            {/* Day-End Cash Closing Tally Sheet Button */}
+            {/* Day & Cash Earning Report & Closing Button */}
             <button
               type="button"
               id="reception-btn-cash-closing"
               onClick={() => setIsCashClosingOpen(true)}
               className="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white px-3.5 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border border-emerald-500 whitespace-nowrap"
-              title="Day-End Reception Cash Closing (Daily Tally Sheet)"
+              title="Day & Cash (Earning Report, Collections & Closing)"
             >
               <Calculator className="w-3.5 h-3.5 text-amber-300" />
-              <span>Day-End Cash Closing</span>
+              <span>Day & Cash</span>
             </button>
 
             {/* Vendor Home Website Button */}
