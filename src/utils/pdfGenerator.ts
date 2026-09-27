@@ -656,97 +656,283 @@ export async function printCanonicalReportPdf(report: LabReport, existingBlobUrl
 }
 
 /**
- * Generates an 80mm POS thermal receipt slip PDF for patient registration at reception
+ * Generates the filename strictly in the format: #TokenNumber_LabName_Time_Date.pdf
+ * Example: #231_ABCLab_03-21-PM_27-09-2026.pdf
  */
-export async function generateThermalReceiptPdf(entry: any): Promise<void> {
+export function getReceiptPdfFilename(entry: any, labNameRaw?: string): string {
+  const rawToken = entry?.tokenNumber || entry?.tokenNo || '231';
+  const cleanToken = String(rawToken).replace(/^#/, '');
+  const tokenPart = `#${cleanToken}`;
+
+  const rawLab = labNameRaw || 'ApexLab';
+  let cleanLab = rawLab.replace(/[^a-zA-Z0-9]/g, '');
+  if (!cleanLab) cleanLab = 'ABCLab';
+
+  const now = new Date();
+  let hours = now.getHours();
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const timeStr = `${String(hours).padStart(2, '0')}-${minutes}-${ampm}`;
+
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const dateStr = `${day}-${month}-${year}`;
+
+  return `${tokenPart}_${cleanLab}_${timeStr}_${dateStr}.pdf`;
+}
+
+/**
+ * Builds the exact receipt PDF matching the popup modal design pixel-for-pixel.
+ * Returns the jsPDF instance, formatted filename, Blob, and File objects.
+ */
+export async function buildReceiptInvoicePdf(
+  entry: any,
+  labNameRaw?: string
+): Promise<{ doc: jsPDF; filename: string; blob: Blob; file: File }> {
+  const resolvedLabName = labNameRaw || 'Apex Diagnostic & Pathology Laboratory';
+  const filename = getReceiptPdfFilename(entry, resolvedLabName);
+
+  const tests = Array.isArray(entry?.tests)
+    ? entry.tests
+    : typeof entry?.tests === 'string'
+    ? [entry.tests]
+    : ['Diagnostic Investigation'];
+
+  const discount = Number(entry?.discountINR) || 0;
+  const gross = Number(entry?.totalAmount) || 0;
+  const net = Math.max(0, gross - discount);
+  const paid = Number(entry?.paidAmount) || 0;
+  const due = entry?.dueAmount !== undefined ? Number(entry.dueAmount) : Math.max(0, net - paid);
+
+  // Dynamic height calculation based on number of tests
+  const baseHeight = 168;
+  const extraTestsHeight = Math.max(0, tests.length - 2) * 5;
+  const discountHeight = discount > 0 ? 5 : 0;
+  const pageHeight = Math.max(168, baseHeight + extraTestsHeight + discountHeight);
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: [80, 160],
+    format: [105, pageHeight],
   });
 
-  const width = 80;
-  let y = 6;
+  // Background & outer subtle border
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, 105, pageHeight, 'F');
+  doc.setDrawColor(226, 232, 240); // #E2E8F0
+  doc.setLineWidth(0.4);
+  doc.roundedRect(4, 4, 97, pageHeight - 8, 4, 4, 'D');
+
+  // 1. Green Success Badge at Top (matches popup: Entry Submitted Successfully)
+  doc.setFillColor(236, 253, 245); // #ECFDF5
+  doc.setDrawColor(167, 243, 208); // #A7F3D0
+  doc.setLineWidth(0.3);
+  doc.roundedRect(20, 8, 65, 7, 3.5, 3.5, 'FD');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(6, 95, 70); // #065F46
+  doc.text('✓  Entry Submitted Successfully', 52.5, 12.8, { align: 'center' });
+
+  // 2. Header Title: Token & Invoice
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(15, 23, 42); // #0F172A
+  doc.text('Token & Invoice', 52.5, 22, { align: 'center' });
+
+  // Subtitle: Lab Name • Date
+  const displayDate = new Date().toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139); // #64748B
+  const subtitle = `${resolvedLabName.slice(0, 34)} • ${displayDate}`;
+  doc.text(subtitle, 52.5, 26.5, { align: 'center' });
+
+  // 3. Generated Token Number Display Card (Blue tinted card)
+  doc.setFillColor(240, 247, 255); // #F0F7FF
+  doc.setDrawColor(18, 59, 109); // #123B6D
+  doc.setLineWidth(0.6);
+  doc.roundedRect(8, 30, 89, 31, 3.5, 3.5, 'FD');
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.text('APEX DIAGNOSTIC LABORATORY', width / 2, y, { align: 'center' });
-  y += 4;
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.text('PATIENT REGISTRATION SLIP', width / 2, y, { align: 'center' });
-  y += 4;
-
-  doc.setDrawColor(180, 180, 180);
-  doc.setLineDashPattern([1, 1], 0);
-  doc.line(4, y, width - 4, y);
-  doc.setLineDashPattern([], 0);
-  y += 4;
-
   doc.setFontSize(7.5);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`TOKEN: ${entry?.tokenNumber || 'TK-101'}`, 4, y);
-  doc.text(`DATE: ${entry?.registeredAt || 'Today'}`, width - 4, y, { align: 'right' });
-  y += 4.5;
-
-  doc.setFont('helvetica', 'normal');
-  doc.text(`UHID: ${entry?.uhid || 'LAB-2026-9041'}`, 4, y);
-  y += 4;
-
-  doc.text(`PATIENT: ${entry?.patientName || 'Patient'}`, 4, y);
-  y += 4;
-
-  doc.text(`AGE/SEX: ${entry?.age || '-'} Y / ${entry?.gender || '-'}`, 4, y);
-  doc.text(`PHONE: ${entry?.mobile || '-'}`, width - 4, y, { align: 'right' });
-  y += 4;
-
-  doc.text(`REF BY: ${entry?.referringDoctor || 'Self'}`, 4, y);
-  y += 4.5;
-
-  doc.setLineDashPattern([1, 1], 0);
-  doc.line(4, y, width - 4, y);
-  doc.setLineDashPattern([], 0);
-  y += 4;
+  doc.setTextColor(18, 59, 109);
+  doc.text('GENERATED TOKEN NUMBER', 52.5, 35.5, { align: 'center' });
 
   doc.setFont('helvetica', 'bold');
-  doc.text('INVESTIGATION(S)', 4, y);
-  doc.text('AMOUNT', width - 4, y, { align: 'right' });
-  y += 4;
+  doc.setFontSize(26);
+  doc.setTextColor(18, 59, 109);
+  doc.text(String(entry?.tokenNumber || 'TK-101'), 52.5, 49, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
-  const tests = Array.isArray(entry?.tests) ? entry.tests : [entry?.tests || 'Lab Test'];
-  tests.forEach((t: string) => {
-    doc.text(`• ${t}`, 4, y);
-    y += 3.5;
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text(
+    `UHID: ${entry?.uhid || 'LAB-2026-9041'}   •   Time: ${entry?.registeredAt || 'Morning Shift'}`,
+    52.5,
+    57,
+    { align: 'center' }
+  );
+
+  // 4. Patient Information Box (2 Columns)
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(8, 64, 89, 19, 3, 3, 'FD');
+
+  // Left: Patient details
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184); // #94A3B8
+  doc.text('PATIENT', 12, 69);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(15, 23, 42);
+  const pName = entry?.patientName ? String(entry.patientName).slice(0, 24) : 'Patient';
+  doc.text(pName, 12, 74);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`${entry?.age || '-'} Yrs / ${entry?.gender || '-'}`, 12, 79);
+
+  // Right: Mobile & Ref Doctor
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text('MOBILE & REF DOCTOR', 93, 69, { align: 'right' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`+91 ${entry?.mobile || '-'}`, 93, 74, { align: 'right' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(100, 116, 139);
+  const docName = entry?.referringDoctor ? `Dr: ${String(entry.referringDoctor).slice(0, 22)}` : 'Dr: Self';
+  doc.text(docName, 93, 79, { align: 'right' });
+
+  // 5. Prescribed Diagnostic Tests
+  let curY = 88;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(148, 163, 184);
+  doc.text(`PRESCRIBED DIAGNOSTIC TESTS (${tests.length})`, 8, curY);
+  curY += 4.5;
+
+  tests.forEach((t: string, idx: number) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(30, 41, 59);
+    const displayTest = String(t).length > 44 ? String(t).slice(0, 42) + '...' : String(t);
+    doc.text(`${idx + 1}.  ${displayTest}`, 10, curY);
+    curY += 4.5;
   });
 
-  y += 1;
-  doc.setLineDashPattern([1, 1], 0);
-  doc.line(4, y, width - 4, y);
-  doc.setLineDashPattern([], 0);
-  y += 4;
+  curY += 2;
+
+  // 6. Bill Financial Breakdown Box
+  const breakdownHeight = discount > 0 ? 37 : 32;
+  doc.setFillColor(250, 250, 250); // #FAFAFA
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(8, curY, 89, breakdownHeight, 3, 3, 'FD');
+
+  let bY = curY + 6;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text('Gross Test Amount:', 12, bY);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.text(`Rs. ${gross}`, 93, bY, { align: 'right' });
+
+  if (discount > 0) {
+    bY += 5.5;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(5, 150, 105);
+    doc.text('Discount / Concession:', 12, bY);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`-Rs. ${discount}`, 93, bY, { align: 'right' });
+  }
+
+  bY += 2.5;
+  doc.setDrawColor(226, 232, 240);
+  doc.line(12, bY, 93, bY);
+  bY += 5.5;
 
   doc.setFont('helvetica', 'bold');
-  doc.text('TOTAL:', 4, y);
-  doc.text(`INR ${entry?.totalAmount || 0}`, width - 4, y, { align: 'right' });
-  y += 4;
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Net Payable:', 12, bY);
+  doc.setFontSize(10.5);
+  doc.setTextColor(18, 59, 109);
+  doc.text(`Rs. ${net}`, 93, bY, { align: 'right' });
 
-  doc.text('PAID:', 4, y);
-  doc.text(`INR ${entry?.paidAmount || 0}`, width - 4, y, { align: 'right' });
-  y += 4;
-
-  doc.text('DUE BALANCE:', 4, y);
-  doc.text(`INR ${entry?.dueAmount || 0}`, width - 4, y, { align: 'right' });
-  y += 6;
-
-  doc.setFontSize(6.5);
+  bY += 6;
   doc.setFont('helvetica', 'normal');
-  doc.text('Online reports available on official lab portal', width / 2, y, { align: 'center' });
-  y += 3.5;
-  doc.text('Keep this slip safe for report collection', width / 2, y, { align: 'center' });
+  doc.setFontSize(8);
+  doc.setTextColor(5, 150, 105);
+  doc.text(`Amount Paid (${entry?.paymentMode || 'Cash'}):`, 12, bY);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Rs. ${paid}`, 93, bY, { align: 'right' });
 
-  const filename = `Receipt_${entry?.tokenNumber || 'Token'}_${(entry?.patientName || 'Patient').replace(/\s+/g, '_')}.pdf`;
+  bY += 2.5;
+  doc.setDrawColor(226, 232, 240);
+  doc.line(12, bY, 93, bY);
+  bY += 5.5;
+
+  if (due > 0) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(225, 29, 72); // Rose
+    doc.text('Balance Due:', 12, bY);
+    doc.setFontSize(10);
+    doc.text(`Rs. ${due}`, 93, bY, { align: 'right' });
+  } else {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(5, 150, 105); // Emerald
+    doc.text('Payment Status:', 12, bY);
+    doc.text('✓ Full Payment Cleared', 93, bY, { align: 'right' });
+  }
+
+  curY += breakdownHeight + 5;
+
+  // 7. Footer Strip
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineDashPattern([1, 1], 0);
+  doc.line(8, curY, 97, curY);
+  doc.setLineDashPattern([], 0);
+  curY += 4;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.8);
+  doc.setTextColor(100, 116, 139);
+  doc.text('Online reports available on official lab portal', 52.5, curY, { align: 'center' });
+  curY += 3.5;
+  doc.text(`Keep this slip safe for report collection  •  ${resolvedLabName.slice(0, 36)}`, 52.5, curY, {
+    align: 'center',
+  });
+
+  const blob = doc.output('blob');
+  const file = new File([blob], filename, { type: 'application/pdf' });
+
+  return { doc, filename, blob, file };
+}
+
+/**
+ * Downloads the receipt PDF directly using the exact design
+ */
+export async function generateThermalReceiptPdf(entry: any, labNameRaw?: string): Promise<void> {
+  const { doc, filename } = await buildReceiptInvoicePdf(entry, labNameRaw);
   doc.save(filename);
 }
 

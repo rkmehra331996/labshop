@@ -47,7 +47,7 @@ import { AppView, ReceptionPatientEntry } from '../types';
 import { EditReceptionEntryModal } from './EditReceptionEntryModal';
 import { CollectRemainingPaymentModal } from './CollectRemainingPaymentModal';
 import { DayEndCashClosingModal } from './reception/DayEndCashClosingModal';
-import { generateThermalReceiptPdf } from '../utils/pdfGenerator';
+import { generateThermalReceiptPdf, buildReceiptInvoicePdf, getReceiptPdfFilename } from '../utils/pdfGenerator';
 import { safePrint } from '../utils/printHelper';
 
 interface ReceptionEntryDashboardProps {
@@ -848,57 +848,59 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
     showToast(`🔄 Token ${entry.tokenNumber} updated to: ${nextStatus}`);
   };
 
-  const handleWhatsAppReceipt = (entry: ReceptionPatientEntry) => {
-    const text = encodeURIComponent(
-      `*${labName}* - Reception Receipt\n` +
-      `--------------------------------\n` +
-      `Token No: *${entry.tokenNumber}*\n` +
-      `UHID: ${entry.uhid}\n` +
-      `Patient: *${entry.patientName}* (${entry.age}Y/${entry.gender})\n` +
-      `Tests: ${entry.tests.join(', ')}\n` +
-      `Total: ₹${entry.totalAmount} | Paid: ₹${entry.paidAmount} (${entry.paymentMode})\n` +
-      `${entry.dueAmount > 0 ? `Due Balance: ₹${entry.dueAmount}\n` : ''}` +
-      `Status: ${entry.status}\n` +
-      `Online Report: https://apexlab.in/report?id=${entry.uhid}\n\n` +
-      `Thank you for choosing ${labName}!`
-    );
-    window.open(`https://wa.me/91${entry.mobile.replace(/\D/g, '')}?text=${text}`, '_blank');
+  const handleShareInvoice = async (entry: ReceptionPatientEntry) => {
+    try {
+      showToast('📄 Generating receipt PDF...');
+      const { doc, filename, file } = await buildReceiptInvoicePdf(entry, labName);
+
+      const netAmount = (entry.totalAmount || 0) - (entry.discountINR || 0);
+      const shareText =
+        `🧾 *${labName}* - Token & Invoice Receipt\n` +
+        `--------------------------------\n` +
+        `🎟️ Token No: *${entry.tokenNumber}*\n` +
+        `🆔 UHID: ${entry.uhid}\n` +
+        `👤 Patient: *${entry.patientName}* (${entry.age}Y/${entry.gender})\n` +
+        `📱 Mobile: +91 ${entry.mobile}\n` +
+        `🩺 Doctor: ${entry.referringDoctor}\n` +
+        `🧪 Tests: ${entry.tests.join(', ')}\n` +
+        `--------------------------------\n` +
+        `💵 Net Bill: ₹${netAmount}\n` +
+        `✅ Paid: ₹${entry.paidAmount} (${entry.paymentMode})\n` +
+        `${entry.dueAmount > 0 ? `⚠️ Due Balance: ₹${entry.dueAmount}\n` : '✨ Status: Paid in Full (Nil Due)\n'}` +
+        `📄 Attached PDF: *${filename}*\n\n` +
+        `Thank you for choosing ${labName}!`;
+
+      // 1. Try native Web Share API with actual PDF File object (Supported by Mobile WhatsApp & desktop share)
+      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: `Receipt ${entry.tokenNumber} - ${labName}`,
+            text: shareText,
+          });
+          showToast(`✅ Receipt PDF (${filename}) shared via WhatsApp!`);
+          return;
+        } catch (shareErr: any) {
+          if (shareErr.name === 'AbortError') {
+            return;
+          }
+        }
+      }
+
+      // 2. Direct Fallback: Automatically download the exact receipt PDF and open WhatsApp chat
+      doc.save(filename);
+      const cleanMobile = entry.mobile.replace(/\D/g, '');
+      const url = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(shareText)}`;
+      window.open(url, '_blank');
+      showToast(`✅ Receipt PDF "${filename}" downloaded & WhatsApp opened!`);
+    } catch (err) {
+      console.error(err);
+      showToast('❌ Failed to generate receipt PDF. Please try again.');
+    }
   };
 
-  const handleShareInvoice = async (entry: ReceptionPatientEntry) => {
-    const shareText =
-      `🧾 *${labName}* - Token & Invoice\n` +
-      `--------------------------------\n` +
-      `🎟️ Token No: *${entry.tokenNumber}*\n` +
-      `🆔 UHID: ${entry.uhid}\n` +
-      `👤 Patient: *${entry.patientName}* (${entry.age}Y/${entry.gender})\n` +
-      `📱 Mobile: +91 ${entry.mobile}\n` +
-      `🩺 Doctor: ${entry.referringDoctor}\n` +
-      `🧪 Tests: ${entry.tests.join(', ')}\n` +
-      `--------------------------------\n` +
-      `💵 Gross Amount: ₹${entry.totalAmount}\n` +
-      `${entry.discountINR > 0 ? `🎁 Discount: -₹${entry.discountINR}\n` : ''}` +
-      `💰 Net Amount: ₹${entry.totalAmount - entry.discountINR}\n` +
-      `✅ Paid: ₹${entry.paidAmount} (${entry.paymentMode})\n` +
-      `${entry.dueAmount > 0 ? `⚠️ Due Balance: ₹${entry.dueAmount}\n` : '✨ Status: Paid in Full (Nil Due)\n'}` +
-      `🌐 Online Report: https://apexlab.in/report?id=${entry.uhid}\n\n` +
-      `Thank you for choosing ${labName}!`;
-
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({
-          title: `Token ${entry.tokenNumber} - ${entry.patientName}`,
-          text: shareText,
-        });
-        return;
-      } catch {
-        // Fallback to WhatsApp if share dialog was dismissed or not completed
-      }
-    }
-
-    const cleanMobile = entry.mobile.replace(/\D/g, '');
-    const url = `https://wa.me/91${cleanMobile}?text=${encodeURIComponent(shareText)}`;
-    window.open(url, '_blank');
+  const handleWhatsAppReceipt = (entry: ReceptionPatientEntry) => {
+    handleShareInvoice(entry);
   };
 
   return (
@@ -2102,26 +2104,26 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
             {/* Action Buttons: Share and Download clearly highlighted (Minimalist Design) */}
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2.5">
-                {/* Share Button */}
+                {/* Share Button (WhatsApp / PDF) */}
                 <button
                   type="button"
                   onClick={() => handleShareInvoice(selectedReceipt)}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
-                  title="Share invoice & token via WhatsApp or System Share"
+                  title="Share receipt PDF via WhatsApp"
                 >
                   <Share2 className="w-4 h-4" />
-                  <span>Share</span>
+                  <span>Share (WhatsApp)</span>
                 </button>
 
                 {/* Download Button */}
                 <button
                   type="button"
-                  onClick={() => generateThermalReceiptPdf(selectedReceipt)}
+                  onClick={() => generateThermalReceiptPdf(selectedReceipt, labName)}
                   className="bg-[#123B6D] hover:bg-[#0e2c52] text-white py-2.5 px-4 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-98"
-                  title="Download invoice PDF"
+                  title="Download receipt PDF"
                 >
                   <Download className="w-4 h-4 text-cyan-300" />
-                  <span>Download</span>
+                  <span>Download PDF</span>
                 </button>
               </div>
 
@@ -2131,10 +2133,10 @@ export const ReceptionEntryDashboard: React.FC<ReceptionEntryDashboardProps> = (
                   type="button"
                   onClick={() => {
                     const success = safePrint(() => {
-                      generateThermalReceiptPdf(selectedReceipt);
+                      generateThermalReceiptPdf(selectedReceipt, labName);
                     });
                     if (!success) {
-                      generateThermalReceiptPdf(selectedReceipt);
+                      generateThermalReceiptPdf(selectedReceipt, labName);
                     }
                   }}
                   className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 py-2 px-3 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
