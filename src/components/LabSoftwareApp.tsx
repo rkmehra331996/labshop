@@ -32,6 +32,8 @@ import {
   Globe,
   Lock,
   LogOut,
+  Calendar,
+  X,
 } from 'lucide-react';
 import { Patient, TestItem, LabReport, ReportItem, ReceptionPatientEntry } from '../types';
 import { CreateReportModal } from './CreateReportModal';
@@ -71,6 +73,40 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
   const [selectedBranch, setSelectedBranch] = useState('br-a');
   const [currentUser, setCurrentUser] = useState('Dr. Rohit Sharma (MD Pathologist)');
 
+  // 3. Patient Tabs: 'all' | 'waiting' | 'in_testing' | 'report_done'
+  type PatientTab = 'all' | 'waiting' | 'in_testing' | 'report_done';
+  const [patientTab, setPatientTab] = useState<PatientTab>('all');
+
+  // 4. Search & Filters (Independent)
+  // Search by Token Number or Phone Number
+  const [searchTokenOrPhone, setSearchTokenOrPhone] = useState('');
+  // Date Filter & Custom Date
+  const [dateFilter, setDateFilter] = useState<'All Dates' | 'Today' | 'Yesterday' | 'Custom Date'>('All Dates');
+  const [customDate, setCustomDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  // Payment Mode Filter
+  const [paymentModeFilter, setPaymentModeFilter] = useState<'All' | 'UPI' | 'Cash' | 'Card'>('All');
+
+  // Toast notification for user actions (e.g. Send to Reception Desk, Start Testing)
+  const [toastNotice, setToastNotice] = useState<string | null>(null);
+
+  // Independent Date Calculations
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const yesterdayDateObj = new Date();
+  yesterdayDateObj.setDate(yesterdayDateObj.getDate() - 1);
+  const yesterdayDateStr = yesterdayDateObj.toISOString().split('T')[0];
+
+  const getPatientDate = (p: Patient): string => {
+    if (p.entryDate) return p.entryDate;
+    if (p.id === 'rcp-103' || p.id === 'rcp-104') return yesterdayDateStr;
+    if (p.id?.startsWith('rcp-')) {
+      const ts = Number(p.id.replace('rcp-', ''));
+      if (!isNaN(ts) && ts > 1600000000000) {
+        return new Date(ts).toISOString().split('T')[0];
+      }
+    }
+    return todayDateStr;
+  };
+
   // Tenant-isolated patients derived directly from active vendor's reception queue
   const patients = useMemo<Patient[]>(() => {
     return receptionEntries.map((r) => {
@@ -80,9 +116,17 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
         : typeof rawTests === 'string'
         ? (rawTests as string).split(',').map((s) => s.trim()).filter(Boolean)
         : [];
+
+      const tokenNumber = r.tokenNumber || r.tokenNo || `TK-${r.id.replace('rcp-', '')}`;
+      const isReportDone = r.status === 'Report Ready' || r.technicianStatus === 'Report Generated' || Boolean(r.reportId);
+      const isInTesting = !isReportDone && (r.technicianStatus === 'Accepted' || r.status === 'In Lab');
+      const workflowStatus = isReportDone ? 'Report Done' : isInTesting ? 'In Testing' : 'Waiting';
+
       return {
         id: r.id,
         uhid: r.uhid || `UHID-${r.id}`,
+        tokenNumber,
+        tokenNo: tokenNumber,
         name: r.patientName || 'Unknown Patient',
         age: Number(r.age) || 30,
         gender: r.gender || 'Male',
@@ -90,8 +134,9 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
         city: vendorLabSettings?.address ? vendorLabSettings.address.split(',').pop()?.trim() || 'City' : 'City',
         referringDoctor: r.referringDoctor || 'Self / Walk-in',
         registeredAt: r.registeredAt || 'Today',
+        entryDate: r.entryDate || (r.registeredAt && r.registeredAt.includes('-') ? r.registeredAt : undefined),
         reportId: r.reportId || '',
-        status: (r.status === 'Report Ready' ? 'Report Ready' : r.status === 'In Lab' ? 'In Progress' : 'Waiting') as any,
+        status: workflowStatus as any,
         tests: testList,
         totalBill: r.totalAmount || 0,
         paidAmount: r.paidAmount || 0,
@@ -100,9 +145,18 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
         labId: r.labId,
         branchId: r.branchId,
         branchName: r.branchName,
+        sentToReceptionDesk: Boolean(r.sentToReceptionDesk),
+        sentToReceptionAt: r.sentToReceptionAt,
+        technicianStatus: r.technicianStatus,
       };
     });
   }, [receptionEntries, vendorLabSettings?.address]);
+
+  // Tab counts
+  const countAll = patients.length;
+  const countWaiting = patients.filter((p) => p.status === 'Waiting').length;
+  const countInTesting = patients.filter((p) => p.status === 'In Testing').length;
+  const countReportDone = patients.filter((p) => p.status === 'Report Done').length;
 
   // Reception Queue Computed metrics for Technician
   const pendingReceptionEntries = receptionEntries.filter((r) => r.sentToTechnician);
@@ -326,6 +380,12 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
   }, [workstationPatientId, patients]);
 
   const handleOpenCreateReportModal = (patient?: Patient, report?: LabReport) => {
+    // Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing must be disabled.
+    if (patient?.sentToReceptionDesk || report?.sentToReceptionDesk) {
+      setToastNotice('Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing is disabled.');
+      setTimeout(() => setToastNotice(null), 4000);
+      return;
+    }
     setSelectedPatientForReport(patient || null);
     if (report) {
       setSelectedReportToEdit(report);
@@ -339,13 +399,50 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
   };
 
   const handleEditReport = (report: LabReport) => {
-    setIsPreviewModalOpen(false);
     const pat = patients.find(
       (p) => p.reportId === report.reportId || p.uhid === report.uhid || p.mobile === report.mobile
     );
+    // Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing must be disabled.
+    if (pat?.sentToReceptionDesk || report.sentToReceptionDesk) {
+      setToastNotice('Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing is disabled.');
+      setTimeout(() => setToastNotice(null), 4000);
+      return;
+    }
+    setIsPreviewModalOpen(false);
     setSelectedPatientForReport(pat || null);
     setSelectedReportToEdit(report);
     setIsCreateReportModalOpen(true);
+  };
+
+  const handleSendToReceptionDesk = (patient: Patient) => {
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    // Update reception entry
+    updateReceptionEntry(patient.id, {
+      sentToReceptionDesk: true,
+      sentToReceptionAt: `Today, ${timeStr}`,
+      isReportPublished: false,
+    });
+
+    // Update lab report if exists
+    if (patient.reportId) {
+      updateLabReport(patient.reportId, {
+        sentToReceptionDesk: true,
+        sentToReceptionAt: `Today, ${timeStr}`,
+      });
+    }
+
+    setToastNotice(`Report for ${patient.name} (${patient.tokenNumber || patient.uhid}) sent to Reception Desk. Editing is now locked.`);
+    setTimeout(() => setToastNotice(null), 4500);
+  };
+
+  const handleStartTesting = (patient: Patient) => {
+    updateReceptionEntry(patient.id, {
+      technicianStatus: 'Accepted',
+      status: 'In Lab',
+    });
+    setToastNotice(`Specimen accepted for ${patient.name} (${patient.tokenNumber || patient.uhid}). Moved to "In Testing" tab.`);
+    setTimeout(() => setToastNotice(null), 3500);
   };
 
   const handleDeleteReport = (report: LabReport) => {
@@ -466,12 +563,54 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
     setTimeout(() => setWorkstationSuccessNotice(false), 3000);
   };
 
-  const filteredPatients = patients.filter(p =>
-    p.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
-    p.mobile.includes(searchFilter) ||
-    p.uhid.toLowerCase().includes(searchFilter.toLowerCase()) ||
-    p.reportId.toLowerCase().includes(searchFilter.toLowerCase())
-  );
+  const filteredPatients = useMemo(() => {
+    return patients.filter((p) => {
+      // 1. Patient Tabs: 'all' | 'waiting' | 'in_testing' | 'report_done'
+      if (patientTab === 'waiting' && p.status !== 'Waiting') return false;
+      if (patientTab === 'in_testing' && p.status !== 'In Testing') return false;
+      if (patientTab === 'report_done' && p.status !== 'Report Done') return false;
+
+      // 2. Search by Token Number or Phone Number (Independent)
+      if (searchTokenOrPhone.trim()) {
+        const q = searchTokenOrPhone.trim().toLowerCase();
+        const qDigits = searchTokenOrPhone.replace(/\D/g, '');
+        const matchToken =
+          (p.tokenNumber && p.tokenNumber.toLowerCase().includes(q)) ||
+          (p.tokenNo && p.tokenNo.toLowerCase().includes(q)) ||
+          (p.uhid && p.uhid.toLowerCase().includes(q));
+        const matchPhone =
+          (p.mobile && p.mobile.includes(q)) ||
+          (qDigits.length > 0 && p.mobile && p.mobile.replace(/\D/g, '').includes(qDigits));
+
+        if (!matchToken && !matchPhone) {
+          return false;
+        }
+      }
+
+      // 3. Date Filter (Independent)
+      if (dateFilter !== 'All Dates') {
+        const itemDate = getPatientDate(p);
+        if (dateFilter === 'Today' && itemDate !== todayDateStr) {
+          return false;
+        }
+        if (dateFilter === 'Yesterday' && itemDate !== yesterdayDateStr) {
+          return false;
+        }
+        if (dateFilter === 'Custom Date' && itemDate !== customDate) {
+          return false;
+        }
+      }
+
+      // 4. Payment Mode Filter (Independent)
+      if (paymentModeFilter !== 'All') {
+        if (p.paymentMode?.toUpperCase() !== paymentModeFilter.toUpperCase()) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [patients, patientTab, searchTokenOrPhone, dateFilter, customDate, paymentModeFilter]);
 
   const labName = vendorLabSettings?.labName || 'Apex Diagnostic & Clinical Pathology Laboratory';
   const labLogoUrl = vendorLabSettings?.logoUrl || '';
@@ -604,127 +743,500 @@ export const LabSoftwareApp: React.FC<LabSoftwareAppProps> = ({ onBackToWebsite,
               </div>
             </div>
 
-            {/* Live Queue Table */}
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-              <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <h3 className="text-sm font-extrabold text-[#172033]">
-                  Active Patient Worklist (Today)
-                </h3>
-                <div className="relative w-full sm:w-64">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+            {/* 3. Patient Tabs: All Patients | Waiting | In Testing | Report Done */}
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-3 overflow-x-auto">
+              <button
+                type="button"
+                id="tech-tab-all"
+                onClick={() => setPatientTab('all')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 ${
+                  patientTab === 'all'
+                    ? 'bg-[#123B6D] text-white shadow-sm font-extrabold'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                <span>All Patients</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    patientTab === 'all' ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  {countAll}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                id="tech-tab-waiting"
+                onClick={() => setPatientTab('waiting')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 ${
+                  patientTab === 'waiting'
+                    ? 'bg-amber-500 text-slate-950 shadow-sm font-black'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+                }`}
+              >
+                <Clock className="w-4 h-4" />
+                <span>Waiting</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    patientTab === 'waiting' ? 'bg-slate-950 text-amber-300' : 'bg-amber-100 text-amber-900'
+                  }`}
+                >
+                  {countWaiting}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                id="tech-tab-in-testing"
+                onClick={() => setPatientTab('in_testing')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 ${
+                  patientTab === 'in_testing'
+                    ? 'bg-[#0F766E] text-white shadow-sm font-black'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+                }`}
+              >
+                <FlaskConical className="w-4 h-4" />
+                <span>In Testing</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    patientTab === 'in_testing' ? 'bg-white/25 text-white' : 'bg-teal-100 text-teal-900'
+                  }`}
+                >
+                  {countInTesting}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                id="tech-tab-report-done"
+                onClick={() => setPatientTab('report_done')}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 ${
+                  patientTab === 'report_done'
+                    ? 'bg-emerald-600 text-white shadow-sm font-black'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+                }`}
+              >
+                <CheckCheck className="w-4 h-4" />
+                <span>Report Done</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    patientTab === 'report_done' ? 'bg-white/25 text-white' : 'bg-emerald-100 text-emerald-900'
+                  }`}
+                >
+                  {countReportDone}
+                </span>
+              </button>
+            </div>
+
+            {/* Toast Notification Banner */}
+            {toastNotice && (
+              <div className="bg-emerald-50 border border-emerald-300 text-emerald-900 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between gap-3 shadow-xs animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{toastNotice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setToastNotice(null)}
+                  className="text-emerald-700 hover:text-emerald-900 cursor-pointer p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* 4. Search & Filters (Independent) */}
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+                {/* Search by Token Number or Phone Number */}
+                <div className="relative flex-1 min-w-[260px]">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
                     type="text"
-                    value={searchFilter}
-                    onChange={(e) => setSearchFilter(e.target.value)}
-                    placeholder="Filter by name, mobile, UHID..."
-                    className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#123B6D]/30"
+                    id="tech-search-token-phone"
+                    value={searchTokenOrPhone}
+                    onChange={(e) => setSearchTokenOrPhone(e.target.value)}
+                    placeholder="Search by Token Number or Phone Number..."
+                    className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#123B6D]/30 focus:border-[#123B6D] transition"
                   />
+                  {searchTokenOrPhone && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchTokenOrPhone('')}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Independent Filter Group: Date Filter + Payment Mode Filter */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {/* Date Filter */}
+                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-2xs">
+                    <Calendar className="w-3.5 h-3.5 text-[#123B6D] shrink-0" />
+                    <span className="text-[11px] font-bold text-slate-600 shrink-0">Date Filter:</span>
+                    <select
+                      id="tech-date-filter"
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value as any)}
+                      className="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer pr-1"
+                    >
+                      <option value="All Dates">All Dates</option>
+                      <option value="Today">Today</option>
+                      <option value="Yesterday">Yesterday</option>
+                      <option value="Custom Date">Custom Date</option>
+                    </select>
+                    {dateFilter === 'Custom Date' && (
+                      <input
+                        type="date"
+                        value={customDate}
+                        onChange={(e) => setCustomDate(e.target.value)}
+                        className="text-xs bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-800 outline-none ml-1 cursor-pointer"
+                      />
+                    )}
+                  </div>
+
+                  {/* Payment Mode Filter */}
+                  <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 shadow-2xs">
+                    <IndianRupee className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                    <span className="text-[11px] font-bold text-slate-600 shrink-0">Payment Mode:</span>
+                    <select
+                      id="tech-payment-mode-filter"
+                      value={paymentModeFilter}
+                      onChange={(e) => setPaymentModeFilter(e.target.value as any)}
+                      className="bg-transparent text-xs font-semibold text-slate-900 outline-none cursor-pointer pr-1"
+                    >
+                      <option value="All">All Payment Modes</option>
+                      <option value="UPI">UPI</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Card">Card</option>
+                    </select>
+                  </div>
+
+                  {/* Clear All Filters Button */}
+                  {(searchTokenOrPhone || dateFilter !== 'All Dates' || paymentModeFilter !== 'All') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchTokenOrPhone('');
+                        setDateFilter('All Dates');
+                        setPaymentModeFilter('All');
+                      }}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                      title="Reset all filters"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>Clear Filters</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
+              {/* Informative Status Strip */}
+              <div className="text-[11px] text-slate-500 flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                <div>
+                  Showing <strong className="text-slate-900">{filteredPatients.length}</strong> patient{filteredPatients.length === 1 ? '' : 's'}
+                  {patientTab !== 'all' && (
+                    <span className="ml-1 text-slate-700">
+                      in <strong className="capitalize">{patientTab.replace('_', ' ')}</strong>
+                    </span>
+                  )}
+                  {searchTokenOrPhone && <span className="ml-1 font-medium text-[#123B6D]">• Token/Phone: "{searchTokenOrPhone}"</span>}
+                  {dateFilter !== 'All Dates' && (
+                    <span className="ml-1 font-medium text-slate-700">• Date: {dateFilter === 'Custom Date' ? customDate : dateFilter}</span>
+                  )}
+                  {paymentModeFilter !== 'All' && <span className="ml-1 font-medium text-emerald-800">• Mode: {paymentModeFilter}</span>}
+                </div>
+                {patientTab === 'report_done' && (
+                  <div className="text-amber-800 font-semibold bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-md flex items-center gap-1.5">
+                    <Lock className="w-3 h-3 text-amber-700 shrink-0" />
+                    <span>Reports can be edited only before clicking Send to Reception Desk. Once sent, editing is disabled.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Live Queue Table */}
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] tracking-wider">
-                      <th className="py-2.5 px-4 font-bold">UHID & Date</th>
+                      <th className="py-2.5 px-4 font-bold">Token & UHID</th>
                       <th className="py-2.5 px-4 font-bold">Patient Details</th>
                       <th className="py-2.5 px-4 font-bold">Doctor Reference</th>
                       <th className="py-2.5 px-4 font-bold">Tests</th>
-                      <th className="py-2.5 px-4 font-bold">Bill & Due</th>
+                      <th className="py-2.5 px-4 font-bold">Bill & Payment</th>
                       <th className="py-2.5 px-4 font-bold">Status</th>
                       <th className="py-2.5 px-4 font-bold text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredPatients.map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-50/70 transition">
-                        <td className="py-3 px-4">
-                          <div className="font-mono font-bold text-[#123B6D]">{p.uhid}</div>
-                          <div className="text-[10px] text-slate-400">{p.registeredAt}</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-slate-900">{p.name}</div>
-                          <div className="text-[11px] text-slate-500">
-                            {p.age} Y / {p.gender} • +91 {p.mobile}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-slate-700">
-                          <div className="font-medium">{p.referringDoctor}</div>
-                          <div className="text-[10px] text-slate-400">ID: {p.reportId}</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="max-w-xs truncate font-medium text-slate-800">
-                            {p.tests.join(', ')}
-                          </div>
-                          <div className="text-[10px] text-slate-400">{p.tests.length} tests</div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-slate-900">₹{p.totalBill}</div>
-                          {p.dueAmount > 0 ? (
-                            <span className="text-[10px] text-rose-600 font-semibold block">
-                              Due: ₹{p.dueAmount}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-emerald-600 font-semibold block">
-                              Paid ({p.paymentMode})
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              p.status === 'Report Ready' || p.status === 'Delivered'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : p.status === 'Pending Verification'
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-blue-100 text-[#123B6D]'
-                            }`}
-                          >
-                            {p.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                            <button
-                              onClick={() => handleOpenCreateReportModal(p)}
-                              className="px-2.5 py-1 rounded bg-[#123B6D] hover:bg-[#0e2c52] text-white text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer"
-                              title="Enter results or create report for this patient"
-                            >
-                              <FlaskConical className="w-3 h-3 text-amber-300 fill-amber-300" />
-                              <span>{p.status === 'Report Ready' ? 'Edit Report' : 'Make Report'}</span>
-                            </button>
-                            <button
-                              onClick={() => handleOpenReportPreview(p.reportId, p.mobile)}
-                              className="p-1.5 text-slate-600 hover:text-[#123B6D] hover:bg-slate-100 rounded"
-                              title="View & Print Report"
-                            >
-                              <Printer className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleWhatsAppSend(p)}
-                              className="p-1.5 text-[#0F766E] hover:text-emerald-700 hover:bg-emerald-50 rounded cursor-pointer"
-                              title="Send WhatsApp Report"
-                            >
-                              <MessageSquare className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenEditPatient(p)}
-                              className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded cursor-pointer"
-                              title="Edit Patient Details"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeletePatient(p)}
-                              className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded cursor-pointer"
-                              title="Delete Patient Record"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                    {filteredPatients.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-slate-500">
+                          <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
+                            <Search className="w-8 h-8 text-slate-300" />
+                            <p className="font-bold text-slate-700">No patients found</p>
+                            <p className="text-xs text-slate-500">
+                              No records match your active search, tab, or filter criteria. Try adjusting or clearing your filters.
+                            </p>
+                            {(searchTokenOrPhone || dateFilter !== 'All Dates' || paymentModeFilter !== 'All' || patientTab !== 'all') && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSearchTokenOrPhone('');
+                                  setDateFilter('All Dates');
+                                  setPaymentModeFilter('All');
+                                  setPatientTab('all');
+                                }}
+                                className="mt-2 text-xs font-bold text-[#123B6D] hover:underline cursor-pointer"
+                              >
+                                Reset all filters & show all patients
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredPatients.map((p) => {
+                        const isReportDone = p.status === 'Report Done' || Boolean(p.reportId);
+                        const isInTesting = p.status === 'In Testing';
+                        const isWaiting = p.status === 'Waiting';
+
+                        return (
+                          <tr key={p.id} className="hover:bg-slate-50/70 transition">
+                            {/* Token & UHID */}
+                            <td className="py-3 px-4">
+                              <div className="inline-block bg-[#123B6D]/10 text-[#123B6D] font-mono font-black text-xs px-2 py-0.5 rounded-md border border-[#123B6D]/20">
+                                {p.tokenNumber || p.tokenNo || 'TK-101'}
+                              </div>
+                              <div className="font-mono text-[11px] text-slate-600 mt-1">{p.uhid}</div>
+                              <div className="text-[10px] text-slate-400">{p.registeredAt}</div>
+                            </td>
+
+                            {/* Patient Details */}
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-slate-900">{p.name}</div>
+                              <div className="text-[11px] text-slate-500">
+                                {p.age} Y / {p.gender}
+                              </div>
+                              <div className="text-[11px] font-mono font-medium text-slate-700 mt-0.5">
+                                +91 {p.mobile}
+                              </div>
+                            </td>
+
+                            {/* Doctor Reference */}
+                            <td className="py-3 px-4 text-slate-700">
+                              <div className="font-medium text-xs text-slate-800">{p.referringDoctor}</div>
+                              {p.reportId ? (
+                                <div className="text-[10px] font-mono text-slate-500 mt-0.5">
+                                  Report: <span className="font-semibold text-[#123B6D]">{p.reportId}</span>
+                                </div>
+                              ) : (
+                                <div className="text-[10px] text-slate-400 mt-0.5">No report yet</div>
+                              )}
+                            </td>
+
+                            {/* Tests */}
+                            <td className="py-3 px-4">
+                              <div className="max-w-xs truncate font-medium text-slate-800 text-xs">
+                                {Array.isArray(p.tests) ? p.tests.join(', ') : p.tests}
+                              </div>
+                              <div className="text-[10px] text-slate-400 mt-0.5">
+                                {Array.isArray(p.tests) ? p.tests.length : 1} test{(Array.isArray(p.tests) ? p.tests.length : 1) === 1 ? '' : 's'}
+                              </div>
+                            </td>
+
+                            {/* Bill & Payment */}
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-slate-900">₹{p.totalBill}</div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                  {p.paymentMode}
+                                </span>
+                                {p.dueAmount > 0 ? (
+                                  <span className="text-[10px] text-rose-600 font-bold">
+                                    Due: ₹{p.dueAmount}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-emerald-600 font-bold">
+                                    Paid
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-3 px-4">
+                              {isReportDone ? (
+                                <div className="space-y-1">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+                                    <CheckCheck className="w-3 h-3 text-emerald-700" />
+                                    <span>Report Done</span>
+                                  </span>
+                                  {p.sentToReceptionDesk ? (
+                                    <div className="text-[10px] font-bold text-teal-700 flex items-center gap-1 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded">
+                                      <Check className="w-3 h-3 text-teal-600" />
+                                      <span>Sent to Reception</span>
+                                    </div>
+                                  ) : (
+                                    <div className="text-[10px] font-medium text-amber-700">
+                                      At Lab (Ready to send)
+                                    </div>
+                                  )}
+                                </div>
+                              ) : isInTesting ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-[#123B6D] border border-blue-200">
+                                  <FlaskConical className="w-3 h-3 text-[#123B6D]" />
+                                  <span>In Testing</span>
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                                  <Clock className="w-3 h-3 text-amber-700" />
+                                  <span>Waiting</span>
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                {/* Waiting actions: Start Testing & Make Report */}
+                                {isWaiting && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleStartTesting(p)}
+                                      className="px-2.5 py-1 rounded bg-teal-700 hover:bg-teal-800 text-white text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
+                                      title="Accept sample and move to In Testing"
+                                    >
+                                      <FlaskConical className="w-3 h-3" />
+                                      <span>Start Testing</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenCreateReportModal(p)}
+                                      className="px-2.5 py-1 rounded bg-[#123B6D] hover:bg-[#0e2c52] text-white text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
+                                      title="Create report for this patient"
+                                    >
+                                      <Plus className="w-3 h-3 text-amber-300" />
+                                      <span>Make Report</span>
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* In Testing actions: Make Report */}
+                                {isInTesting && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenCreateReportModal(p)}
+                                    className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-black transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
+                                    title="Enter test results and complete report"
+                                  >
+                                    <FlaskConical className="w-3.5 h-3.5 fill-slate-950" />
+                                    <span>+ Enter Results</span>
+                                  </button>
+                                )}
+
+                                {/* Report Done actions: Send to Reception Desk & Edit Report (Locked once sent) */}
+                                {isReportDone && (
+                                  <>
+                                    {/* Send to Reception Desk Button */}
+                                    {p.sentToReceptionDesk ? (
+                                      <span
+                                        className="px-2 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-300 text-[10px] font-bold flex items-center gap-1 select-none shadow-2xs"
+                                        title={`Report sent to Reception Desk at ${p.sentToReceptionAt || 'Today'}`}
+                                      >
+                                        <Check className="w-3 h-3 text-emerald-600" />
+                                        <span>Sent to Desk</span>
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSendToReceptionDesk(p)}
+                                        className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
+                                        title="Send report to Reception Desk. Note: Editing will be locked once sent."
+                                      >
+                                        <Share2 className="w-3 h-3 text-white" />
+                                        <span>Send to Reception Desk</span>
+                                      </button>
+                                    )}
+
+                                    {/* Edit Report Button (Disabled once sent) */}
+                                    {p.sentToReceptionDesk ? (
+                                      <button
+                                        type="button"
+                                        disabled
+                                        className="px-2.5 py-1 rounded bg-slate-100 text-slate-400 border border-slate-200 text-[11px] font-semibold flex items-center gap-1 cursor-not-allowed select-none"
+                                        title="Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing is disabled."
+                                      >
+                                        <Lock className="w-3 h-3 text-slate-400" />
+                                        <span>Edit Locked</span>
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenCreateReportModal(p)}
+                                        className="px-2.5 py-1 rounded bg-[#123B6D] hover:bg-[#0e2c52] text-white text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
+                                        title="Edit diagnostic report values and impression"
+                                      >
+                                        <Edit2 className="w-3 h-3 text-amber-300" />
+                                        <span>Edit Report</span>
+                                      </button>
+                                    )}
+
+                                    {/* View & Print Report */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenReportPreview(p.reportId, p.mobile)}
+                                      className="p-1.5 text-slate-600 hover:text-[#123B6D] hover:bg-slate-100 rounded cursor-pointer"
+                                      title="View & Print Report PDF"
+                                    >
+                                      <Printer className="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {/* WhatsApp */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleWhatsAppSend(p)}
+                                      className="p-1.5 text-[#0F766E] hover:text-emerald-700 hover:bg-emerald-50 rounded cursor-pointer"
+                                      title="Send WhatsApp Report"
+                                    >
+                                      <MessageSquare className="w-3.5 h-3.5" />
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* Edit Patient details modal */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditPatient(p)}
+                                  className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded cursor-pointer"
+                                  title="Edit Patient Details"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* Delete patient */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePatient(p)}
+                                  className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded cursor-pointer"
+                                  title="Delete Patient Record"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>

@@ -8,6 +8,7 @@ import {
   Printer,
   MessageSquare,
   CheckCircle2,
+  Lock,
 } from 'lucide-react';
 import { LabReport } from '../types';
 import { CanonicalPdfViewer } from './CanonicalPdfViewer';
@@ -114,15 +115,25 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({
             )}
 
             {onEditReport && (
-              <button
-                type="button"
-                onClick={handleEdit}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                title="Edit Report parameters or patient info"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>Edit Report</span>
-              </button>
+              report.sentToReceptionDesk ? (
+                <div
+                  className="bg-slate-850 text-slate-400 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed select-none"
+                  title="Reports can be edited only before clicking the Send to Reception Desk button. Once sent, editing is disabled."
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Editing Locked</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  title="Edit Report parameters or patient info"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit Report</span>
+                </button>
+              )
             )}
 
             {onDeleteReport && (

@@ -394,6 +394,8 @@ export interface TestItem {
 export interface Patient {
   id: string;
   uhid: string;
+  tokenNumber?: string;
+  tokenNo?: string;
   name: string;
   age: number;
   gender: 'Male' | 'Female' | 'Other';
@@ -401,8 +403,9 @@ export interface Patient {
   city: string;
   referringDoctor: string;
   registeredAt: string;
+  entryDate?: string;
   reportId: string;
-  status: 'Sample Collected' | 'In Processing' | 'Pending Verification' | 'Report Ready' | 'Delivered';
+  status: 'Sample Collected' | 'In Processing' | 'Pending Verification' | 'Report Ready' | 'Delivered' | 'Waiting' | 'In Testing' | 'Report Done';
   tests: string[];
   totalBill: number;
   paidAmount: number;
@@ -411,6 +414,9 @@ export interface Patient {
   labId?: string;
   branchId?: string;
   branchName?: string;
+  sentToReceptionDesk?: boolean;
+  sentToReceptionAt?: string;
+  technicianStatus?: string;
 }
 
 export interface ReportItem {
@@ -464,6 +470,8 @@ export interface LabReport {
   publishedBy?: string;
   paymentStatus?: string;
   dueAmount?: number;
+  sentToReceptionDesk?: boolean;
+  sentToReceptionAt?: string;
 }
 
 export interface BranchStat {
@@ -591,6 +599,8 @@ export interface ReceptionPatientEntry {
   receptionistName?: string;
   technicianId?: string;
   technicianName?: string;
+  sentToReceptionDesk?: boolean;
+  sentToReceptionAt?: string;
 }
 
 export type DomainRequestType = 'custom_domain' | 'subdomain';
